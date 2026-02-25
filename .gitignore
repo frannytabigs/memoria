@@ -1,0 +1,5 @@
+# Security
+.env
+
+# Composer Dependencies
+vendor/

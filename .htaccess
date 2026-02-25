@@ -1,0 +1,24 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /memoria/
+
+    # Block dotfiles (.env, .htaccess, etc.)
+    RewriteRule (^|/)\. - [F]
+
+    # Allow api and assets
+    RewriteRule ^(api|assets)/ - [L]
+
+    # Root request -> index.html
+    RewriteRule ^$ assets/pages/index.html [L]
+
+    # HTML mask
+    RewriteRule ^([^/]+\.html)$ assets/pages/$1 [L]
+
+    # Block everything else
+    RewriteRule ^ - [R=404,L]
+</IfModule>
+
+# Error pages
+ErrorDocument 404 /memoria/assets/pages/404.html
+ErrorDocument 500 /memoria/assets/pages/500.html
+ErrorDocument 403 /memoria/assets/pages/404.html
