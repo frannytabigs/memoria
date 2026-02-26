@@ -1,24 +1,48 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /memoria/
+    RewriteBase /memoria/ 
+    #for hosting or production, change to RewriteBase /
 
-    # Block dotfiles (.env, .htaccess, etc.)
-    RewriteRule (^|/)\. - [F]
+    # Disable directory listing (Stops people from seeing the contents of a folder)
+    Options -Indexes
 
-    # Allow api and assets
-    RewriteRule ^(api|assets)/ - [L]
+    # Block hidden dot files instantly (.env, .htaccess, .git, etc.)
+    RewriteRule (^|/)\. - [R=404,L]
 
-    # Root request -> index.html
-    RewriteRule ^$ assets/pages/index.html [L]
+    # Allow root
+    RewriteCond %{REQUEST_URI} ^/memoria/?$ [OR]
+    #change to ^/?$ for hosting or production
 
-    # HTML mask
-    RewriteRule ^([^/]+\.html)$ assets/pages/$1 [L]
+    # Allow root html files
+    RewriteCond %{REQUEST_URI} ^/memoria/[^/]+\.html$ [OR]
+    #change to ^/[^/]+\.html$ for hosting or production
 
-    # Block everything else
+    # Allow assets static only (CRITICAL FIX: Added [OR] here)
+    RewriteCond %{REQUEST_URI} ^/memoria/assets/.*\.(css|js|png|jpg|jpeg|gif|svg|woff2?)$ [OR]
+    #change to ^/assets/.*\.(css|js|png|jpg|jpeg|gif|svg|woff2?)$ [OR] for hosting or production
+
+    # Allow API calls (No [OR] needed on the last condition)
+    RewriteCond %{REQUEST_URI} ^/memoria/api/
+    #change to ^/api/ for hosting or production
+
+    # If YES to any of the above, stop checking and let it load normally!
+    RewriteRule ^ - [L]
+
+    # This instantly hides composer.json, composer.lock, /vendor/, and everything else = 404 Not Found
     RewriteRule ^ - [R=404,L]
+
 </IfModule>
 
-# Error pages
-ErrorDocument 404 /memoria/assets/pages/404.html
-ErrorDocument 500 /memoria/assets/pages/500.html
-ErrorDocument 403 /memoria/assets/pages/404.html
+# Custom Error Pages
+
+ErrorDocument 400 /memoria/404.html
+#change to ErrorDocument 400 /404.html for hosting or production
+
+ErrorDocument 403 /memoria/404.html
+#change to ErrorDocument 403 /404.html for hosting or production
+
+ErrorDocument 404 /memoria/404.html
+#change to ErrorDocument 404 /404.html for hosting or production
+
+ErrorDocument 500 /memoria/500.html
+#change to ErrorDocument 500 /500.html for hosting or production

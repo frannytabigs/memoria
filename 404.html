@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>404 - Page Not Found</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        text-align: center;
+        padding-top: 100px;
+        background: #f4f4f9;
+        color: #333;
+      }
+      h1 {
+        font-size: 50px;
+        margin-bottom: 10px;
+      }
+      p {
+        font-size: 18px;
+        color: #666;
+      }
+      button {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>404</h1>
+    <p>Oops! The page you are looking for doesn't exist.</p>
+    <button
+      onclick="
+        var loc = window.location;
+
+        // Check if the hostname is a local IP (192.168.x.x, 10.x.x.x, 172.x.x.x) or localhost
+        var isLocalIP =
+          /(?:^localhost$)|(?:^127\.)|(?:^192\.168\.)|(?:^10\.)|(?:^172\.(?:1[6-9]|2\d|3[0-1])\.)/.test(
+            loc.hostname,
+          );
+
+        if (loc.protocol === 'file:') {
+          // 1. Opened as a raw file
+          window.location.href =
+            loc.href.split('/memoria/')[0] + '/memoria/index.html';
+        } else if (isLocalIP || loc.pathname.includes('/memoria/')) {
+          // 2. Opened via XAMPP, a mobile device on the same WiFi, or the URL explicitly contains the folder
+          window.location.href = '/memoria/';
+        } else {
+          // 3. Hosted live on a root domain (www.yourdomain.com/)
+          window.location.href = '/';
+        }
+      "
+    >
+      Go back home
+    </button>
+  </body>
+</html>
