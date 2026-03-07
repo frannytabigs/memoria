@@ -1,4 +1,8 @@
 <?php
+// git add .
+// git commit -m "message"
+//git push 
+
 require_once 'responses.php'; 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -14,8 +18,8 @@ function checkadmin(){
     $JWT_ALGO = $_ENV['JWT_ALGO'];
 
     $decoded = JWT::decode($jwt, new Key($JWT_SECRET, $JWT_ALGO));
+    return $decoded->data;
 
-    Response::success("Logged in", ["user" => $decoded->data]);
     }
 
     catch (Exception $e) {
