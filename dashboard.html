@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Memoria</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="assets/css/dashboard.css" />
+
+    <script
+      src="https://kit.fontawesome.com/a076d05399.js"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="logo">
+        <img src="assets/images/Mandauelogo.png" alt="Mandaue Logo" />
+        <span>EMORIA</span>
+      </div>
+
+      <ul>
+        <li class="active">
+          <i class="fas fa-chart-pie"></i> <span>Dashboard</span>
+        </li>
+        <li><i class="fas fa-folder-open"></i> <span>Records</span></li>
+        <li><i class="fas fa-map"></i> <span>Map</span></li>
+        <li><i class="fas fa-file-invoice"></i> <span>Reports</span></li>
+        <li><i class="fas fa-bell"></i> <span>Monitoring</span></li>
+        <li><i class="fas fa-cog"></i> <span>Settings</span></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="admin-profile">
+          <div class="admin-avatar">A</div>
+          <div class="admin-info">
+            <span class="admin-name">Admin</span>
+            <button
+              class="admin-logout"
+              onclick="window.location.href = 'login.html?logout=true'"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <nav class="navbar">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search records..." />
+        </div>
+
+        <div class="profile">
+          <div class="profile-user">
+            <span>Admin</span>
+            <div class="user-avatar">A</div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="content">
+        <div class="header-stats">
+          <div class="stat-card">
+            <div>
+              <h3>Total Records</h3>
+              <div class="value">1,250</div>
+            </div>
+            <div class="icon-box blue-icon"><i class="fas fa-users"></i></div>
+          </div>
+          <div class="stat-card">
+            <div>
+              <h3>Available Lots</h3>
+              <div class="value">830</div>
+            </div>
+            <div class="icon-box green-icon">
+              <i class="fas fa-monument"></i>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div>
+              <h3>Expiring Soon</h3>
+              <div class="value">36</div>
+            </div>
+            <div class="icon-box red-icon"><i class="fas fa-clock"></i></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Lot Distribution</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="modernPie"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Monthly Expiration</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="modernBar"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Lease Expiration Monitoring</h3>
+            <button class="btn-action">View All</button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>NAME</th>
+                <th>LOCATION</th>
+                <th>EXPIRATION</th>
+                <th>STATUS</th>
+                <th>ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Abcd E. Fghi</td>
+                <td>Blk A - Lot 12</td>
+                <td>Mar 15, 2026</td>
+                <td><span class="badge badge-expired">Expired</span></td>
+                <td><button class="btn-action">Notify</button></td>
+              </tr>
+              <tr>
+                <td>Jklm N. Opqr</td>
+                <td>Blk B - Lot 08</td>
+                <td>Apr 02, 2026</td>
+                <td><span class="badge badge-waiting">Waiting</span></td>
+                <td><button class="btn-action">Follow Up</button></td>
+              </tr>
+              <tr>
+                <td>Stuv W. xyz</td>
+                <td>Blk C - Lot 21</td>
+                <td>May 20, 2026</td>
+                <td><span class="badge badge-success">Responded</span></td>
+                <td><button class="btn-action">Details</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/loggedincheck.js"></script>
+  </body>
+</html>

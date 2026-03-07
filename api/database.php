@@ -4,6 +4,8 @@ require_once 'notallowed.php';
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+header('Content-Type: application/json');
+
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
