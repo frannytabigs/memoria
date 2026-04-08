@@ -7,7 +7,7 @@ require_once 'responses.php';
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-function checkadmin(){
+function checkuser(){
     if (!isset($_COOKIE['auth_token'])) {
     Response::error("Not logged in", 401);
     }

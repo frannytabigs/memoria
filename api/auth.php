@@ -15,8 +15,8 @@ if ($method === 'DELETE') {
 }
 
 if ($method === 'GET') {
-   require_once 'admincheck.php';
-   $userData = checkadmin(); 
+   require_once 'usercheck.php';
+   $userData = checkuser(); 
    Response::success("Logged in", ["user" => $userData]);
 }
 

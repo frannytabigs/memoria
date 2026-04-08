@@ -37,3 +37,5 @@ function handleRateLimit($limit = 30, $period = 60) {
 }
 
 handleRateLimit(1,1);
+
+?>
