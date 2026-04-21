@@ -6,13 +6,28 @@
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT, 
     username VARCHAR(50) UNIQUE NOT NULL,
-    role ENUM('admin', 'staff', 'user') NOT NULL DEFAULT 'user',
+    role ENUM('Administrator', 'Staff', 'Guest') NOT NULL DEFAULT 'Guest',
+    status ENUM('Verified', 'Unverified') NOT NULL DEFAULT 'Unverified',
     email VARCHAR(255) UNIQUE NOT NULL,
     phone_number VARCHAR(20) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    middle_name VARCHAR(50) NOT NULL DEFAULT '',
-    last_name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE TABLE settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(50) NOT NULL UNIQUE,
+    setting_value TEXT,
+    description VARCHAR(255) NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO settings (setting_key, setting_value, description) VALUES 
+('cemetery_name', 'Mandaue City Municipal Cemetery', 'The official name displayed on the dashboard'),
+('textbee_api_key', 'your_long_api_key_here', 'API key for SMS gateway'),
+('textbee_device_id', 'your_device_id_here', 'Android device ID for SMS routing');
+
+NO OTP TABLE
+CUSTOMIZED TABLE, NAME, SIGNATURES, COLORS, [LOGO[?]].... SMS API KEY TEXTBEE

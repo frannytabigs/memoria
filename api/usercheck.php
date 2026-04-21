@@ -2,14 +2,17 @@
 // git add .
 // git commit -m "message"
 //git push 
-
+require_once 'notallowed.php';
 require_once 'responses.php'; 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-function checkuser(){
+function checkuser($force_exit = true){
     if (!isset($_COOKIE['auth_token'])) {
-    Response::error("Not logged in", 401);
+        if ($force_exit) {
+            Response::error("Not logged in", 401);
+        }
+        return false;
     }
     try {
 
@@ -18,8 +21,8 @@ function checkuser(){
     $JWT_ALGO = $_ENV['JWT_ALGO'];
 
     $decoded = JWT::decode($jwt, new Key($JWT_SECRET, $JWT_ALGO));
-    return $decoded->data;
-
+    return (array) $decoded->data;
+    
     }
 
     catch (Exception $e) {

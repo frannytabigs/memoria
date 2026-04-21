@@ -46,3 +46,8 @@ ErrorDocument 404 /memoria/404.html
 
 ErrorDocument 500 /memoria/500.html
 #change to ErrorDocument 500 /500.html for hosting or production
+
+#logs.txt is secured
+<Files "logs.txt">
+    Require all denied
+</Files>

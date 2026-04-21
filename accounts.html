@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Accounts</title>
+
+    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/accounts.css" />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="memoriaLogo">
+        <img src="assets/images/logo.png" alt="Memoria Logo" />
+        <span>EMORIA</span>
+      </div>
+
+      <div class="sectionTitle">Main</div>
+      <a href="dashboard.html"
+        ><div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div></a
+      >
+      <a href="records.html"
+        ><div class="menu"><i class="fas fa-folder-open"></i>Records</div></a
+      >
+      <a href="map.html"
+        ><div class="menu"><i class="fas fa-map"></i>Map</div></a
+      >
+
+      <div class="sectionTitle">Management</div>
+      <a href="reserve.html"
+        ><div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div></a
+      >
+      <a href="monitor.html"
+        ><div class="menu"><i class="fas fa-bell"></i>Monitor</div></a
+      <a href="accounts.html"
+        ><div class="menu active"><i class="fas fa-user"></i>Accounts</div></a
+      >
+      <a href="monitoring.html"
+        ><div class="menu"><i class="fas fa-print"></i>Reports</div></a
+      >
+
+      <div class="sectionTitle">System</div>
+      <a href="logs.html"
+        ><div class="menu"><i class="fas fa-history"></i>Logs</div></a
+      >
+      <a href="settings.html"
+        ><div class="menu"><i class="fas fa-cog"></i>Settings</div></a
+      >
+
+      <div class="footer">
+        <div class="userCard">
+          <div class="userAvatar">
+            <div class="avatarBox">AD</div>
+            <div class="statusIndicator"></div>
+          </div>
+          <div class="userDetails">
+            <span class="username">Administrator</span>
+            <span class="userRole">System Manager</span>
+          </div>
+          <button class="logout">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="table">
+        <div class="tableHeader">
+          <h3>User Accounts</h3>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email Address</th>
+              <th>Phone Number</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td>Hannah Mae O. Bejo</td>
+              <td>hannahbejo@gmail.com</td>
+              <td>+63 912 345 6789</td>
+              <td>
+                <select id="roleSelect" class="roleSelect ">
+                  <option selected>Administrator</option>
+                  <option>Staff</option>
+                </select> 
+              </td>
+              <td>
+                 <select id="statusSelect" class="roleSelect ">
+                  <option selected>Verified</option>
+                  <option>Unverified</option>
+                </select>
+              </td>
+              <td>
+                <button id="saveBtn" class="saveBtn" onclick="saveaccount();"><i class="fas fa-check"></i></button>
+                <button class="deleteBtn"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>
+            
+            <tr>
+              <td>Hannah Mae O. Bejo</td>
+              <td>hannahbejo@gmail.com</td>
+              <td>+63 912 345 6789</td>
+              <td>
+                <span id="role">Administrator</span>
+                <select id="roleSelect" class="roleSelect hidden">
+                  <option selected>Administrator</option>
+                  <option>Staff</option>
+                </select> 
+              </td>
+              <td>
+                <span class="status active" id="status">Verified</span>
+                 <select id="statusSelect" class="roleSelect hidden">
+                  <option selected>Verified</option>
+                  <option>Unverified</option>
+                </select>
+              </td>
+              <td>
+              
+              </td>
+            </tr>   
+          
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script src="assets/js/accounts.js"></script>
+  </body>
+</html>

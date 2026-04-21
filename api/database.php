@@ -1,7 +1,6 @@
 <?php
 
 require_once 'notallowed.php';
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
 header('Content-Type: application/json');
@@ -30,6 +29,8 @@ try {
 } catch (\PDOException $e) {
     error_log($e->getMessage()); 
     require_once 'responses.php';
+    require_once 'logs.php';
+    systemLog("Database connection failed: " . $e->getMessage());
     Response::error("Database connection failed", 500);
 }
 

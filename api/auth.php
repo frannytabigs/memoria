@@ -4,12 +4,18 @@ define('ITS_ME_JUSTTOVERIFY', true);
 require_once 'database.php';
 require_once 'responses.php'; 
 // require_once 'ratelimit.php';
+require_once 'logs.php';
 
 
-
-$method = $_SERVER['REQUEST_METHOD'];
+$method = $_SERVER['REQUEST_METHOD'] ?? null;
 
 if ($method === 'DELETE') {
+    
+    require_once 'usercheck.php';
+
+    $userData = checkuser(false);
+    if ($userData) systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['id']); 
+
     setcookie('auth_token', '', time() - 3600, '/');
     Response::success("Logged out successfully");
 }
@@ -59,7 +65,13 @@ try {
             "data" => [
                 "id" => $user['id'],
                 "username" => $user['username'],
-                "role" => $user['role']
+                "role" => $user['role'],
+                "status" => $user['status'],
+                "name" => $user['name'],
+                "email" => $user['email'],
+                "phone_number" => $user['phone_number'],
+                "created_at" => $user['created_at'],
+                "updated_at" => $user['updated_at']
             ]   
         ];
 
@@ -73,13 +85,16 @@ try {
             'samesite' => 'Strict'
         ]);
 
+        systemLog($user['name'] . " (" . $user['username'] . ") logged in", $user['id']);
         Response::success("Login successful", $user); 
     } else { 
+        systemLog("Failed login attempt with username: " . $username, null);
         Response::error("Invalid username and password", 401);
     }
 
 } catch (PDOException $e) {
     error_log($e->getMessage());
+    systemLog("Database error during login attempt for username: " . $username . " " . $e->getMessage(), null);
     Response::error("An error occurred while logging in", 500);
 }
 ?>

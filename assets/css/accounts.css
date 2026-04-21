@@ -1,0 +1,149 @@
+/* MAIN */
+.main {
+  margin-left: 260px;
+  padding: 30px;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+/* TABLE */
+.table {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.tableHeader {
+  padding: 20px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: #f8fafc;
+}
+
+th {
+  text-align: left;
+  padding: 12px 20px;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+td {
+  padding: 14px 20px;
+  font-size: 14px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* STATUS */
+.status {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status.unverified {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+/* ROLE SELECT */
+.roleSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  padding: 7px 34px 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+}
+
+.roleSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.hidden {
+  display: none;
+}
+/* RESET / VERIFY BUTTON */
+.statusBtn {
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 5px;
+}
+
+.statusBtn:hover {
+  background: #f1f5f9;
+}
+
+/* DELETE ICON BUTTON */
+.deleteBtn,
+.editBtn,
+.saveBtn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #fecaca;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+.editBtn {
+  color: #54b9d2;
+  border: 1px solid #1f6c9c;
+}
+.saveBtn {
+  color: #16a34a;
+  border: 1px solid #16a34a;
+}
+.deleteBtn i {
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.deleteBtn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.saveBtn:hover {
+  background: #d6f0d4;
+  border-color: #16a34a;
+}
+.editBtn:hover {
+  background: rgba(172, 211, 237, 0.541);
+  border-color: rgba(35, 85, 107, 0.934);
+}
