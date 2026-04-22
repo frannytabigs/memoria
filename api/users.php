@@ -290,8 +290,16 @@ if ($method === 'PUT') {
 
         $isVerifying = false;
         if (isset($rawData['status']) && in_array($rawData['status'], ['Verified', 'Unverified'])) {
+            
             $updateFields[] = "status = :status"; $queryParams[':status'] = $rawData['status'];
-            if ($rawData['status'] === 'Verified') $isVerifying = true;
+            $statusCheckStmt = $pdo->prepare("SELECT status FROM users WHERE id = :id");
+            $statusCheckStmt->execute([':id' => $targetId]);
+            $currentStatus = $statusCheckStmt->fetchColumn();
+
+            // Only trigger the SMS if they are being changed FROM something else TO 'Verified'
+            if ($rawData['status'] === 'Verified' && $currentStatus !== 'Verified') {
+                $isVerifying = true;
+            }
         }
     } 
     else {

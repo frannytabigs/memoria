@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("userprofile").textContent =
           data.data.user.username.substring(0, 2).toUpperCase();
         document.getElementById("username_role").textContent =
-          `${data.data.user.username} | ${data.data.user.role}`;
+          `${data.data.user.role}`;
       } catch (err) {
         console.error("Error parsing user data:", err);
       }
