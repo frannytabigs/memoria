@@ -24,15 +24,15 @@
     RewriteRule ^api/config\.php$ - [R=404,L]
 
     # ==========================================
-    # 3. API ROUTING (Environment Agnostic - DO NOT CHANGE)
+    # 3. API ROUTING (Environment Agnostic)
     # ==========================================
-    # Automatically routes /api/users to /api/users.php regardless of hosting environment
+    # Automatically routes /api/users to /api/users.php 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/([a-zA-Z0-9_-]+)(/.*)?$ api/$1.php$2 [L]
 
     # ==========================================
-    # 4. WHITELIST (Environment Agnostic - DO NOT CHANGE)
+    # 4. WHITELIST (Environment Agnostic)
     # ==========================================
     # Allow the root folder
     RewriteRule ^$ - [L]
@@ -43,8 +43,8 @@
     # Allow all necessary frontend assets to load securely
     RewriteRule ^assets/.*\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|json)$ - [L]
 
-    # Allow access to the dynamic API endpoints
-    RewriteRule ^api/[a-zA-Z0-9_-]+(/.*)?$ - [L]
+    # CRITICAL FIX: Allow the API folder (Safe because sensitive files are blocked in Step 2)
+    RewriteRule ^api/ - [L]
 
     # ==========================================
     # 5. BLOCK EVERYTHING ELSE
