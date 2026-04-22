@@ -1,70 +1,85 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /memoria/ 
-    #for hosting or production, change to RewriteBase /
 
-    # Disable directory listing (Stops people from seeing the contents of a folder)
+    # ==========================================
+    # 1. ENVIRONMENT SETUP
+    # ==========================================
+    # HOW TO HOST:
+    # -> If testing locally on XAMPP, use: RewriteBase /memoria/
+    # -> If hosting on InfinityFree/Production, comment out the line above and uncomment the line below:
+    
+    RewriteBase /memoria/
+    # RewriteBase /
+
     Options -Indexes
 
-    # Block hidden dot files instantly (.env, .htaccess, .git, etc.)
+    # ==========================================
+    # 2. BLOCK SENSITIVE / HIDDEN FILES
+    # ==========================================
+    # Instantly returns a 404 for .env, .git, and .htaccess files
     RewriteRule (^|/)\. - [R=404,L]
 
+    # Blocks direct browser access to backend tools and passwords
+    RewriteRule ^api/jwt/ - [R=404,L]
+    RewriteRule ^api/config\.php$ - [R=404,L]
+
     # ==========================================
-    # REST API ROUTING (Dynamically supports ANY resource)
+    # 3. API ROUTING (Environment Agnostic - DO NOT CHANGE)
     # ==========================================
-    # If the request is for the API folder...
-    RewriteCond %{REQUEST_URI} ^/memoria/api/
-    #change to ^/api/ for hosting or production
-    # ...and it is NOT an exact existing file (like database.php)...
+    # Automatically routes /api/users to /api/users.php regardless of hosting environment
     RewriteCond %{REQUEST_FILENAME} !-f
-    # ...and it is NOT a directory...
     RewriteCond %{REQUEST_FILENAME} !-d
-    # Then map /api/resource/anything to /api/resource.php/anything
-    # This automatically supports users, logs, auth, etc., without needing new rules!
     RewriteRule ^api/([a-zA-Z0-9_-]+)(/.*)?$ api/$1.php$2 [L]
 
     # ==========================================
-    # SECURITY WHITELIST
+    # 4. WHITELIST (Environment Agnostic - DO NOT CHANGE)
     # ==========================================
-    # Allow root
-    RewriteCond %{REQUEST_URI} ^/memoria/?$ [OR]
-    #change to ^/?$ for hosting or production
+    # Allow the root folder
+    RewriteRule ^$ - [L]
 
-    # Allow root html files
-    RewriteCond %{REQUEST_URI} ^/memoria/[^/]+\.html$ [OR]
-    #change to ^/[^/]+\.html$ for hosting or production
+    # Allow direct access to HTML files (like index.html, dashboard.html)
+    RewriteRule ^[^/]+\.html$ - [L]
 
-    # Allow assets static only (CRITICAL FIX: Added [OR] here)
-    RewriteCond %{REQUEST_URI} ^/memoria/assets/.*\.(css|js|png|jpg|jpeg|gif|svg|woff2?)$ [OR]
-    #change to ^/assets/.*\.(css|js|png|jpg|jpeg|gif|svg|woff2?)$ [OR] for hosting or production
+    # Allow all necessary frontend assets to load securely
+    RewriteRule ^assets/.*\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|json)$ - [L]
 
-    # Allow API calls (No [OR] needed on the last condition)
-    RewriteCond %{REQUEST_URI} ^/memoria/api/
-    #change to ^/api/ for hosting or production
+    # Allow access to the dynamic API endpoints
+    RewriteRule ^api/[a-zA-Z0-9_-]+(/.*)?$ - [L]
 
-    # If YES to any of the above, stop checking and let it load normally!
-    RewriteRule ^ - [L]
-
-    # This instantly hides composer.json, composer.lock, /vendor/, and everything else = 404 Not Found
+    # ==========================================
+    # 5. BLOCK EVERYTHING ELSE
+    # ==========================================
     RewriteRule ^ - [R=404,L]
 
 </IfModule>
 
-# Custom Error Pages
+# ==========================================
+# ERROR PAGES
+# ==========================================
+# HOW TO HOST:
+# -> If testing locally on XAMPP, leave this as-is (with /memoria/).
+# -> If hosting on InfinityFree/Production, comment out the Local lines and uncomment the Production lines below.
 
+# LOCAL HOSTING:
 ErrorDocument 400 /memoria/404.html
-#change to ErrorDocument 400 /404.html for hosting or production
-
 ErrorDocument 403 /memoria/404.html
-#change to ErrorDocument 403 /404.html for hosting or production
-
 ErrorDocument 404 /memoria/404.html
-#change to ErrorDocument 404 /404.html for hosting or production
-
 ErrorDocument 500 /memoria/500.html
-#change to ErrorDocument 500 /500.html for hosting or production
 
-#logs.txt is secured
+# PRODUCTION HOSTING:
+# ErrorDocument 400 /404.html
+# ErrorDocument 403 /404.html
+# ErrorDocument 404 /404.html
+# ErrorDocument 500 /500.html
+
+# ==========================================
+# FILE SECURITY
+# ==========================================
+# Double-lock to ensure the raw text and config files can never be read
 <Files "logs.txt">
+    Require all denied
+</Files>
+
+<Files "config.php">
     Require all denied
 </Files>

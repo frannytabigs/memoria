@@ -5,7 +5,18 @@ require_once 'database.php';
 require_once 'responses.php'; 
 // require_once 'ratelimit.php';
 require_once 'logs.php';
+require_once 'config.php';
 
+// Manually require the JWT files
+require_once 'jwt/JWTExceptionWithPayloadInterface.php'; // <-- ADD THIS AT THE TOP
+require_once 'jwt/BeforeValidException.php';
+require_once 'jwt/ExpiredException.php';
+require_once 'jwt/SignatureInvalidException.php';
+require_once 'jwt/Key.php';
+require_once 'jwt/JWT.php';
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
@@ -35,9 +46,6 @@ if (empty($_POST['username']) || empty($_POST['password'])) {
     Response::error("Username and password are required", 400);
 }
 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
-
 
 $username = trim($_POST['username']);
 $password = $_POST['password'];
@@ -58,12 +66,12 @@ try {
             Response::error("Your account is not verified yet. Please wait for admin verification.", 403);
         }
 
-        $JWT_SECRET = $_ENV['JWT_SECRET'];
-        $JWT_ALGO = $_ENV['JWT_ALGO'];
-        $JWT_EXPIRATION = intval($_ENV['JWT_EXPIRATION']);
+       $JWT_SECRET = JWT_SECRET;
+        $JWT_ALGO = JWT_ALGO;
+        $JWT_EXPIRATION = intval(JWT_EXPIRATION);
 
         $payload = [
-            "iss" => $_ENV['APP_URL'],
+            "iss" => APP_URL,
             "iat" => time(),
             "exp" => time() + $JWT_EXPIRATION,
             "data" => [

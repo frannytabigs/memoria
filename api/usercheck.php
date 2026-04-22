@@ -4,6 +4,16 @@
 // git push 
 require_once 'notallowed.php';
 require_once 'responses.php'; 
+require_once 'config.php';
+
+// Manually require the JWT files
+require_once 'jwt/JWTExceptionWithPayloadInterface.php'; // <-- ADD THIS AT THE TOP
+require_once 'jwt/BeforeValidException.php';
+require_once 'jwt/ExpiredException.php';
+require_once 'jwt/SignatureInvalidException.php';
+require_once 'jwt/Key.php';
+require_once 'jwt/JWT.php';
+
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
@@ -33,8 +43,8 @@ function checkuser($force_exit = true) {
 
     // 4. Verify and decode the JWT
     try {
-        $JWT_SECRET = $_ENV['JWT_SECRET'];
-        $JWT_ALGO = $_ENV['JWT_ALGO'];
+        $JWT_SECRET = JWT_SECRET; // Use constant
+        $JWT_ALGO = JWT_ALGO;     // Use constant
 
         $decoded = JWT::decode($jwt, new Key($JWT_SECRET, $JWT_ALGO));
         return (array) $decoded->data;

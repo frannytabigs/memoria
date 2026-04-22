@@ -1,10 +1,6 @@
 <?php
-
 require_once 'notallowed.php';
-require_once __DIR__ . '/../vendor/autoload.php';
-
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->load();
+require_once 'config.php';
 
 /**
  * Writes an encrypted log entry to logs.txt
@@ -12,8 +8,7 @@ $dotenv->load();
  * @param int|string $userId The ID of the user who did it (optional)
  */
 function systemLog($action, $userId = 'System') {
-    // Ensure you add LOG_SECRET_KEY to your .env file! (e.g., a 32-character random string)
-    $secretKey = $_ENV['LOG_SECRET_KEY'] ?? 'default-secret-change-me-immediately';
+    $secretKey = LOG_SECRET_KEY; // Use the constant
     $method = 'aes-256-cbc';
     
     // 1. Generate a random Initialization Vector (IV) for this specific line
@@ -40,8 +35,10 @@ function systemLog($action, $userId = 'System') {
  * * @return array An array of decrypted log strings
  */
 function readLogs() {
-    $secretKey = $_ENV['LOG_SECRET_KEY'] ?? 'default-secret-change-me-immediately';
+    
+    $secretKey = LOG_SECRET_KEY; // Use the constant
     $method = 'aes-256-cbc';
+    
     $logFile = __DIR__ . '/logs.txt';
     $decryptedLogs = [];
 

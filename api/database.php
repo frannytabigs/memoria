@@ -1,18 +1,14 @@
 <?php
-
 require_once 'notallowed.php';
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once 'config.php'; // Load our new native config
 
 header('Content-Type: application/json');
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->load();
-
-$host = $_ENV['DB_HOST'];
-$db   = $_ENV['DB_NAME']; 
-$user = $_ENV['DB_USER'];   
-$pass = $_ENV['DB_PASS'];   
-$charset = $_ENV['DB_CHARSET'];
+$host = DB_HOST;
+$db   = DB_NAME; 
+$user = DB_USER;   
+$pass = DB_PASS;   
+$charset = DB_CHARSET;
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
