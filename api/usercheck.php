@@ -1,13 +1,10 @@
 <?php
-// git add .
-// git commit -m "message"
-// git push 
 require_once 'notallowed.php';
 require_once 'responses.php'; 
 require_once 'config.php';
 
-// Manually require the JWT files
-require_once 'jwt/JWTExceptionWithPayloadInterface.php'; // <-- ADD THIS AT THE TOP
+// Manually require the JWT files IN THIS EXACT ORDER
+require_once 'jwt/JWTExceptionWithPayloadInterface.php';
 require_once 'jwt/BeforeValidException.php';
 require_once 'jwt/ExpiredException.php';
 require_once 'jwt/SignatureInvalidException.php';
@@ -20,10 +17,13 @@ use Firebase\JWT\Key;
 function checkuser($force_exit = true) {
     $jwt = null;
 
-    // 1. FIRST: Check for Authorization Header (For Mobile Apps & External APIs)
-    // We use apache_request_headers() to grab all headers safely
-    $headers = apache_request_headers();
-    $authHeader = $headers['Authorization'] ?? '';
+    // 1. FIRST: Check for Authorization Header (Safe for InfinityFree/Nginx)
+    $authHeader = '';
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $authHeader = trim($_SERVER['HTTP_AUTHORIZATION']);
+    } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $authHeader = trim($_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
+    }
 
     if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
         $jwt = $matches[1];
@@ -43,14 +43,14 @@ function checkuser($force_exit = true) {
 
     // 4. Verify and decode the JWT
     try {
-        $JWT_SECRET = JWT_SECRET; // Use constant
-        $JWT_ALGO = JWT_ALGO;     // Use constant
+        $JWT_SECRET = JWT_SECRET;
+        $JWT_ALGO = JWT_ALGO;
 
         $decoded = JWT::decode($jwt, new Key($JWT_SECRET, $JWT_ALGO));
         return (array) $decoded->data;
     }
     catch (Exception $e) {
-        // If the token is invalid/expired, clear the cookie just in case they were using one
+        // If the token is invalid/expired, clear the cookie just in case
         setcookie('auth_token', '', time() - 3600, '/');
         
         if ($force_exit) {

@@ -143,29 +143,38 @@ if ($method === 'POST') {
     }
     $phone_number = formatPhNumber($phone_number);
 
-    // SCENARIO A: POST /users.php/forgot-password
+ // SCENARIO A: POST /users.php/forgot-password
     if ($resourceId === 'forgot-password') {
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
+        // The WHERE clause now explicitly excludes accounts with the Admin role
         $sql = "UPDATE users 
                 SET password_hash = :hash, status = 'Unverified', updated_at = NOW() 
-                WHERE email = :email AND username = :username AND name = :name AND phone_number = :phone_number";
+                WHERE email = :email 
+                AND username = :username 
+                AND name = :name 
+                AND phone_number = :phone_number 
+                AND role != 'Administrator'"; 
                 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            ':hash' => $hashedPassword, ':email' => $email, ':username' => $username,
-            ':name' => $name, ':phone_number' => $phone_number
+            ':hash' => $hashedPassword, 
+            ':email' => $email, 
+            ':username' => $username,
+            ':name' => $name, 
+            ':phone_number' => $phone_number
         ]);
 
         if ($stmt->rowCount() > 0) {
             systemLog("Password reset successful for: $email $username $name", null);
             Response::success("Password changed successfully. For security, your account is now Unverified. Please wait for admin verification to log in to your account.", null);
         } else {
+            // This triggers if credentials don't match OR if someone tries to reset the Admin account
             systemLog("Failed password reset attempt for: $email $username", null);
             Response::error("Not Found: Could not reset password for those credentials. Make sure all details are correct.", 404);
         }
-    } 
+    }
     
     // SCENARIO B: POST /users.php (Register New User)
     else if ($resourceId === null) {
