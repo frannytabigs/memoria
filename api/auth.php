@@ -87,6 +87,13 @@ try {
 
         systemLog($user['name'] . " (" . $user['username'] . ") logged in", $user['id']);
         Response::success("Login successful", $user); 
+
+        // In the future i think to support other than website or web-app
+        // Response::success("Login successful", [
+        //     "user" => $user,
+        //     "token" => $jwt 
+        // ]);
+        
     } else { 
         systemLog("Failed login attempt with username: " . $username, null);
         Response::error("Invalid username and password", 401);

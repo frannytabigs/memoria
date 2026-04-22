@@ -1,5 +1,5 @@
 # Security
 .env
-
+logs.txt
 # Composer Dependencies
 vendor/

@@ -9,6 +9,23 @@
     # Block hidden dot files instantly (.env, .htaccess, .git, etc.)
     RewriteRule (^|/)\. - [R=404,L]
 
+    # ==========================================
+    # REST API ROUTING (Dynamically supports ANY resource)
+    # ==========================================
+    # If the request is for the API folder...
+    RewriteCond %{REQUEST_URI} ^/memoria/api/
+    #change to ^/api/ for hosting or production
+    # ...and it is NOT an exact existing file (like database.php)...
+    RewriteCond %{REQUEST_FILENAME} !-f
+    # ...and it is NOT a directory...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    # Then map /api/resource/anything to /api/resource.php/anything
+    # This automatically supports users, logs, auth, etc., without needing new rules!
+    RewriteRule ^api/([a-zA-Z0-9_-]+)(/.*)?$ api/$1.php$2 [L]
+
+    # ==========================================
+    # SECURITY WHITELIST
+    # ==========================================
     # Allow root
     RewriteCond %{REQUEST_URI} ^/memoria/?$ [OR]
     #change to ^/?$ for hosting or production
