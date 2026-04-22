@@ -1,3 +1,8 @@
+<?php
+// composer install --optimize-autoloader --no-dev
+require_once __DIR__ . '/vendor/autoload.php';
+?>
+
 <!doctype html>
 <html lang="en">
   <head>
