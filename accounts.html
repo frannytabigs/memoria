@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Accounts</title>
 
+    <!-- <link rel="icon" href="assets/images/Mlogo.png" type="image/png" /> -->
+
     <link rel="stylesheet" href="assets/css/global.css" />
     <link rel="stylesheet" href="assets/css/accounts.css" />
 
@@ -19,42 +21,30 @@
   </head>
   <body>
     <div class="sidebar">
-      <div class="memoriaLogo">
-        <img src="assets/images/logo.png" alt="Memoria Logo" />
-        <span>EMORIA</span>
+      <div class="sidebarNav">
+        <div class="memoriaLogo">
+          <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo" />
+        </div>
+
+        <div class="sidebarDateTime" id="dateTimeDisplay"></div>
+
+        <div class="sectionTitle">Main</div>
+        <a href="dashboard.html">
+          <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
+        </a>
+        <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
+        <div class="menu"><i class="fas fa-map"></i>Map</div>
+
+        <div class="sectionTitle">Management</div>
+        <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
+        <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
+        <div class="menu active"><i class="fas fa-user"></i>Accounts</div>
+        <div class="menu"><i class="fas fa-bell"></i>Reports</div>
+
+        <div class="sectionTitle">System</div>
+        <div class="menu"><i class="fas fa-history"></i>Logs</div>
+        <div class="menu"><i class="fas fa-cog"></i>Settings</div>
       </div>
-
-      <div class="sectionTitle">Main</div>
-      <a href="dashboard.html"
-        ><div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div></a
-      >
-      <a href="records.html"
-        ><div class="menu"><i class="fas fa-folder-open"></i>Records</div></a
-      >
-      <a href="map.html"
-        ><div class="menu"><i class="fas fa-map"></i>Map</div></a
-      >
-
-      <div class="sectionTitle">Management</div>
-      <a href="reserve.html"
-        ><div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div></a
-      >
-      <a href="monitor.html"
-        ><div class="menu"><i class="fas fa-bell"></i>Monitor</div></a
-      <a href="accounts.html"
-        ><div class="menu active"><i class="fas fa-user"></i>Accounts</div></a
-      >
-      <a href="monitoring.html"
-        ><div class="menu"><i class="fas fa-print"></i>Reports</div></a
-      >
-
-      <div class="sectionTitle">System</div>
-      <a href="logs.html"
-        ><div class="menu"><i class="fas fa-history"></i>Logs</div></a
-      >
-      <a href="settings.html"
-        ><div class="menu"><i class="fas fa-cog"></i>Settings</div></a
-      >
 
       <div class="footer">
         <div class="userCard">
@@ -74,6 +64,34 @@
     </div>
 
     <div class="main">
+      <div class="tableControls">
+        <div class="searchBox">
+          <i class="fas fa-search"></i>
+          <input type="text" id="userSearch" placeholder="Search..." />
+        </div>
+
+        <div class="controlItem">
+          <select id="statusFilter" class="mainSelect">
+            <option value="all">All Status</option>
+            <option value="Verified">Verified</option>
+            <option value="Unverified">Unverified</option>
+          </select>
+        </div>
+
+        <div class="controlItem">
+          <select id="roleFilter" class="mainSelect">
+            <option value="all">All Roles</option>
+            <option value="Staff">Staff</option>
+            <option value="Administrator">Administrator</option>
+          </select>
+        </div>
+
+        <button class="filterActionBtn" id="filterBtn">
+          <i class="fas fa-filter"></i>
+          <span>Filter</span>
+        </button>
+      </div>
+
       <div class="table">
         <div class="tableHeader">
           <h3>User Accounts</h3>
@@ -82,66 +100,121 @@
         <table>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email Address</th>
+              <th>name</th>
+              <th>username</th>
+              <th>Email</th>
               <th>Phone Number</th>
               <th>Role</th>
               <th>Status</th>
+              <th>ID</th>
               <th>Action</th>
             </tr>
           </thead>
 
           <tbody>
-            <tr>
-              <td>Hannah Mae O. Bejo</td>
-              <td>hannahbejo@gmail.com</td>
+            <tr data-state="view" data-id="001-2026">
+              <td>Franny M. Narfy</td>
+              <td>franny</td>
+              <td>franny@gmail.com</td>
               <td>+63 912 345 6789</td>
-              <td>
-                <select id="roleSelect" class="roleSelect ">
-                  <option selected>Administrator</option>
-                  <option>Staff</option>
-                </select> 
-              </td>
-              <td>
-                 <select id="statusSelect" class="roleSelect ">
-                  <option selected>Verified</option>
-                  <option>Unverified</option>
+              <td class="roleCell">
+                <span class="viewMode">Staff</span>
+                <select class="editMode roleSelect">
+                  <option value="Staff" selected>Staff</option>
+                  <option value="Administrator">Administrator</option>
                 </select>
               </td>
-              <td>
-                <button id="saveBtn" class="saveBtn" onclick="saveaccount();"><i class="fas fa-check"></i></button>
-                <button class="deleteBtn"><i class="fas fa-trash"></i></button>
+              <td class="statusCell">
+                <span class="viewMode status unverified">Unverified</span>
+                <select class="editMode statusSelect">
+                  <option value="Unverified" selected>Unverified</option>
+                  <option value="Verified">Verified</option>
+                </select>
+              </td>
+              <td>001-2026</td>
+              <td class="actionCell">
+                <button class="viewMode editBtn" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="editMode saveBtn" title="Save">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="deleteBtn" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
               </td>
             </tr>
-            
-            <tr>
-              <td>Hannah Mae O. Bejo</td>
-              <td>hannahbejo@gmail.com</td>
+            <tr data-state="view" data-id="001-2026">
+              <td>Franny M. Narfy</td>
+              <td>franny</td>
+              <td>franny@gmail.com</td>
               <td>+63 912 345 6789</td>
-              <td>
-                <span id="role">Administrator</span>
-                <select id="roleSelect" class="roleSelect hidden">
-                  <option selected>Administrator</option>
-                  <option>Staff</option>
-                </select> 
-              </td>
-              <td>
-                <span class="status active" id="status">Verified</span>
-                 <select id="statusSelect" class="roleSelect hidden">
-                  <option selected>Verified</option>
-                  <option>Unverified</option>
+              <td class="roleCell">
+                <span class="viewMode">Staff</span>
+                <select class="editMode roleSelect">
+                  <option value="Staff" selected>Staff</option>
+                  <option value="Administrator">Administrator</option>
                 </select>
               </td>
-              <td>
-              
+              <td class="statusCell">
+                <span class="viewMode status unverified">Unverified</span>
+                <select class="editMode statusSelect">
+                  <option value="Unverified" selected>Unverified</option>
+                  <option value="Verified">Verified</option>
+                </select>
               </td>
-            </tr>   
-          
+              <td>001-2026</td>
+              <td class="actionCell">
+                <button class="viewMode editBtn" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="editMode saveBtn" title="Save">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="deleteBtn" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr data-state="view" data-id="001-2026">
+              <td>Franny M. Narfy</td>
+              <td>franny</td>
+              <td>franny@gmail.com</td>
+              <td>+63 912 345 6789</td>
+              <td class="roleCell">
+                <span class="viewMode">Staff</span>
+                <select class="editMode roleSelect">
+                  <option value="Staff" selected>Staff</option>
+                  <option value="Administrator">Administrator</option>
+                </select>
+              </td>
+              <td class="statusCell">
+                <span class="viewMode status unverified">Unverified</span>
+                <select class="editMode statusSelect">
+                  <option value="Unverified" selected>Unverified</option>
+                  <option value="Verified">Verified</option>
+                </select>
+              </td>
+              <td>001-2026</td>
+              <td class="actionCell">
+                <button class="viewMode editBtn" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="editMode saveBtn" title="Save">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="deleteBtn" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
     </div>
 
+    <script src="assets/js/global.js"></script>
     <script src="assets/js/accounts.js"></script>
+    <script src="assets/js/mustbeloggedin.js"></script>
   </body>
 </html>

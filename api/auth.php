@@ -54,6 +54,10 @@ try {
         
         unset($user['password_hash']);
 
+        if ($user['status'] !== 'Verified') {
+            Response::error("Your account is not verified yet. Please wait for admin verification.", 403);
+        }
+
         $JWT_SECRET = $_ENV['JWT_SECRET'];
         $JWT_ALGO = $_ENV['JWT_ALGO'];
         $JWT_EXPIRATION = intval($_ENV['JWT_EXPIRATION']);

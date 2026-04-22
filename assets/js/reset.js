@@ -1,26 +1,25 @@
-const form = document.getElementById("loginform");
+const form = document.getElementById("resetform");
 
 form.addEventListener("submit", function (e) {
   e.preventDefault();
 
   const formData = new FormData(form);
 
-  fetch("api/auth.php", {
+  fetch("api/users/forgot-password", {
     method: "POST",
     body: formData,
   })
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        // showModal({
-        //   type: "success",
-        //   title: "Login Successful",
-        //   message: `Welcome back ${data.data?.first_name ?? "User"}!`,
-        //   actionText: "Proceed to dashboard",
-        //   actionLink: "/dashboard",
-        //   allowOutsideClick: false,
-        // });
-        window.location.href = "dashboard.html";
+        showModal({
+          type: "success",
+          title: "Reset Password Successful",
+          message: `Hello ${data.data?.first_name ?? "User"}! Your password has been reset. Please wait for admin verification to log in to your account.`,
+          actionText: "Proceed to login",
+          actionLink: "index.html",
+          allowOutsideClick: false,
+        });
       } else {
         showModal({
           type: "warning",

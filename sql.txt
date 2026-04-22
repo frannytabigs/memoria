@@ -6,7 +6,7 @@
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT, 
     username VARCHAR(50) UNIQUE NOT NULL,
-    role ENUM('Administrator', 'Staff', 'Guest') NOT NULL DEFAULT 'Guest',
+    role ENUM('Administrator', 'Staff') NOT NULL DEFAULT 'Staff',
     status ENUM('Verified', 'Unverified') NOT NULL DEFAULT 'Unverified',
     email VARCHAR(255) UNIQUE NOT NULL,
     phone_number VARCHAR(20) UNIQUE NOT NULL,

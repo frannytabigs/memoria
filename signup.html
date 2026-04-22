@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Memoria | Log In</title>
+    <title>Memoria | Sign Up</title>
 
     <!-- <link rel="icon" href="assets/images/Mlogo.png" type="image/png" /> -->
 
@@ -34,29 +34,39 @@
 
           <div class="navText" id="navText">
             <h1>DEPARTMENT OF GENERAL SERVICES</h1>
-            <h2 id="cemetery_address">MANDAUE CITY</h2>
+            <h2>MANDAUE CITY</h2>
           </div>
         </div>
 
         <div class="navLink">
-          <a href="signup.html" class="btnNav">Sign Up</a>
+          <a href="index.html" class="btnNav">Log In</a>
         </div>
       </div>
     </header>
 
     <div class="wrapper">
-      <form action="#" id="loginform">
+      <form action="#" id="signupform">
         <h1 class="memoriaLogo">
           <img
-            src="assets/images/Memorialogo.png"
+            src="assets/images/MemoriaLogo.png"
             alt="Memoria"
             class="mLogo"
-            id="cemetery_logo"
           />
         </h1>
         <p class="subtitle" id="cemetery_name">
           Mandaue City Municipal Cemetery
         </p>
+
+        <div class="inputBox">
+          <input
+            type="text"
+            placeholder="Fullname"
+            name="name"
+            id="name"
+            required
+          />
+          <i class="bx bxs-user-detail"></i>
+        </div>
 
         <div class="inputBox">
           <input
@@ -71,29 +81,49 @@
 
         <div class="inputBox">
           <input
+            type="email"
+            placeholder="Email Address"
+            name="email"
+            id="email"
+            required
+          />
+          <i class="bx bxs-envelope"></i>
+        </div>
+
+        <div class="inputBox">
+          <input
+            type="tel"
+            placeholder="Phone Number"
+            name="phone_number"
+            id="phone_number"
+            required
+          />
+          <i class="bx bxs-phone"></i>
+        </div>
+
+        <div class="inputBox">
+          <input
             type="password"
             placeholder="Password"
-            name="password"
             id="password"
+            name="password"
             required
           />
           <i class="bx bxs-lock-alt"></i>
         </div>
 
-        <div class="forgotPassword">
-          <a href="reset.html">Forgot Password?</a>
+        <div class="termsConditions">
+          <label
+            ><input type="checkbox" required />
+            <span>I agree to the terms & conditions</span></label
+          >
         </div>
 
-        <button type="submit" class="btn" onclick="loginit()">LOGIN</button>
-
-        <div class="note">
-          <p>System access is restricted to authorized personnel only.</p>
-          <a href="#"> Contact Your Administrator</a>
-        </div>
+        <button type="submit" class="btn">SIGNUP</button>
       </form>
     </div>
     <script src="assets/js/modal.js"></script>
     <script src="assets/js/loggedinalready.js"></script>
-    <script src="assets/js/login.js"></script>
+    <script src="assets/js/signup.js"></script>
   </body>
 </html>

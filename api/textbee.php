@@ -12,29 +12,28 @@ require_once 'notallowed.php';
  * @return array Returns an associative array with 'success' (boolean) and optional 'error' details.
  */
 function sendSmsViaTextBee($phoneNumber, $message) {
-
+    global $pdo; // Use the global PDO instance for database access
     try {
         // 1. Fetch the TextBee API Key from the settings table
-        // Assuming your settings table has columns named 'name' and 'value'
-        $keyStmt = $pdo->prepare("SELECT value FROM settings WHERE name = 'textbee_api_key' LIMIT 1");
+        $keyStmt = $pdo->prepare("SELECT setting_value  FROM settings WHERE setting_key = 'textbee_api_key' LIMIT 1");
         $keyStmt->execute();
         $keyResult = $keyStmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$keyResult || empty($keyResult['value'])) {
+        if (!$keyResult || empty($keyResult['setting_value'])) {
             return ['success' => false, 'error' => 'TextBee API key is missing in the database.'];
         }
-        $apiKey = $keyResult['value'];
+        $apiKey = $keyResult['setting_value'];
 
         // 2. Fetch the TextBee Device ID (You can hardcode this if you prefer, 
         // but keeping it in the DB alongside the API key is best practice)
-        $deviceStmt = $pdo->prepare("SELECT value FROM settings WHERE name = 'textbee_device_id' LIMIT 1");
+        $deviceStmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'textbee_device_id' LIMIT 1");
         $deviceStmt->execute();
         $deviceResult = $deviceStmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$deviceResult || empty($deviceResult['value'])) {
+        if (!$deviceResult || empty($deviceResult['setting_value'])) {
             return ['success' => false, 'error' => 'TextBee Device ID is missing in the database.'];
         }
-        $deviceId = $deviceResult['value'];
+        $deviceId = $deviceResult['setting_value'];
 
         // 3. Prepare the TextBee API endpoint and payload
         $url = "https://api.textbee.dev/api/v1/gateway/devices/{$deviceId}/sendSMS";
@@ -77,7 +76,7 @@ function sendSmsViaTextBee($phoneNumber, $message) {
 
     } catch (PDOException $e) {
         error_log("Database error in sendSmsViaTextBee: " . $e->getMessage());
-        return ['success' => false, 'error' => 'Database failure while fetching credentials.'];
+        return ['success' => false, 'error' => 'Database failure while fetching credentials.'. $e];
     }
 }
 
