@@ -45,24 +45,27 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- 2. API FETCHING & RENDERING ---
   const fetchUsers = async () => {
     try {
-      let params = new URLSearchParams(document.location.search);
-      if (params.get("search")) {
-        const response = await fetch(
-          `api/users?search=${encodeURIComponent(params.get("search"))}`,
-        );
-      } else {
-        const response = await fetch(
-          `api/users?page=${params.get("page") || 1}`,
-        );
+      const params = new URLSearchParams(document.location.search);
+      const searchQuery = params.get("search");
+      const page = params.get("page") || 1;
+      const requestUrl = searchQuery
+        ? `api/users?search=${encodeURIComponent(searchQuery)}`
+        : `api/users?page=${page}`;
+
+      const response = await fetch(requestUrl);
+      if (response.status === 404) {
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center">User not found</td></tr>`;
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(`Network response was not ok (${response.status})`);
       }
 
-      if (!response.ok) throw new Error("Network response was not ok");
-
       const users = await response.json();
-      renderTable(users.data.users);
+      renderTable(users.data?.users || []);
     } catch (error) {
       console.error("Error fetching users:", error);
-      tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#e11d48;">Failed to load data.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#e11d48;">Failed to load data. Please try again later and check your connection.</td></tr>`;
     }
   };
 
