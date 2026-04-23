@@ -45,16 +45,43 @@ if ($isPublicEndpoint) {
 if ($method === 'GET') {
    
     // SCENARIO A: GET /users.php/me (Get own profile)
-    if ($resourceId === 'me') {
+    if ($resourceId === 'me' || (string)$resourceId === (string)$userData['id']) {
         systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved their own profile", $userData['id']);
         Response::success("Profile retrieved", ["user" => $userData]);
     }
-    
+
+
     // Admin check for the following GET routes
     if ($userData['role'] !== 'Administrator' || $userData['status'] !== 'Verified') {
         systemLog($userData['name'] . " (" . $userData['username'] . ") attempted to access user records without permission", $userData['id']);
         Response::error("Forbidden", 403);
     }
+
+ 
+    if (isset($_GET['search']) && trim($_GET['search']) !== '') {
+        $searchTerm = '%' . trim($_GET['search']) . '%';
+        $sql = "SELECT id, username, email, role, status, phone_number, name, updated_at, created_at
+            FROM users
+            WHERE (username LIKE :search_username
+                   OR email LIKE :search_email
+                   OR name LIKE :search_name)
+            ORDER BY id DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+        ':search_username' => $searchTerm,
+        ':search_email' => $searchTerm,
+        ':search_name' => $searchTerm
+            ]);
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        systemLog($userData['name'] . " (" . $userData['username'] . ") performed a search for users with term: " . trim($_GET['search']), $userData['id']);
+        
+        if ($users) {
+            Response::success("Search results retrieved", ["users" => $users]);
+        } else {
+            Response::error("No users found matching the search criteria", 404);
+        }
+    } 
 
     // SCENARIO B: GET /users.php/{id} (Get specific user)
     if (is_numeric($resourceId)) {
@@ -109,6 +136,10 @@ if ($method === 'GET') {
             ]
         ]);
     }
+
+   
+    
+    Response::error("User not found", 404);
 }
 
 // ==========================================

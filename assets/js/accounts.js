@@ -46,7 +46,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const fetchUsers = async () => {
     try {
       let params = new URLSearchParams(document.location.search);
-      const response = await fetch(`api/users?page=${params.get("page") || 1}`);
+      if (params.get("search")) {
+        const response = await fetch(
+          `api/users?search=${encodeURIComponent(params.get("search"))}`,
+        );
+      } else {
+        const response = await fetch(
+          `api/users?page=${params.get("page") || 1}`,
+        );
+      }
+
       if (!response.ok) throw new Error("Network response was not ok");
 
       const users = await response.json();
