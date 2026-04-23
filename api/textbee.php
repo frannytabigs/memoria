@@ -38,9 +38,15 @@ function sendSmsViaTextBee($phoneNumber, $message) {
         // 3. Prepare the TextBee API endpoint and payload
         $url = "https://api.textbee.dev/api/v1/gateway/devices/{$deviceId}/sendSMS";
         
+        $cemetery_name = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'cemetery_name'")->fetch(PDO::FETCH_ASSOC)['setting_value'] ?? false;
+
+        if ($cemetery_name) {
+            $message = $message . "\n\n- From " . $cemetery_name;
+        }
+
         $payload = json_encode([
             "receivers" => [ $phoneNumber ],
-            "smsBody" => $message
+            "smsBody" => $message 
         ]);
 
         // 4. Initialize and execute the cURL request
