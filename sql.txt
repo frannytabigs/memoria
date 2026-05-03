@@ -29,5 +29,77 @@ INSERT INTO settings (setting_key, setting_value, description) VALUES
 ('textbee_api_key', 'your_long_api_key_here', 'API key for SMS gateway'),
 ('textbee_device_id', 'your_device_id_here', 'Android device ID for SMS routing');
 
-NO OTP TABLE
-CUSTOMIZED TABLE, NAME, SIGNATURES, COLORS, [LOGO[?]].... SMS API KEY TEXTBEE
+-- CUSTOMIZED TABLE, NAME, SIGNATURES, COLORS, [LOGO[?]].... SMS API KEY TEXTBEE
+
+-- 1. CONTACTS TABLE (The living family members, guardians, or CSWS officers)
+CREATE TABLE contacts (
+    contact_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255), -- Nullable in case the agency doesn't provide a specific person's name
+    address TEXT,
+    phone_number VARCHAR(50),
+    email_address VARCHAR(100), 
+    remarks TEXT -- Good place to put "City Social Welfare Services"
+);
+
+-- 2A. BLOCKS TABLE (The big areas/buildings)
+CREATE TABLE blocks (
+    block_id INT AUTO_INCREMENT PRIMARY KEY,
+    block_name VARCHAR(100) UNIQUE NOT NULL, 
+    block_type ENUM('Niche Wall', 'Bone Chamber Building', 'Lawn/Grounds', 'Unmapped Area'), -- Added 'Unmapped Area' just in case!
+    total_rows INT,    
+    total_columns INT, 
+    remarks TEXT
+);
+
+-- 2B. GRAVES TABLE (The individual holes/slots inside a block)
+CREATE TABLE graves (
+    grave_id INT AUTO_INCREMENT PRIMARY KEY,
+    block_id INT, 
+    grave_code VARCHAR(50) UNIQUE, 
+    row_num INT,         
+    col_num INT,         
+    floor_level INT,     
+    status ENUM('Vacant', 'Occupied', 'Reserved', 'Under Maintenance') DEFAULT 'Vacant',
+    remarks TEXT,
+    FOREIGN KEY (block_id) REFERENCES blocks(block_id) -- Fixed the reference name here
+);
+
+-- 3. DECEASED TABLE (Biological/identifying info)
+CREATE TABLE deceased (
+    deceased_id INT AUTO_INCREMENT PRIMARY KEY,
+    control_number VARCHAR(100) UNIQUE NOT NULL,
+    name VARCHAR(100), -- Nullable for unidentified individuals
+    sex ENUM('Male', 'Female', 'Unknown') DEFAULT 'Unknown',
+    date_of_birth DATE, -- Nullable if unknown
+    date_of_death DATE, -- Nullable if unknown
+    remarks TEXT -- e.g., "Unidentified male, handled by CSWS"
+);
+
+-- 4. INTERMENTS TABLE (The Burial Record)
+CREATE TABLE interments (
+    interment_id INT AUTO_INCREMENT PRIMARY KEY,
+    deceased_id INT NOT NULL, -- There is always a physical body
+    grave_id INT,             -- FIXED: Points to graves, NOT blocks. Nullable for corner burials!
+    contact_id INT,           -- FIXED: Nullable for homeless/no family cases.
+    date_buried DATE,         -- Nullable just in case the exact historical date is lost
+    date_exhumed DATE, 
+    lease_expiration_date DATE, 
+    status ENUM('Active', 'Exhumed', 'Moved to Family') DEFAULT 'Active',
+    remarks TEXT,
+    FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id),
+    FOREIGN KEY (grave_id) REFERENCES graves(grave_id), 
+    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id)
+);
+
+-- 5. RESERVATIONS TABLE (Reserving vacant spots before death)
+CREATE TABLE reservations (
+    reservation_id INT AUTO_INCREMENT PRIMARY KEY,
+    grave_id INT NOT NULL,    -- FIXED: You must reserve a specific grave, not a whole block.
+    contact_id INT, -- could be from csws or no contact and all...
+    reservation_date DATE,
+    expiration_date DATE, 
+    status ENUM('Active', 'Fulfilled', 'Cancelled') DEFAULT 'Active',
+    remarks TEXT,
+    FOREIGN KEY (grave_id) REFERENCES graves(grave_id), 
+    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id)
+);
