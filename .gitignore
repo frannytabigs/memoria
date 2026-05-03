@@ -2,5 +2,3 @@
 .env
 /api/logs.txt
 /api/config.php
-# Composer Dependencies
-vendor/
