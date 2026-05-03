@@ -25,7 +25,7 @@ if ($method === 'DELETE') {
     require_once 'usercheck.php';
 
     $userData = checkuser(false);
-    if ($userData) systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['id']); 
+    if ($userData) systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['user_id']); 
 
     setcookie('auth_token', '', time() - 3600, '/');
     Response::success("Logged out successfully");
@@ -75,7 +75,7 @@ try {
             "iat" => time(),
             "exp" => time() + $JWT_EXPIRATION,
             "data" => [
-                "id" => $user['id'],
+                "user_id" => $user['user_id'],
                 "username" => $user['username'],
                 "role" => $user['role'],
                 "status" => $user['status'],
@@ -97,7 +97,7 @@ try {
             'samesite' => 'Strict'
         ]);
 
-        systemLog($user['name'] . " (" . $user['username'] . ") logged in", $user['id']);
+        systemLog($user['name'] . " (" . $user['username'] . ") logged in", $user['user_id']);
         Response::success("Login successful", $user); 
 
         // In the future i think to support other than website or web-app

@@ -45,27 +45,27 @@ if ($isPublicEndpoint) {
 if ($method === 'GET') {
    
     // SCENARIO A: GET /users.php/me (Get own profile)
-    if ($resourceId === 'me' || (string)$resourceId === (string)$userData['id']) {
-        systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved their own profile", $userData['id']);
+    if ($resourceId === 'me' || (string)$resourceId === (string)$userData['user_id']) {
+        systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved their own profile", $userData['user_id']);
         Response::success("Profile retrieved", ["user" => $userData]);
     }
 
 
     // Admin check for the following GET routes
     if ($userData['role'] !== 'Administrator' || $userData['status'] !== 'Verified') {
-        systemLog($userData['name'] . " (" . $userData['username'] . ") attempted to access user records without permission", $userData['id']);
+        systemLog($userData['name'] . " (" . $userData['username'] . ") attempted to access user records without permission", $userData['user_id']);
         Response::error("Forbidden", 403);
     }
 
  
     if (isset($_GET['search']) && trim($_GET['search']) !== '') {
         $searchTerm = '%' . trim($_GET['search']) . '%';
-        $sql = "SELECT id, username, email, role, status, phone_number, name, updated_at, created_at
+        $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at
             FROM users
             WHERE (username LIKE :search_username
                    OR email LIKE :search_email
                    OR name LIKE :search_name)
-            ORDER BY id DESC";
+            ORDER BY user_id DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
         ':search_username' => $searchTerm,
@@ -74,7 +74,7 @@ if ($method === 'GET') {
             ]);
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        systemLog($userData['name'] . " (" . $userData['username'] . ") performed a search for users with term: " . trim($_GET['search']), $userData['id']);
+        systemLog($userData['name'] . " (" . $userData['username'] . ") performed a search for users with term: " . trim($_GET['search']), $userData['user_id']);
         
         if ($users) {
             Response::success("Search results retrieved", ["users" => $users]);
@@ -85,13 +85,13 @@ if ($method === 'GET') {
 
     // SCENARIO B: GET /users.php/{id} (Get specific user)
     if (is_numeric($resourceId)) {
-        $sql = "SELECT id, username, email, role, status, phone_number, name, updated_at, created_at FROM users WHERE id = :id LIMIT 1";
+        $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at FROM users WHERE user_id = :id LIMIT 1";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':id' => $resourceId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved profile of user ID " . $resourceId, $userData['id']);
+            systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved profile of user ID " . $resourceId, $userData['user_id']);
             Response::success("User retrieved successfully", ["user" => $user]);
         } else {
             Response::error("User not found", 404);
@@ -113,9 +113,9 @@ if ($method === 'GET') {
         $totalUsers = $pdo->query($countSql)->fetchColumn();
         $totalPages = ceil($totalUsers / $limit);
         
-        $sql = "SELECT id, username, email, role, status, phone_number, name, updated_at, created_at 
+        $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at 
                 FROM users 
-                ORDER BY id DESC 
+                ORDER BY user_id DESC 
                 LIMIT :limit OFFSET :offset";
                 
         $stmt = $pdo->prepare($sql);
@@ -125,7 +125,7 @@ if ($method === 'GET') {
         
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved user list (Page $page)", $userData['id']);
+        systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved user list (Page $page)", $userData['user_id']);
         Response::success("Users retrieved successfully", [
             "users" => $users,
             "pagination" => [
@@ -149,7 +149,7 @@ if ($method === 'POST') {
     
     // Disallow logged-in users from creating new accounts or resetting passwords this way
     if ($userData) {
-        systemLog($userData['name'] . " (" . $userData['username'] . ") attempted to access a public POST route while logged in", $userData['id']);
+        systemLog($userData['name'] . " (" . $userData['username'] . ") attempted to access a public POST route while logged in", $userData['user_id']);
         Response::error("Forbidden: You are already logged in.", 403);
     }
 
@@ -243,7 +243,7 @@ if ($method === 'POST') {
 if ($method === 'DELETE') {
     
     if ($userData['role'] !== 'Administrator' || $userData['status'] !== 'Verified') {
-        systemLog($userData['name'] . " attempted to delete a user without permission", $userData['id']);
+        systemLog($userData['name'] . " attempted to delete a user without permission", $userData['user_id']);
         Response::error("Forbidden: Only administrators can perform user deletions", 403);
     }
 
@@ -253,18 +253,18 @@ if ($method === 'DELETE') {
 
     $userIdToDelete = (int)$resourceId;
 
-    if ($userData['id'] === $userIdToDelete) {
+    if ($userData['user_id'] === $userIdToDelete) {
         Response::error("Forbidden: You cannot delete your own account", 403);
     }
 
-    $sql = "DELETE FROM users WHERE id = :id";
+    $sql = "DELETE FROM users WHERE user_id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->bindParam(':id', $userIdToDelete, PDO::PARAM_INT);
     
     try {
         $stmt->execute();
         if ($stmt->rowCount() > 0) {
-            systemLog($userData['name'] . " deleted user with ID $userIdToDelete", $userData['id']);
+            systemLog($userData['name'] . " deleted user with ID $userIdToDelete", $userData['user_id']);
             Response::success("User successfully deleted");
         } else {
             Response::error("Not Found: User does not exist", 404);
@@ -291,7 +291,7 @@ if ($method === 'PUT') {
 
     $rawData = json_decode(file_get_contents("php://input"), true);
     // SCENARIO A: A user is editing their OWN account
-    if ($userData['id'] === $targetId) {
+    if ($userData['user_id'] === $targetId) {
         if (isset($rawData['name']) && trim($rawData['name']) !== '') {
             $updateFields[] = "name = :name"; $queryParams[':name'] = trim($rawData['name']);
         }
@@ -323,7 +323,7 @@ if ($method === 'PUT') {
         if (isset($rawData['status']) && in_array($rawData['status'], ['Verified', 'Unverified'])) {
             
             $updateFields[] = "status = :status"; $queryParams[':status'] = $rawData['status'];
-            $statusCheckStmt = $pdo->prepare("SELECT status FROM users WHERE id = :id");
+            $statusCheckStmt = $pdo->prepare("SELECT status FROM users WHERE user_id = :id");
             $statusCheckStmt->execute([':id' => $targetId]);
             $currentStatus = $statusCheckStmt->fetchColumn();
 
@@ -340,7 +340,7 @@ if ($method === 'PUT') {
     // Execute the Update
     if (!empty($updateFields)) {
         $updateFields[] = "updated_at = NOW()";
-        $sql = "UPDATE users SET " . implode(", ", $updateFields) . " WHERE id = :id";
+        $sql = "UPDATE users SET " . implode(", ", $updateFields) . " WHERE user_id = :id";
         $queryParams[':id'] = $targetId;
         $stmt = $pdo->prepare($sql);
         
@@ -349,7 +349,7 @@ if ($method === 'PUT') {
 
             // Send SMS if newly verified
             if (isset($isVerifying) && $isVerifying) {
-                $phoneStmt = $pdo->prepare("SELECT phone_number, name FROM users WHERE id = :id");
+                $phoneStmt = $pdo->prepare("SELECT phone_number, name FROM users WHERE user_id = :id");
                 $phoneStmt->execute([':id' => $targetId]);
                 $targetUser = $phoneStmt->fetch(PDO::FETCH_ASSOC);
                 
@@ -358,12 +358,12 @@ if ($method === 'PUT') {
                     $smsStatus = sendSmsViaTextBee($targetUser['phone_number'], $smsMessage);
                     if (!$smsStatus['success']) {
                         error_log("Failed to send verification SMS to User ID {$targetId}: " . $smsStatus['error']);
-                        systemLog("Failed to send verification SMS to User ID {$targetId}. Error: " . $smsStatus['error'], $userData['id']);
+                        systemLog("Failed to send verification SMS to User ID {$targetId}. Error: " . $smsStatus['error'], $userData['user_id']);
                         Response::success("User is verified but failed to send SMS notification: " . $smsStatus['error']);
                     }
                 }
             }
-            systemLog($userData['name'] . " updated user with ID $targetId", $userData['id']);
+            systemLog($userData['name'] . " updated user with ID $targetId", $userData['user_id']);
             Response::success("User updated successfully");
         } catch (PDOException $e) {
             if ($e->getCode() == 23000) {

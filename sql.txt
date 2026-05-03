@@ -4,7 +4,7 @@
 -- DROP TABLE users;
 
 CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT, 
+    user_id INT PRIMARY KEY AUTO_INCREMENT, 
     username VARCHAR(50) UNIQUE NOT NULL,
     role ENUM('Administrator', 'Staff') NOT NULL DEFAULT 'Staff',
     status ENUM('Verified', 'Unverified') NOT NULL DEFAULT 'Unverified',
@@ -17,17 +17,17 @@ CREATE TABLE users (
 );
 
 CREATE TABLE settings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_id INT AUTO_INCREMENT PRIMARY KEY,
     setting_key VARCHAR(50) NOT NULL UNIQUE,
     setting_value TEXT,
     description VARCHAR(255) NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-INSERT INTO settings (setting_key, setting_value, description) VALUES 
-('cemetery_name', 'Mandaue City Municipal Cemetery', 'The official name displayed on the dashboard'),
-('textbee_api_key', 'your_long_api_key_here', 'API key for SMS gateway'),
-('textbee_device_id', 'your_device_id_here', 'Android device ID for SMS routing');
+-- INSERT INTO settings (setting_key, setting_value, description) VALUES 
+-- ('cemetery_name', 'Mandaue City Municipal Cemetery', 'The official name displayed on the dashboard'),
+-- ('textbee_api_key', 'your_long_api_key_here', 'API key for SMS gateway'),
+-- ('textbee_device_id', 'your_device_id_here', 'Android device ID for SMS routing');
 
 -- CUSTOMIZED TABLE, NAME, SIGNATURES, COLORS, [LOGO[?]].... SMS API KEY TEXTBEE
 
@@ -36,7 +36,7 @@ CREATE TABLE contacts (
     contact_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255), -- Nullable in case the agency doesn't provide a specific person's name
     address TEXT,
-    phone_number VARCHAR(50),
+    phone_number VARCHAR(20),
     email_address VARCHAR(100), 
     remarks TEXT -- Good place to put "City Social Welfare Services"
 );
@@ -59,9 +59,9 @@ CREATE TABLE graves (
     row_num INT,         
     col_num INT,         
     floor_level INT,     
-    status ENUM('Vacant', 'Occupied', 'Reserved', 'Under Maintenance') DEFAULT 'Vacant',
+    status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance') DEFAULT 'Vacant',    
     remarks TEXT,
-    FOREIGN KEY (block_id) REFERENCES blocks(block_id) -- Fixed the reference name here
+    FOREIGN KEY (block_id) REFERENCES blocks(block_id) ON DELETE RESTRICT
 );
 
 -- 3. DECEASED TABLE (Biological/identifying info)
@@ -84,11 +84,11 @@ CREATE TABLE interments (
     date_buried DATE,         -- Nullable just in case the exact historical date is lost
     date_exhumed DATE, 
     lease_expiration_date DATE, 
-    status ENUM('Active', 'Exhumed', 'Moved to Family') DEFAULT 'Active',
+    status ENUM('Active', 'Expired', 'Exhumed', 'Moved to Family') DEFAULT 'Active',
     remarks TEXT,
     FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id),
     FOREIGN KEY (grave_id) REFERENCES graves(grave_id), 
-    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id)
+    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL
 );
 
 -- 5. RESERVATIONS TABLE (Reserving vacant spots before death)
@@ -102,4 +102,21 @@ CREATE TABLE reservations (
     remarks TEXT,
     FOREIGN KEY (grave_id) REFERENCES graves(grave_id), 
     FOREIGN KEY (contact_id) REFERENCES contacts(contact_id)
+);
+
+-- 6. SMS NOTIFICATIONS TABLE (Audit trail for the TextBee API)
+CREATE TABLE sms_notifications (
+    notification_id INT AUTO_INCREMENT PRIMARY KEY,
+    interment_id INT,           -- Which burial this relates to
+    contact_id INT,             -- The family member receiving the text
+    user_id INT,                -- The Staff/Admin who clicked the "Send" button
+    phone_number VARCHAR(20),   -- Stored explicitly in case the contact changes their number later
+    message_type ENUM('1st Warning', 'Final Warning', 'Expired', 'Custom') DEFAULT '1st Warning',
+    message_content TEXT,       -- The exact text that was generated and sent
+    status ENUM('Pending', 'Sent', 'Failed') DEFAULT 'Pending', -- Crucial for TextBee tracking
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    remarks TEXT,
+    FOREIGN KEY (interment_id) REFERENCES interments(interment_id) ON DELETE SET NULL,
+    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
 );

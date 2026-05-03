@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     users.forEach((user) => {
       const tr = document.createElement("tr");
       tr.setAttribute("data-state", "view");
-      tr.setAttribute("data-id", user.id); // Add ID to the row so you know who to update in the DB later
+      tr.setAttribute("data-id", user.user_id); // Add ID to the row so you know who to update in the DB later
 
       tr.innerHTML = `
         <td>${user.name}</td>
@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <option value="Unverified" ${user.status === "Unverified" ? "selected" : ""}>Unverified</option>
           </select>
         </td>
-        <td>${user.id}</td>
+        <td>${user.user_id}</td>
         <td>
           <button class="editBtn viewMode">Edit</button>
           <button class="saveBtn editMode" style="display:none;">Save</button>
@@ -213,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              id: userId,
+              user_id: userId,
               role: newRole,
               status: newStatus,
             }),
@@ -269,7 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const response = await fetch(`api/users/${userId}`, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: userId }),
+            body: JSON.stringify({ user_id: userId }),
           });
 
           if (!response.ok) throw new Error("Network response was not ok");
