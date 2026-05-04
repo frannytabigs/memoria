@@ -1,6 +1,6 @@
 -- DROP DATABASE memoria;
--- CREATE DATABASE memoria;
--- USE memoria;
+-- CREATE DATABASE memoria_db;
+-- USE memoria_db;
 -- DROP TABLE users;
 
 CREATE TABLE users (
