@@ -59,9 +59,11 @@ CREATE TABLE graves (
     row_num INT,         
     col_num INT,         
     floor_level INT,     
-    status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance') DEFAULT 'Vacant',    
+    status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance', 'Merged') DEFAULT 'Vacant', -- ADDED 'Merged'
+    merged_with_id INT,  -- NEW: Tells us which grave swallowed this one up    
     remarks TEXT,
-    FOREIGN KEY (block_id) REFERENCES blocks(block_id) ON DELETE RESTRICT
+    FOREIGN KEY (block_id) REFERENCES blocks(block_id) ON DELETE RESTRICT,
+    FOREIGN KEY (merged_with_id) REFERENCES graves(grave_id) ON DELETE SET NULL -- This links back to its own table!
 );
 
 -- 3. DECEASED TABLE (Biological/identifying info)
@@ -120,3 +122,27 @@ CREATE TABLE sms_notifications (
     FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
 );
+
+-- Pure vacant
+-- SELECT grave_code FROM graves WHERE status = 'Vacant';
+-- SET time_zone = '+08:00';
+-- // Grabs the local date in YYYY-MM-DD format (e.g., "2026-05-04") const today = new Date().toLocaleDateString('en-CA');
+-- SELECT * FROM interments WHERE lease_expiration_date < ?; -- The '?' is your JS date
+
+-- SELECT 
+--    g.grave_code, 
+--    d.name AS deceased_name, 
+--    c.phone_number,
+--    i.lease_expiration_date,
+    -- We can even add a smart column to tell the staff exactly what the status is!
+--    CASE 
+--        WHEN i.lease_expiration_date < CURDATE() THEN 'Already Expired'
+--        ELSE 'Expiring Soon'
+--    END AS urgency_level
+-- FROM interments i
+-- JOIN graves g ON i.grave_id = g.grave_id
+-- JOIN deceased d ON i.deceased_id = d.deceased_id
+-- JOIN contacts c ON i.contact_id = c.contact_id
+-- WHERE i.status = 'Active' 
+--  AND i.lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+-- ORDER BY i.lease_expiration_date ASC; -- Sorts it so the oldest expired ones are at the top
