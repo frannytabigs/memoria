@@ -48,6 +48,7 @@ CREATE TABLE blocks (
     block_type ENUM('Niche Wall', 'Bone Chamber Building', 'Lawn/Grounds', 'Unmapped Area'), -- Added 'Unmapped Area' just in case!
     total_rows INT,    
     total_columns INT, 
+    coordinates JSON, -- on the maps visuals
     remarks TEXT
 );
 
@@ -61,6 +62,7 @@ CREATE TABLE graves (
     floor_level INT,     
     status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance', 'Merged') DEFAULT 'Vacant', -- ADDED 'Merged'
     merged_with_id INT,  -- NEW: Tells us which grave swallowed this one up    
+    coordinates JSON, -- on the map visuals
     remarks TEXT,
     FOREIGN KEY (block_id) REFERENCES blocks(block_id) ON DELETE RESTRICT,
     FOREIGN KEY (merged_with_id) REFERENCES graves(grave_id) ON DELETE SET NULL -- This links back to its own table!
@@ -122,6 +124,8 @@ CREATE TABLE sms_notifications (
     FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
 );
+-- CREATE INDEX FOR FASTER QUERY
+CREATE INDEX idx_lease_expiration ON interments(lease_expiration_date);
 
 -- Pure vacant
 -- SELECT grave_code FROM graves WHERE status = 'Vacant';
@@ -129,20 +133,48 @@ CREATE TABLE sms_notifications (
 -- // Grabs the local date in YYYY-MM-DD format (e.g., "2026-05-04") const today = new Date().toLocaleDateString('en-CA');
 -- SELECT * FROM interments WHERE lease_expiration_date < ?; -- The '?' is your JS date
 
+-- PART 1: Grab the purely Vacant graves
 -- SELECT 
+--    g.grave_id,
+--    g.block_id,
+--    b.block_name,
+--    g.grave_code, 
+--    NULL AS deceased_name,          -- No body here yet
+--    NULL AS phone_number,           -- No family to call
+--    NULL AS lease_expiration_date,  -- No lease yet
+--    'Vacant' AS urgency_level       -- Custom status tag
+-- FROM graves g
+-- LEFT JOIN blocks b ON g.block_id = b.block_id
+-- WHERE g.status = 'Vacant'
+
+-- UNION ALL
+
+-- PART 2: Grab the Expiring and Expired interments
+-- SELECT 
+--    g.grave_id,
+--    g.block_id,
+--    b.block_name,
 --    g.grave_code, 
 --    d.name AS deceased_name, 
 --    c.phone_number,
 --    i.lease_expiration_date,
-    -- We can even add a smart column to tell the staff exactly what the status is!
 --    CASE 
 --        WHEN i.lease_expiration_date < CURDATE() THEN 'Already Expired'
 --        ELSE 'Expiring Soon'
 --    END AS urgency_level
 -- FROM interments i
 -- JOIN graves g ON i.grave_id = g.grave_id
+-- LEFT JOIN blocks b ON g.block_id = b.block_id
 -- JOIN deceased d ON i.deceased_id = d.deceased_id
--- JOIN contacts c ON i.contact_id = c.contact_id
+-- LEFT JOIN contacts c ON i.contact_id = c.contact_id 
 -- WHERE i.status = 'Active' 
 --  AND i.lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
--- ORDER BY i.lease_expiration_date ASC; -- Sorts it so the oldest expired ones are at the top
+
+-- THE SORTING MAGIC
+-- ORDER BY 
+--    CASE urgency_level
+--        WHEN 'Vacant' THEN 1
+--        WHEN 'Already Expired' THEN 2
+--        WHEN 'Expiring Soon' THEN 3
+--    END ASC,
+--    lease_expiration_date ASC; -- Within the expired/expiring groups, sorts oldest dates to the top
