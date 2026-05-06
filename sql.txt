@@ -45,11 +45,15 @@ CREATE TABLE contacts (
 CREATE TABLE blocks (
     block_id INT AUTO_INCREMENT PRIMARY KEY,
     block_name VARCHAR(100) UNIQUE NOT NULL, 
-    block_type ENUM('Niche Wall', 'Bone Chamber Building', 'Lawn/Grounds', 'Unmapped Area'), -- Added 'Unmapped Area' just in case!
+    block_type ENUM('Niche Wall', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned'), -- Added 'Unmapped Area' just in case! added 'Private/Owned'
     total_rows INT,    
     total_columns INT, 
+    max_capacity INT,
+    area_sqm DECIMAL(10,2),
+    owner_contact_id INT,
     coordinates JSON, -- on the maps visuals
-    remarks TEXT
+    remarks TEXT,
+    FOREIGN KEY (owner_contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL
 );
 
 -- 2B. GRAVES TABLE (The individual holes/slots inside a block)
@@ -76,6 +80,7 @@ CREATE TABLE deceased (
     sex ENUM('Male', 'Female', 'Unknown') DEFAULT 'Unknown',
     date_of_birth DATE, -- Nullable if unknown
     date_of_death DATE, -- Nullable if unknown
+    last_known_address TEXT,
     remarks TEXT -- e.g., "Unidentified male, handled by CSWS"
 );
 
@@ -95,7 +100,7 @@ CREATE TABLE interments (
     FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL
 );
 
--- 5. RESERVATIONS TABLE (Reserving vacant spots before death)
+-- 5. RESERVATIONS TABLE (Reserving vacant spots before death or burial)
 CREATE TABLE reservations (
     reservation_id INT AUTO_INCREMENT PRIMARY KEY,
     grave_id INT NOT NULL,    -- FIXED: You must reserve a specific grave, not a whole block.
