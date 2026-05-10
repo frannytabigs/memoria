@@ -11,7 +11,7 @@ require_once 'notallowed.php';
  * @param string $message The content of the SMS.
  * @return array Returns an associative array with 'success' (boolean) and optional 'error' details.
  */
-function sendSmsViaTextBee($phoneNumber, $message) {
+function sendSmsViaTextBee($phoneNumber, $message, $include_cemetery_name = true) {
     global $pdo; // Use the global PDO instance for database access
     try {
         // 1. Fetch the TextBee API Key from the settings table
@@ -40,7 +40,7 @@ function sendSmsViaTextBee($phoneNumber, $message) {
         
         $cemetery_name = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'cemetery_name'")->fetch(PDO::FETCH_ASSOC)['setting_value'] ?? false;
 
-        if ($cemetery_name) {
+        if ($cemetery_name && $include_cemetery_name) {
             $message = $message . "\n\n- From " . $cemetery_name;
         }
 

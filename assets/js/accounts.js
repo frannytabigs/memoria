@@ -81,27 +81,38 @@ document.addEventListener("DOMContentLoaded", () => {
       const tr = document.createElement("tr");
       tr.setAttribute("data-state", "view");
       tr.setAttribute("data-id", user.user_id); // Add ID to the row so you know who to update in the DB later
-
+      const escapeHTML = (str) =>
+        str.replace(
+          /[&<>'"]/g,
+          (tag) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              "'": "&#39;",
+              '"': "&quot;",
+            })[tag],
+        );
       tr.innerHTML = `
-        <td>${user.name}</td>
-        <td>${user.username}</td>
-        <td>${user.email}</td>
-        <td>${user.phone_number}</td>
+        <td>${escapeHTML(user.name)}</td>
+        <td>${escapeHTML(user.username)}</td>
+        <td>${escapeHTML(user.email)}</td>
+        <td>${escapeHTML(user.phone_number)}</td>
         <td class="roleCell">
-          <span class="viewMode">${user.role}</span>
+          <span class="viewMode">${escapeHTML(user.role)}</span>
           <select class="roleSelect editMode" style="display:none;">
             <option value="Administrator" ${user.role === "Administrator" ? "selected" : ""}>Administrator</option>
             <option value="Staff" ${user.role === "Staff" ? "selected" : ""}>Staff</option>
           </select>
         </td>
         <td class="statusCell">
-          <span class="viewMode status ${user.status.toLowerCase()}">${user.status}</span>
+          <span class="viewMode status ${user.status.toLowerCase()}">${escapeHTML(user.status)}</span>
           <select class="statusSelect editMode" style="display:none;">
             <option value="Verified" ${user.status === "Verified" ? "selected" : ""}>Verified</option>
             <option value="Unverified" ${user.status === "Unverified" ? "selected" : ""}>Unverified</option>
           </select>
         </td>
-        <td>${user.user_id}</td>
+        <td>${escapeHTML(user.user_id)}</td>
         <td>
           <button class="editBtn viewMode">Edit</button>
           <button class="saveBtn editMode" style="display:none;">Save</button>

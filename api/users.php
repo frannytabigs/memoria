@@ -160,14 +160,46 @@ if ($method === 'POST') {
     $password = isset($_POST['password']) ? $_POST['password'] : '';
         
     $error_msg = "";
-    if (empty($username)) $error_msg .= "Username is required. ";
-    if (empty($email)) $error_msg .= "Email is required. ";     
-    if (empty($name)) $error_msg .= "Full name is required. ";
-    if (empty($phone_number)) $error_msg .= "Phone number is required. ";   
-    if (empty($password)) $error_msg .= "Password is required. ";
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $error_msg .= "Invalid email format. ";
-    if (strlen($password) < 6) $error_msg .= "Password must be at least 6 characters. ";
-    if (!formatPhNumber($phone_number)) $error_msg .= "Invalid Philippine phone number format. ";
+
+    // Username
+    if (empty($username)) {
+        $error_msg .= "Username is required. ";
+    } elseif (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $username)) {
+        // Letters, numbers, underscores only (3-20 chars)
+        $error_msg .= "Username must be 3-20 characters long and contain only letters, numbers, and underscores. ";
+    }
+
+    // Email
+    if (empty($email)) {
+        $error_msg .= "Email is required. ";
+    } elseif (!preg_match('/^[^\s@]+@[^\s@]+\.[^\s@]+$/', $email)) {
+        $error_msg .= "Invalid email format. ";
+    }
+
+    // Full Name
+    if (empty($name)) {
+        $error_msg .= "Full name is required. ";
+    } elseif (!preg_match('/^[a-zA-Z\s.\'-]{2,100}$/', $name)) {
+        // Allows letters, spaces, dots, apostrophes, hyphens
+        $error_msg .= "Full name contains invalid characters. ";
+    }
+
+    // Phone Number
+    if (empty($phone_number)) {
+        $error_msg .= "Phone number is required. ";
+    } elseif (!preg_match('/^(09|\+639)\d{9}$/', $phone_number)) {
+        // Accepts 09xxxxxxxxx or +639xxxxxxxxx
+        $error_msg .= "Invalid Philippine phone number format. ";
+    }
+
+    // Password
+    if (empty($password)) {
+        $error_msg .= "Password is required. ";
+    } elseif (!preg_match('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/', $password)) {
+        // At least 6 chars, 1 uppercase, 1 lowercase, 1 number
+        $error_msg .= "Password must be at least 6 characters and include uppercase, lowercase, and a number. ";
+    }
+
     if (!empty($error_msg)) {
         systemLog("Failed registration attempt with username: $username, email: $email, name: $name, phone: $phone_number. Errors: $error_msg", null);
         Response::error("Bad Request: " . trim($error_msg), 400);
@@ -355,7 +387,7 @@ if ($method === 'PUT') {
                 
                 if ($targetUser && !empty($targetUser['phone_number'])) {
                     $smsMessage = "Hello {$targetUser['name']}, your Memoria account has been Verified by an Administrator. You can now log-in to the system.";
-                    $smsStatus = sendSmsViaTextBee($targetUser['phone_number'], $smsMessage);
+                    $smsStatus = sendSmsViaTextBee($targetUser['phone_number'], $smsMessage, true);
                     if (!$smsStatus['success']) {
                         error_log("Failed to send verification SMS to User ID {$targetId}: " . $smsStatus['error']);
                         systemLog("Failed to send verification SMS to User ID {$targetId}. Error: " . $smsStatus['error'], $userData['user_id']);
