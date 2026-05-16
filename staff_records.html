@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Records</title>
+
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/records.css">
+    
+    <!-- FONT & ICONS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebarTop">
+            <div class="memoriaLogo">
+                <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo">
+            </div>
+            <div class="sidebarDateTime" id="dateTimeDisplay"></div>
+        </div>
+
+        <div class="sidebarNav">
+            <div class="sidebarSection">Main</div>
+            <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
+            <div class="menu active"><i class="fas fa-folder-open"></i>Records</div>
+            <div class="menu"><i class="fas fa-map"></i>Map</div>
+
+            <div class="sidebarSection">Management</div>
+            <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
+            <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
+            <div class="menu"><i class="fas fa-file-alt"></i>Reports</div>
+
+            <div class="sidebarSection">System</div>
+            <div class="menu"><i class="fas fa-cog"></i>Settings</div>
+        </div>
+
+        <div class="sidebarFooter">
+            <div class="userCard">
+                <div class="userAvatar">
+                    <div class="avatarBox">AD</div>
+                    <div class="statusIndicator"></div>
+                </div>
+                <div class="userDetails">
+                    <span class="username">Admin</span>
+                    <span class="userRole">Administrator</span>
+                </div>
+                <button class="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+        
+    <div class="main">
+        <div class="tableControls">
+            <div class="subNav">
+                <button class="subNavItem active" onclick="showTab('burial', event)">Burial Records</button>
+                <button class="subNavItem" onclick="showTab('block', event)">Block Records</button>
+            </div>
+
+            <div class="searchBar">
+                <i class="fa-solid fa-magnifying-glass" id="searchBtn"></i>
+                <input type="text" id="recordSearch" placeholder="Search...">
+            </div>
+
+            <button class="addRecordBtn" onclick="openModal()" title="Add New Record">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+
+        <div class="tableContainer">
+            <!-- BURIAL RECORDS -->
+            <div id="burialRecords" class="tableWrapper active">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Control No.</th>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Date Buried</th>
+                            <th>Block</th>
+                            <th>Date Expiration</th>
+                            <th>Contact Person</th>
+                            <th>Contact No.</th>
+                            <th>Contact Address</th>
+                            <th>Remarks</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>001-2026</td>
+                            <td>Abcde F. Ghijk</td>
+                            <td>Mandaue City</td>
+                            <td>January 01, 2026</td>
+                            <td>AA1</td>
+                            <td>February 01, 2026</td>
+                            <td>Lmnop Q. Rstuv</td>
+                            <td>+63 912 345 6789</td>
+                            <td>Mandaue City</td>
+                            <td>-</td>
+                            <td class="actions">
+                                <button class="printBtn"><i class="fas fa-print"></i></button>
+                                <button class="editBtn"><i class="fas fa-edit"></i></button>
+                                <button class="deleteBtn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="noData">No data available</p>
+            </div>
+
+            <!-- BLOCK RECORDS -->
+            <div id="blockRecords" class="tableWrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Block</th>
+                            <th>Status</th>
+                            <th>Name</th>
+                            <th>Floor</th>
+                            <th>Remarks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AA1</td>
+                            <td>Occupied</td>
+                            <td>Abcde F. Ghijk</td>
+                            <td>1</td>
+                            <td>-</td>
+                            <td class="actions">
+                                <button class="printBtn"><i class="fas fa-print"></i></button>
+                                <button class="editBtn"><i class="fas fa-edit"></i></button>
+                                <button class="deleteBtn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="noData">No data available</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL OR FORM SECTION -->
+    <div id="recordModal" class="modal">
+        <div class="modaLcontent">
+            <div class="modalHeader">
+                <h3 id="modalTitle">Add Burial Record</h3>
+                <span class="closeModal" onclick="closeModal()">&times;</span>
+            </div>
+            
+            <form id="recordForm">
+                <div class="formGrid">
+                    <div class="formGroup span-3">
+                        <label for="controlNo">Control No.</label>
+                        <input type="text" id="controlNo" required>
+                    </div>
+                    <div class="formGroup span-3">
+                        <label for="dateBuried">Date Buried</label>
+                        <input type="date" id="dateBuried" required>
+                    </div>
+
+                    <div class="formGroup">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" required>
+                    </div>
+                    <div class="formGroup">
+                        <label for="middleName">Middle Name</label>
+                        <input type="text" id="middleName">
+                    </div>
+                    <div class="formGroup">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" required>
+                    </div>
+                    <div class="formGroup span-6">
+                        <label for="deceasedAddress">Address (Deceased)</label>
+                        <input type="text" id="deceasedAddress" required>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="formGroup span-3">
+                        <label for="blockNo">Block</label>
+                        <input type="text" id="blockNo" required>
+                    </div>
+                    <div class="formGroup span-3">
+                        <label for="floorLevel">Floor</label>
+                        <input type="text" id="floorLevel">
+                    </div>
+                    <div class="formGroup span-6">
+                        <label for="expiration">Expiration</label>
+                        <input type="text" id="expiration" readonly>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="formGroup span-3">
+                        <label for="contactPerson">Contact Person</label>
+                        <input type="text" id="contactPerson" required>
+                    </div>
+                    <div class="formGroup span-3">
+                        <label for="contactNumber">Contact Number</label>
+                        <input type="tel" id="contactNumber" required>
+                    </div>
+                    <div class="formGroup span-6">
+                        <label for="contactAddress">Contact Address</label>
+                        <input type="text" id="contactAddress" required>
+                    </div>
+                
+                    <div class="formGroup span-6">
+                        <label for="remarks">Remarks</label>
+                        <input type="text" id="remarks">
+                    </div>
+                </div>
+                
+                <div class="modalFooter">
+                    <button type="button" class="btnCancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btnSave" id="btnSubmit">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/records.js"></script>
+</body>
+</html>

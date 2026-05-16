@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounts</title>
+
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/admin_accounts.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebarTop">
+            <div class="memoriaLogo">
+                <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo">
+            </div>
+
+            <div class="sidebarDateTime" id="dateTimeDisplay"></div>
+        </div>
+
+        <div class="sidebarNav">
+            <div class="sidebarSection">Main</div>
+            <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
+            <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
+            <div class="menu"><i class="fas fa-map"></i>Map</div>
+
+            <div class="sidebarSection">Management</div>
+            <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
+            <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
+            <div class="menu active"><i class="fas fa-user"></i>Accounts</div>
+            <div class="menu"><i class="fas fa-file-alt"></i>Reports</div>
+
+            <div class="sidebarSection">System</div>
+            <div class="menu"><i class="fas fa-history"></i>Logs</div>
+            <div class="menu"><i class="fas fa-cog"></i>Settings</div>
+        </div>
+
+        <div class="sidebarFooter">
+            <div class="userCard">
+                <div class="userAvatar">
+                    <div class="avatarBox">AD</div>
+                    <div class="statusIndicator"></div>
+                </div>
+
+                <div class="userDetails">
+                    <span class="username">Admin</span>
+                    <span class="userRole">Administrator</span>
+                </div>
+
+                <button class="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="tableControls">
+            <div class="searchBox">
+                <i class="fas fa-search"></i>
+                <input type="text" id="userSearch" placeholder="Search...">
+            </div>
+
+            <div class="controlItem">
+                <select id="statusFilter" class="mainSelect">
+                    <option value="all">All Status</option>
+                    <option value="verified">Verified</option>
+                    <option value="unverified">Unverified</option>
+                </select>
+            </div>
+
+            <div class="controlItem">
+                <select id="roleFilter" class="mainSelect">
+                    <option value="all">All Status</option>
+                    <option value="staff">Staff</option>
+                    <option value="administrator">Administrator</option>
+                </select>
+            </div>
+
+            <button class="filterActionBtn" id="filterBtn">
+                <i class="fas fa-filter"></i>
+                <span>Filter</span>
+            </button>
+        </div>
+
+        <div class="table">
+            <div class="tableHeader">
+                <h3>User Accounts</h3>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>username</th>
+                        <th>Email</th>
+                        <th>Phone Number</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>ID</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr data-state="view" data-id="001-2026">
+                        <td>Hannah Mae O. Bejo</td>
+                        <td>HanaBananana</td>
+                        <td>hannahbejo@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>001-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="002-2026">
+                        <td>Jean Aika R. Canoy</td>
+                        <td>Aiks</td>
+                        <td>jeanaikacanoy@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>002-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="003-2026">
+                        <td>Domenic P. Lopez</td>
+                        <td>Itsnotnic</td>
+                        <td>domeniclopez@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>003-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="004-2026">
+                        <td>Diana Kaye B. Rosario</td>
+                        <td>Keyyyoot</td>
+                        <td>dianakayerosario@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>004-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr data-state="view" data-id="005-2026">
+                        <td>John Anthony O. Tabigne</td>
+                        <td>Franny</td>
+                        <td>anthonytabigne@gmail.com</td>
+                        <td>+63 912 345 6789</td>
+                        <td class="roleCell">
+                            <span class="viewMode">Staff</span>
+                            <select class="editMode roleSelect">
+                                <option value="staff" selected>Staff</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </td>
+                        <td class="statusCell">
+                            <span class="viewMode status unverified">Unverified</span>
+                            <select class="editMode statusSelect">
+                                <option value="unverified">Unverified</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </td>
+                        <td>005-2026</td>
+                        <td class="actionCell">
+                            <button class="viewMode editBtn" title="edit"><i class="fas fa-edit"></i></button>
+                            <button class="editMode saveBtn" title="save"><i class="fas fa-check"></i></button>
+                            <button class="deleteBtn" title="delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/admin_accounts.js"></script>
+</body>
+</html>

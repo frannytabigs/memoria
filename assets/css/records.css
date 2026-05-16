@@ -1,0 +1,351 @@
+/* --- RECORDS MAIN --- */
+.main {
+    margin-left: 260px;
+    padding: 30px;
+    background-color: #f4f7f6;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+}
+
+/* --- TABLE CONTROLS & NAVIGATION --- */
+.tableControls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.subNav {
+    display: flex;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.subNavItem {
+    padding: 8px 16px;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 7px;
+    transition: all 0.2s ease;
+    border: none;
+    background: none;
+}
+
+.subNavItem.active {
+    background: #ffffff;
+    color: #4f46e5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* --- SEARCH BAR --- */
+.searchBar {
+    position: relative;
+    width: 320px;
+}
+
+.searchBar i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    cursor: pointer;
+}
+
+.searchBar input {
+    width: 100%;
+    padding: 10px 15px 10px 42px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    outline: none;
+    font-size: 14px;
+} 
+
+/* --- TABLE CONTAINER & WRAPPER --- */
+.tableContainer {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 80vh;
+    display: none;
+    background: #fff;
+    border-radius: 15px;
+}
+
+.tableWrapper.active {
+    display: block;
+}
+
+/* Custom Scrollbar */
+.tableWrapper::-webkit-scrollbar {
+    width: 0px;  
+    height: 8px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1; 
+    border-radius: 10px;
+}
+
+.tableWrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+/* --- TABLE STYLING --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+}
+
+#blockRecords table {
+    min-width: 900px;
+}
+
+thead th {
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    padding: 15px 20px;
+    border-bottom: 2px solid #f1f5f9;
+    text-align: left;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+tbody td {
+    padding: 14px 20px;
+    font-size: 13px;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+}
+
+/* --- ACTIONS & BUTTONS --- */
+.actions {
+    display: flex;
+    gap: 8px;
+}
+
+.printBtn, .editBtn, .deleteBtn {
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+}
+
+.printBtn { background: #fef9c3; color: #ca8a04; }
+.editBtn { background: #e0f2fe; color: #0369a1; }
+.deleteBtn { background: #fee2e2; color: #b91c1c; }
+
+.printBtn:hover, .editBtn:hover, .deleteBtn:hover { opacity: 0.8; }
+
+.noData {
+    text-align: center;
+    padding: 20px;
+    color: #94a3b8;
+    font-size: 14px;
+    display: none;
+}
+
+/* --- CIRCULAR ADD BUTTON (FAB) --- */
+.addRecordBtn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 24px;
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 999;
+}
+
+.addRecordBtn:hover {
+    background-color: #1d4ed8;
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5);
+}
+
+.addRecordBtn:active {
+    transform: scale(0.9);
+}
+
+/* --- MODAL SYSTEM --- */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+}
+
+.modaLcontent {
+    background: #ffffff;
+    width: 750px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: modalPop 0.3s ease-out;
+}
+
+.modalHeader {
+    padding: 20px 30px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+}
+
+.modalHeader h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.closeModal {
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.closeModal:hover {
+    color: #ef4444;
+}
+
+/* --- FORM GRID --- */
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+    padding: 25px 30px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    grid-column: span 2;
+}
+
+.formGroup.span-3 { grid-column: span 3; }
+.formGroup.span-6 { grid-column: span 6; }
+
+.formGroup label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.formGroup input {
+    padding: 11px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #f8fafc;
+    color: #334155;
+    transition: all 0.2s;
+}
+
+.formGroup input:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formGroup input[readonly] {
+    background: #f1f5f9;
+    cursor: not-allowed;
+    color: #64748b;
+}
+
+.divider {
+    grid-column: span 6;
+    height: 1px;
+    background: #e2e8f0;
+    margin: 10px 0;
+}
+
+/* --- MODAL FOOTER --- */
+.modalFooter {
+    padding: 18px 30px;
+    background: #f8fafc;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 16px 16px;
+}
+
+.btnCancel {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.btnCancel:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.btnSave {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #2563eb;
+    color: white;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btnSave:hover {
+    background: #1d4ed8;
+}
