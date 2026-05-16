@@ -207,6 +207,12 @@ document.addEventListener("DOMContentLoaded", () => {
         renderTable(result.data.users);
         renderPagination(result.data.pagination);
         applyLocalFilters(); // Always re-apply dropdowns after loading new data
+      } else {
+        // FIX: Handle 404 / No users found
+        // This triggers the "No records found" row and hides pagination
+        alert("No users found in that criteria.");
+        renderTable([]);
+        renderPagination(null);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
