@@ -68,7 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isClickInsideRow && !isClickInsideModal) {
         editingRow.dataset.state = "view";
 
-        // Revert selects to the current viewMode text
         const currentRole = editingRow
           .querySelector(".roleCell .viewMode")
           .textContent.trim();
@@ -76,7 +75,6 @@ document.addEventListener("DOMContentLoaded", () => {
           .querySelector(".statusCell .viewMode")
           .textContent.trim();
 
-        // FIX: Removed .toLowerCase() so it exactly matches the <option value="Staff">
         editingRow.querySelector(".roleSelect").value = currentRole;
         editingRow.querySelector(".statusSelect").value = currentStatus;
       }
@@ -186,7 +184,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  filterBtn.addEventListener("click", applyLocalFilters);
+  // Triggers automatically whenever the dropdown selection changes
+  statusFilter.addEventListener("change", applyLocalFilters);
+  roleFilter.addEventListener("change", applyLocalFilters);
 
   // --- API LOGIC --- //
 
@@ -200,17 +200,13 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `?${queryParams.toString()}`
         : "";
 
-      // Removed the leading slash to make it a relative path
       const response = await fetch(`api/users${queryString}`);
       const result = await response.json();
 
       if (result.success) {
         renderTable(result.data.users);
-
-        // Render pagination will handle hiding the container if no pagination is needed
         renderPagination(result.data.pagination);
-
-        applyLocalFilters();
+        applyLocalFilters(); // Always re-apply dropdowns after loading new data
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -231,7 +227,6 @@ document.addEventListener("DOMContentLoaded", () => {
       row.dataset.state = "view";
       row.dataset.id = escapeHTML(user.user_id);
 
-      // Sanitize all injected data to prevent XSS
       const safeName = escapeHTML(user.name);
       const safeUsername = escapeHTML(user.username);
       const safeEmail = escapeHTML(user.email);
@@ -289,13 +284,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("paginationContainer");
     container.innerHTML = "";
 
-    // Collapse container completely if there is no pagination or only 1 page
     if (!paginationData || paginationData.total_pages <= 1) {
       container.style.display = "none";
       return;
     }
 
-    // Otherwise, ensure it is visible
     container.style.display = "flex";
 
     for (let i = 1; i <= paginationData.total_pages; i++) {
@@ -356,7 +349,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const statusValue = statusSelect.value;
 
       try {
-        // Updated to use relative path
         const response = await fetch(`api/users/${userId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -391,7 +383,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!ok) return;
 
       try {
-        // Updated to use relative path
         const response = await fetch(`api/users/${userId}`, {
           method: "DELETE",
         });
@@ -417,25 +408,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- SEARCH EXECUTION --- //
+  // --- SEARCH & FILTER EXECUTION --- //
 
-  const executeSearch = () => {
+  // Make the Filter button, Search Input, and Search Icon do a master update
+  const executeMasterUpdate = () => {
     currentSearch = searchInput.value.trim();
     currentPage = 1;
-    loadUsers();
+    loadUsers(); // Fetches from API, renders, then applies current dropdown filters
   };
+
+  filterBtn.addEventListener("click", executeMasterUpdate);
 
   searchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      executeSearch();
+      executeMasterUpdate();
     }
   });
 
   const searchIcon = document.querySelector(".searchBox i");
   if (searchIcon) {
     searchIcon.style.cursor = "pointer";
-    searchIcon.addEventListener("click", executeSearch);
+    searchIcon.addEventListener("click", executeMasterUpdate);
   }
 
   // Initial Data Load
