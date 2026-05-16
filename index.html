@@ -68,23 +68,33 @@
         <div class="inputWrapper">
           <h2 class="inputHeader">Log into Memoria</h2>
 
-          <form action="#">
+          <form action="#" id="loginform">
             <div class="inputBox">
-              <input type="text" placeholder="Username" required />
+              <input
+                type="text"
+                placeholder="Username"
+                name="username"
+                required
+              />
             </div>
 
             <div class="inputBox">
-              <input type="password" placeholder="Password" required />
+              <input
+                type="password"
+                placeholder="Password"
+                name="password"
+                required
+              />
             </div>
 
             <button type="submit" class="loginBtn">Log In</button>
-
-            <div class="forgotPassword">
-              <a href="forgot_password.html">Forgot Password?</a>
-            </div>
-
-            <a href="signup.html" class="singupBtn loginPage">Sign up</a>
           </form>
+
+          <div class="forgotPassword">
+            <a href="forgot_password.html">Forgot Password?</a>
+          </div>
+
+          <a href="signup.html" class="singupBtn loginPage">Sign up</a>
 
           <!-- FOOTER NOTE -->
           <div class="footer">
@@ -94,5 +104,9 @@
         </div>
       </section>
     </div>
+
+    <script src="assets/js/modal.js"></script>
+    <script src="assets/js/loggedinalready.js"></script>
+    <script src="assets/js/login.js"></script>
   </body>
 </html>

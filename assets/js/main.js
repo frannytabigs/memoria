@@ -34,32 +34,32 @@ const logoutBtn = document.querySelector(".logout");
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
     if (confirm("Are you sure you want to logout?")) {
-      window.location.href = "/logout.php";
+      window.location.href = "index.html";
+      fetch("api/auth.php", { method: "DELETE" });
     }
   });
 }
 
 function adminOnly() {
-  try {
-    fetch("api/auth.php")
-      .then(function (response) {
-        if (!response.ok) {
-          throw new Error("Request failed");
-        }
-        return response.json();
-      })
-      .then(function (responseData) {
-        if (responseData.role !== "Administrator") {
-          document.getElementById("system").style.display = "none";
-          document.getElementById("accounts").style.display = "none";
-        }
-      })
-      .catch(function (error) {
-        console.error("Error checking login status:", error);
-      });
-  } catch (error) {
-    console.error("Error checking login status:", error);
-  }
+  fetch("api/auth.php")
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error("Request failed");
+      }
+      return response.json();
+    })
+    .then(function (responseData) {
+      // console.log(responseData.data.user.role);
+      if (responseData.data.user.role != "Administrator") {
+        document.querySelectorAll(".adminOnly").forEach(function (element) {
+          element.style.display = "none";
+        });
+      }
+    })
+    .catch(function (error) {
+      console.error("Error checking login status:", error);
+      window.location.href = "index.html";
+    });
 }
 
 adminOnly();

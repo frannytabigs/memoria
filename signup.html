@@ -71,25 +71,45 @@
             <p>Register for access to Memoria system.</p>
           </div>
 
-          <form action="#">
+          <form action="#" id="signupform">
             <div class="inputBox">
-              <input type="text" placeholder="Fullname" required />
+              <input type="text" placeholder="Fullname" name="name" required />
             </div>
 
             <div class="inputBox">
-              <input type="text" placeholder="Username" required />
+              <input
+                type="text"
+                placeholder="Username"
+                name="username"
+                required
+              />
             </div>
 
             <div class="inputBox">
-              <input type="email" placeholder="Email Address" required />
+              <input
+                type="email"
+                placeholder="Email Address"
+                name="email"
+                required
+              />
             </div>
 
             <div class="inputBox">
-              <input type="tel" placeholder="Phone Number" />
+              <input
+                type="tel"
+                placeholder="Phone Number"
+                name="phone_number"
+                required
+              />
             </div>
 
             <div class="inputBox">
-              <input type="password" placeholder="Password" required />
+              <input
+                type="password"
+                placeholder="Password"
+                name="password"
+                required
+              />
             </div>
 
             <label class="termsConditions">
@@ -105,5 +125,9 @@
         </div>
       </section>
     </div>
+
+    <script src="assets/js/modal.js"></script>
+    <script src="assets/js/loggedinalready.js"></script>
+    <script src="assets/js/signup.js"></script>
   </body>
 </html>
