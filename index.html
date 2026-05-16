@@ -28,6 +28,13 @@
     <title>Log In</title>
 
     <link rel="stylesheet" href="assets/css/root.css" />
+    <link
+      rel="stylesheet"
+      href="api/rootcolors.php"
+      onerror="
+        console.error('Failed to load custom colors. Using default theme.')
+      "
+    />
     <link rel="stylesheet" href="assets/css/auth.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -39,15 +46,29 @@
     <header>
       <div class="container">
         <div class="logoSection">
-          <img src="assets/images/MandaueLogo.png" alt="Mandaue City Logo" />
           <img
+            src="api/images/logo1.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MandaueLogo.png';
+              console.error('Failed to load dynamic logo. Using default logo.');
+            "
+            alt="Mandaue City Logo"
+          />
+          <img
+            src="api/images/logo2.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/DGSLogo.png';
+              console.error('Failed to load dynamic logo. Using default logo.');
+            "
             src="assets/images/DGSLogo.png"
             alt="Department of General Services Logo"
           />
 
           <div class="headerText">
-            <h1>Depertment of General Services</h1>
-            <h2>Mandaue City</h2>
+            <h1 id="heading_one">Depertment of General Services</h1>
+            <h2 id="cemetery_address">Mandaue City</h2>
           </div>
         </div>
       </div>
@@ -58,8 +79,19 @@
       <!-- HERO SECTION -->
       <section>
         <div class="banner">
-          <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo" />
-          <p class="cemeteryName">Mandaue City Public Cemetery</p>
+          <img
+            id="cemetery-logo"
+            src="api/images/cemetery_logo.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MemoriaLogo.png';
+              console.error('Failed to load dynamic logo. Using default logo.');
+            "
+            alt="Memoria Logo"
+          />
+          <p class="cemeteryName" id="cemetery_name">
+            Mandaue City Public Cemetery
+          </p>
         </div>
       </section>
 
