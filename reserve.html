@@ -1,13 +1,35 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Monitor</title>
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="Management system for the Cemetery. Locate plots, monitor leases, and manage notifications."
+    />
+    <meta content="/" property="og:url" />
+    <meta property="og:site_name" content="Memoria" />
+    <meta content="#2f3136" name="theme-color" />
+    <meta name="author" content="Team DND" />
+    <meta property="og:title" content="Memoria | Cemetery Management System" />
+    <meta
+      property="og:description"
+      content="Efficiently manage and locate records within the Cemetery."
+    />
+    <meta
+      property="og:image"
+      content="https://static.wikia.nocookie.net/reborn/images/6/67/Sky_Ring_Battle.PNG/revision/latest?cb=20120422065712"
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="robots" content="index, follow" />
+    <meta name="geo.region" content="PH-CEB" />
+    <meta name="geo.placename" content="Mandaue City" />
+    <title>Reserve</title>
 
     <link rel="stylesheet" href="assets/css/root.css" />
     <link rel="stylesheet" href="assets/css/global.css" />
-    <link rel="stylesheet" href="assets/css/monitor.css" />
+    <link rel="stylesheet" href="assets/css/reserve.css" />
 
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -17,46 +39,6 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-
-    <style>
-      .tableContainer {
-        width: 100%;
-        overflow: hidden;
-      }
-
-      .tableWrapper {
-        overflow-x: auto;
-        width: 100%;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 2100px;
-      }
-
-      thead th,
-      tbody td {
-        white-space: nowrap;
-        vertical-align: middle;
-      }
-
-      .buried-header-bg {
-        background-color: #f0f9ff !important;
-        color: #0369a1 !important;
-        border-bottom: 2px solid #0369a1 !important;
-      }
-
-      .buried-col-bg {
-        background-color: rgba(3, 105, 161, 0.025) !important;
-      }
-
-      .actions {
-        display: flex;
-        gap: 8px;
-        white-space: nowrap;
-      }
-    </style>
   </head>
   <body>
     <div class="sidebar">
@@ -82,10 +64,10 @@
 
         <div class="sidebarSection">Management</div>
         <a href="reserve.html">
-          <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
+          <div class="menu active"><i class="fas fa-thumbtack"></i>Reserve</div>
         </a>
         <a href="monitor.html">
-          <div class="menu active"><i class="fas fa-bell"></i>Monitor</div>
+          <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
         </a>
         <a href="accounts.html" id="accounts">
           <div class="menu"><i class="fas fa-user"></i>Accounts</div>
@@ -133,13 +115,6 @@
                 <th>Date Expiration</th>
                 <th>Contact Person</th>
                 <th>Contact No.</th>
-
-                <th class="buried-header-bg">Name</th>
-                <th class="buried-header-bg">Address</th>
-                <th class="buried-header-bg">Contact Person</th>
-                <th class="buried-header-bg">Contact No.</th>
-                <th class="buried-header-bg">Contact Address</th>
-
                 <th>Remarks</th>
                 <th>Action</th>
               </tr>
@@ -148,18 +123,11 @@
             <tbody id="reservation">
               <tr>
                 <td>Abcde F. Ghijk</td>
-                <td class="block-text">AA1</td>
+                <td>AA1</td>
                 <td>January 01, 2026</td>
                 <td>Lmnop Q. Rstuv</td>
                 <td class="contactStatus statusNotified">+63 912 345 6789</td>
-
-                <td class="buried-col-bg">Juan Dela Cruz</td>
-                <td class="buried-col-bg">123 Mulberry St, Manila</td>
-                <td class="buried-col-bg">Maria Clara</td>
-                <td class="buried-col-bg">+63 999 888 7777</td>
-                <td class="buried-col-bg">456 Oak Ave, Quezon City</td>
-
-                <td>Buried</td>
+                <td>-</td>
                 <td class="actions">
                   <button class="addBtn"><i class="fas fa-plus"></i></button>
                   <button class="editBtn"><i class="fas fa-edit"></i></button>
@@ -168,21 +136,14 @@
 
               <tr>
                 <td>Abcde F. Ghijk</td>
-                <td class="block-text">BB2</td>
-                <td>March 15, 2026</td>
+                <td>AA1</td>
+                <td>January 01, 2026</td>
                 <td>Lmnop Q. Rstuv</td>
                 <td class="contactStatus statusPending">
                   <span>+63 912 345 6789</span>
                   <i class="fas fa-bell notifyIcon"></i>
                 </td>
-
-                <td class="buried-col-bg">Cardo Dalisay</td>
-                <td class="buried-col-bg">789 Tondo, Manila</td>
-                <td class="buried-col-bg">Alyana Dalisay</td>
-                <td class="buried-col-bg">+63 915 222 3333</td>
-                <td class="buried-col-bg">789 Tondo, Manila</td>
-
-                <td>Buried</td>
+                <td>-</td>
                 <td class="actions">
                   <button class="addBtn"><i class="fas fa-plus"></i></button>
                   <button class="editBtn"><i class="fas fa-edit"></i></button>
@@ -194,6 +155,80 @@
       </div>
     </div>
 
+    <div id="reserveModal" class="modal">
+      <div class="modalContent">
+        <div class="modalHeader">
+          <h2>Reservation</h2>
+          <span class="closeBtn" onclick="closeReserveModal()">&times;</span>
+        </div>
+
+        <form id="reserveForm">
+          <div class="formSection">
+            <span class="sectionTitle">Occupant Information</span>
+            <div class="form-grid-3">
+              <input
+                type="text"
+                id="firstName"
+                placeholder="First Name"
+                required
+              />
+              <input type="text" id="middleName" placeholder="Middle Name" />
+              <input
+                type="text"
+                id="lastName"
+                placeholder="Last Name"
+                required
+              />
+              <input
+                type="text"
+                id="occAddress"
+                class="full-width"
+                placeholder="Address"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="formSection">
+            <span class="sectionTitle">Contact Person</span>
+            <div class="form-grid-2">
+              <input
+                type="text"
+                id="conName"
+                placeholder="Contact Name"
+                required
+              />
+              <input
+                type="tel"
+                id="conPhone"
+                placeholder="Contact Number"
+                required
+              />
+              <input
+                type="text"
+                id="conAddress"
+                class="full-width-2"
+                placeholder="Contact Address"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="modalFooter">
+            <button
+              type="button"
+              class="btnCancel"
+              onclick="closeReserveModal()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btnSave">Confirm Reservation</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="assets/js/main.js"></script>
+    <script src="assets/js/reserve.js"></script>
   </body>
 </html>

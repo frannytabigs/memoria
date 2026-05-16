@@ -47,7 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
   injectUIComponents();
 
   // --- 2. HELPER FUNCTIONS ---
-  const getRows = () => [...tableBody.querySelectorAll("tr")].filter((r) => r.id !== "noDataRow");
+  const getRows = () =>
+    [...tableBody.querySelectorAll("tr")].filter((r) => r.id !== "noDataRow");
   const normalize = (text) => text.toLowerCase().trim();
 
   const updateNoData = () => {
@@ -122,12 +123,14 @@ document.addEventListener("DOMContentLoaded", () => {
         : `<i class="fas fa-check-circle" style="color:#3b82f6;"></i>`;
 
     alert.style.display = "flex";
-    
+
     // Auto dismiss after 1.5 seconds, but also allow clicking to dismiss early
-    const timer = setTimeout(() => { alert.style.display = "none"; }, 1500);
+    const timer = setTimeout(() => {
+      alert.style.display = "none";
+    }, 1500);
     alert.onclick = () => {
-        clearTimeout(timer);
-        alert.style.display = "none";
+      clearTimeout(timer);
+      alert.style.display = "none";
     };
   };
 
@@ -147,7 +150,8 @@ document.addEventListener("DOMContentLoaded", () => {
         updateNoData();
         return;
       }
-      if (!response.ok) throw new Error(`Network response error (${response.status})`);
+      if (!response.ok)
+        throw new Error(`Network response error (${response.status})`);
 
       const users = await response.json();
       renderTable(users.data?.users || []);
@@ -167,15 +171,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Strict XSS Protection
     const escapeHTML = (str) =>
-      str.replace(/[&<>'"]/g, (tag) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
-      })[tag]);
+      str.replace(
+        /[&<>'"]/g,
+        (tag) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "'": "&#39;",
+            '"': "&quot;",
+          })[tag],
+      );
 
     users.forEach((user) => {
       const tr = document.createElement("tr");
       tr.setAttribute("data-state", "view");
       tr.setAttribute("data-id", user.user_id);
-      
+
       tr.innerHTML = `
         <td>${escapeHTML(user.name)}</td>
         <td>${escapeHTML(user.username)}</td>
@@ -216,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("click", (e) => {
     const editingRow = document.querySelector('tr[data-state="edit"]');
     const modal = document.getElementById("confirmModal");
-    
+
     if (editingRow) {
       const isClickInsideRow = editingRow.contains(e.target);
       const isClickInsideModal = modal.contains(e.target);
@@ -224,13 +236,21 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isClickInsideRow && !isClickInsideModal) {
         editingRow.dataset.state = "view";
         // Reset dropdowns to original view text if cancelled
-        const currentRole = editingRow.querySelector(".roleCell .viewMode").textContent.trim();
-        const currentStatus = editingRow.querySelector(".statusCell .viewMode").textContent.trim();
+        const currentRole = editingRow
+          .querySelector(".roleCell .viewMode")
+          .textContent.trim();
+        const currentStatus = editingRow
+          .querySelector(".statusCell .viewMode")
+          .textContent.trim();
         editingRow.querySelector(".roleSelect").value = currentRole;
         editingRow.querySelector(".statusSelect").value = currentStatus;
-        
-        editingRow.querySelectorAll(".viewMode").forEach(el => el.style.display = "");
-        editingRow.querySelectorAll(".editMode").forEach(el => el.style.display = "none");
+
+        editingRow
+          .querySelectorAll(".viewMode")
+          .forEach((el) => (el.style.display = ""));
+        editingRow
+          .querySelectorAll(".editMode")
+          .forEach((el) => (el.style.display = "none"));
       }
     }
   });
@@ -248,8 +268,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.closest(".editBtn")) {
       e.stopPropagation(); // Prevent document click logic from triggering immediately
       row.dataset.state = "edit";
-      row.querySelectorAll(".viewMode").forEach((el) => (el.style.display = "none"));
-      row.querySelectorAll(".editMode").forEach((el) => (el.style.display = "inline-block"));
+      row
+        .querySelectorAll(".viewMode")
+        .forEach((el) => (el.style.display = "none"));
+      row
+        .querySelectorAll(".editMode")
+        .forEach((el) => (el.style.display = "inline-block"));
     }
 
     // SAVE
@@ -268,7 +292,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(`api/users/${userId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, role: newRole, status: newStatus }),
+          body: JSON.stringify({
+            user_id: userId,
+            role: newRole,
+            status: newStatus,
+          }),
         });
 
         if (!response.ok) throw new Error("Network response error");
@@ -281,12 +309,18 @@ document.addEventListener("DOMContentLoaded", () => {
           statusSpan.className = `viewMode status ${newStatus.toLowerCase()}`;
 
           row.dataset.state = "view";
-          row.querySelectorAll(".viewMode").forEach((el) => (el.style.display = ""));
-          row.querySelectorAll(".editMode").forEach((el) => (el.style.display = "none"));
+          row
+            .querySelectorAll(".viewMode")
+            .forEach((el) => (el.style.display = ""));
+          row
+            .querySelectorAll(".editMode")
+            .forEach((el) => (el.style.display = "none"));
 
           showAlert("Account updated successfully.", "save");
         } else {
-          alert("Failed to update user: " + (result.message || "Unknown error"));
+          alert(
+            "Failed to update user: " + (result.message || "Unknown error"),
+          );
         }
       } catch (error) {
         console.error("Error updating user:", error);
@@ -320,7 +354,9 @@ document.addEventListener("DOMContentLoaded", () => {
           showAlert("Account deleted successfully.", "delete");
           updateNoData();
         } else {
-          alert("Failed to delete user: " + (result.message || "Unknown error"));
+          alert(
+            "Failed to delete user: " + (result.message || "Unknown error"),
+          );
         }
       } catch (error) {
         console.error("Error deleting user:", error);
@@ -332,7 +368,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- 6. FILTERING (Restored from File 2) ---
-  
+
   // Search Bar (Enter Key) - Clears dropdown filters
   searchInput.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
@@ -344,7 +380,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const name = normalize(row.cells[0].textContent);
       const username = normalize(row.cells[1].textContent);
       const email = normalize(row.cells[2].textContent);
-      const match = name.includes(term) || username.includes(term) || email.includes(term);
+      const match =
+        name.includes(term) || username.includes(term) || email.includes(term);
       row.style.display = match ? "" : "none";
     });
     updateNoData();
@@ -357,12 +394,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const role = normalize(roleFilter.value);
 
     getRows().forEach((row) => {
-      const rowRole = normalize(row.querySelector(".roleCell .viewMode").textContent);
-      const rowStatus = normalize(row.querySelector(".statusCell .viewMode").textContent);
-      const match = (status === "all" || rowStatus === status) && (role === "all" || rowRole === role);
+      const rowRole = normalize(
+        row.querySelector(".roleCell .viewMode").textContent,
+      );
+      const rowStatus = normalize(
+        row.querySelector(".statusCell .viewMode").textContent,
+      );
+      const match =
+        (status === "all" || rowStatus === status) &&
+        (role === "all" || rowRole === role);
       row.style.display = match ? "" : "none";
     });
     updateNoData();
   });
-
 });

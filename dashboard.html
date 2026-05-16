@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
     <meta
       name="description"
       content="Management system for the Cemetery. Locate plots, monitor leases, and manage notifications."
@@ -25,10 +25,9 @@
     <meta name="robots" content="index, follow" />
     <meta name="geo.region" content="PH-CEB" />
     <meta name="geo.placename" content="Mandaue City" />
-    <title>Memoria | Dashboard</title>
+    <title>Dashboard</title>
 
-    <!-- <link rel="icon" href="assets/images/Mlogo.png" type="image/png" /> -->
-
+    <link rel="stylesheet" href="assets/css/root.css" />
     <link rel="stylesheet" href="assets/css/global.css" />
     <link rel="stylesheet" href="assets/css/dashboard.css" />
 
@@ -45,41 +44,63 @@
   </head>
   <body>
     <div class="sidebar">
-      <div class="sidebarNav">
+      <div class="sidebarTop">
         <div class="memoriaLogo">
           <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo" />
         </div>
 
         <div class="sidebarDateTime" id="dateTimeDisplay"></div>
-
-        <div class="sectionTitle">Main</div>
-        <div class="menu active"><i class="fas fa-chart-pie"></i>Dashboard</div>
-        <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
-        <div class="menu"><i class="fas fa-map"></i>Map</div>
-
-        <div class="sectionTitle">Management</div>
-        <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
-        <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
-        <a href="accounts.html">
-          <div class="menu"><i class="fas fa-user"></i>Accounts</div>
-        </a>
-        <div class="menu"><i class="fas fa-print"></i>Reports</div>
-
-        <div class="sectionTitle">System</div>
-        <div class="menu"><i class="fas fa-history"></i>Logs</div>
-        <div class="menu"><i class="fas fa-cog"></i>Settings</div>
       </div>
 
-      <div class="footer">
+      <div class="sidebarNav">
+        <div class="sidebarSection">Main</div>
+        <a href="dashboard.html">
+          <div class="menu active">
+            <i class="fas fa-chart-pie"></i>Dashboard
+          </div>
+        </a>
+        <a href="records.html">
+          <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
+        </a>
+        <a href="map.html">
+          <div class="menu"><i class="fas fa-map"></i>Map</div>
+        </a>
+
+        <div class="sidebarSection">Management</div>
+        <a href="reserve.html">
+          <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
+        </a>
+        <a href="monitor.html">
+          <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
+        </a>
+        <a href="accounts.html" id="accounts">
+          <div class="menu"><i class="fas fa-user"></i>Accounts</div>
+        </a>
+        <a href="reports.html">
+          <div class="menu"><i class="fas fa-file-alt"></i>Reports</div>
+        </a>
+
+        <div class="sidebarSection" id="system">System</div>
+        <a href="logs.html">
+          <div class="menu"><i class="fas fa-history"></i>Logs</div>
+        </a>
+        <a href="settings.html">
+          <div class="menu"><i class="fas fa-cog"></i>Settings</div>
+        </a>
+      </div>
+
+      <div class="sidebarFooter">
         <div class="userCard">
           <div class="userAvatar">
-            <div class="avatarBox" id="userprofile">AD</div>
+            <div class="avatarBox">AD</div>
             <div class="statusIndicator"></div>
           </div>
+
           <div class="userDetails">
-            <span class="username" id="name">Administrator</span>
-            <span class="userRole" id="username_role">System Manager</span>
+            <span class="username">Admin</span>
+            <span class="userRole">Administrator</span>
           </div>
+
           <button class="logout">
             <i class="fas fa-sign-out-alt"></i>
           </button>
@@ -91,17 +112,22 @@
       <div class="cards">
         <div class="card total">
           <h4>Total Records</h4>
-          <div class="value">36</div>
+          <div class="value">100</div>
         </div>
 
         <div class="card available">
           <h4>Available Lots</h4>
-          <div class="value">36</div>
+          <div class="value">25</div>
         </div>
 
         <div class="card expiring">
-          <h4>Expiring Soon</h4>
-          <div class="value">36</div>
+          <h4>Expiring</h4>
+          <div class="value">25</div>
+        </div>
+
+        <div class="card unverified">
+          <h4>Unverified Accounts</h4>
+          <div class="value">5</div>
         </div>
       </div>
 
@@ -110,6 +136,7 @@
           <div class="panelHeader">
             <h3>Lot Distribution</h3>
           </div>
+
           <div class="chartContainer">
             <canvas id="pieChart"></canvas>
           </div>
@@ -117,9 +144,10 @@
 
         <div class="panel">
           <div class="panelHeader">
-            <h3>Monthly Lease Expirations</h3>
+            <h3>Monthly Lease Expiration</h3>
             <span id="currentYear"></span>
           </div>
+
           <div class="chartContainer">
             <canvas id="barGraph"></canvas>
           </div>
@@ -128,8 +156,8 @@
 
       <div class="table">
         <div class="tableHeader">
-          <h3>Reserve Burial Space</h3>
-          <button class="btn">View All</button>
+          <h3>Recent Burial Reservations</h3>
+          <button class="viewAllBtn">View All</button>
         </div>
 
         <table>
@@ -139,47 +167,29 @@
               <th>Block</th>
               <th>Date Expiration</th>
               <th>Contact Person</th>
-              <th>Contact Number</th>
+              <th>Contact No.</th>
               <th>Remarks</th>
             </tr>
           </thead>
+
           <tbody>
             <tr>
-              <td>Franny M. Narffy</td>
+              <td>Abcde F. Ghijk</td>
               <td>AA1</td>
               <td>January 01, 2026</td>
-              <td>Franny M. Narffy</td>
-              <td class="contactNum" data-notified="false">
-                <div class="contactWrapper">
-                  <span class="phoneLink">+63 912 345 6789</span>
-                  <i class="fas fa-bell notifyIcon"></i>
-                </div>
-              </td>
+              <td>Lmnop Q. Rstuv</td>
+              <td class="contactStatus statusNotified">+63 912 345 6789</td>
               <td>-</td>
             </tr>
+
             <tr>
-              <td>Franny M. Narffy</td>
+              <td>Abcde F. Ghijk</td>
               <td>AA1</td>
-              <td>January 01, 2026</td>
-              <td>Franny M. Narffy</td>
-              <td class="contactNum" data-notified="false">
-                <div class="contactWrapper">
-                  <span class="phoneLink">+63 912 345 6789</span>
-                  <i class="fas fa-bell notifyIcon"></i>
-                </div>
-              </td>
-              <td>-</td>
-            </tr>
-            <tr>
-              <td>Franny M. Narffy</td>
-              <td>AA1</td>
-              <td>January 01, 2026</td>
-              <td>Franny M. Narffy</td>
-              <td class="contactNum" data-notified="false">
-                <div class="contactWrapper">
-                  <span class="phoneLink">+63 912 345 6789</span>
-                  <i class="fas fa-bell notifyIcon"></i>
-                </div>
+              <td>January 01, 2031</td>
+              <td>Lmnop Q. Rstuv</td>
+              <td class="contactStatus statusPending">
+                <span>+63 912 345 6789</span>
+                <i class="fas fa-bell notifyIcon"></i>
               </td>
               <td>-</td>
             </tr>
@@ -188,8 +198,7 @@
       </div>
     </div>
 
-    <script src="assets/js/global.js"></script>
+    <script src="assets/js/main.js"></script>
     <script src="assets/js/dashboard.js"></script>
-    <script src="assets/js/mustbeloggedin.js"></script>
   </body>
 </html>

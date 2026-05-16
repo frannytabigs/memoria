@@ -1,228 +1,226 @@
-:root {
-    --mainColor: #0f172a; /* Dark Knight */
+a {
+  text-decoration: none;
 }
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
 }
 
 body {
-    background: #f1f3f4;
+  background: #f1f3f4;
 }
 
 /* SIDEBAR */
 .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 260px;
-    height: 100vh;
-    background: var(--mainColor);
-    color: #cbd5e1;
-    display: flex;
-    flex-direction: column;
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100vh;
+  background: var(--mainColor);
+  color: var(--sidebarText); /* Updated */
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
 }
 
-/* TOP SECTION (MEMORIA LOGO AND TIME & DATE) */
+/* TOP SECTION */
 .sidebarTop {
-    flex-shrink: 0;
-    padding: 5px 0 10px;
+  flex-shrink: 0;
+  padding: 5px 0 10px;
 }
 
 /* MEMORIA LOGO */
 .memoriaLogo {
-    padding: 30px 25px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: 1px;
+  padding: 30px 25px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--sidebarText); /* Updated */
+  letter-spacing: 1px;
 }
 
 .memoriaLogo img {
-    height: 25px;
-    margin-right: 4px;
+  height: 25px;
+  margin-right: 4px;
 }
 
 /* DATE & TIME */
 .sidebarDateTime {
-    width: 100%;
-    padding: 0 10px;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 500;
-    color: #94a3b8;
-    margin-bottom: 10px;
-    letter-spacing: 0.5px;
-    opacity: 0.8;
+  width: 100%;
+  padding: 0 10px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--sidebarText-muted); /* Updated */
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
 }
 
 /* SCROLLABLE NAVIGATION AREA*/
 .sidebarNav {
-    flex: 1;
-    overflow-y: auto;
-    padding-bottom: 20px;
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
 }
 
 /* HIDE SCROLL BAR */
 .sidebarNav::-webkit-scrollbar {
-    width: 5px;
+  width: 5px;
 }
 
 .sidebarNav::-webkit-scrollbar-thumb {
-    background: #1e293b;
-    border-radius: 10px;
+  background: var(--sidebar-hover);
+  border-radius: 10px;
 }
 
 /* SIDEBAR SECTION */
 .sidebarSection {
-    padding: 20px 25px 8px;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #94a3b8;
+  padding: 20px 25px 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--sidebarText-muted); /* Updated */
 }
 
 /* MENU ITEMS */
 .menu {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 25px;
-    font-size: 15px;
-    color: #cbd5e1;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 25px;
+  font-size: 15px;
+  color: var(--sidebarText-muted); /* Updated */
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 /* MENU ICON */
 .menu i {
-    width: 20px;
-    text-align: center;
-    font-size: 16px;
+  width: 20px;
+  text-align: center;
+  font-size: 16px;
 }
 
 /* HOVER STATE */
 .menu:hover {
-    background: #1e293b;
-    color: #ffffff;
+  background: var(--sidebar-hover);
+  color: var(--sidebarText); /* Updated */
 }
 
 /* ACTIVE STATE */
 .menu.active {
-    background: #1e293b;
-    color: #ffffff;
-    border-left: 4px solid #3b82f6;
-    padding-left: 21px;
-    font-weight: 600;
+  background: var(--sidebar-hover);
+  color: var(--sidebarText); /* Updated */
+  border-left: 4px solid var(--sidebar-accent);
+  padding-left: 21px;
+  font-weight: 600;
 }
 
 /* ACTIVE ICON */
 .menu.active i {
-    color: #3b82f6;
+  color: var(--sidebar-accent);
 }
 
 /* SIDEBAR FOOTER */
 .sidebarFooter {
-    width: 100%;
-    padding: 12px 16px;
-    background: var(--mainColor);
-    border-top: 1px solid #1e293b;
-    flex-shrink: 0;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--mainColor);
+  border-top: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
 }
 
 /* USER PROFILE CARD */
 .userCard {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 4px 0;
-    background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  background: transparent;
 }
 
 /* AVATAR CONTAINER */
 .userAvatar {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
 }
 
 /* AVATAR BOX */
 .userAvatar .avatarBox {
-    width: 100%;
-    height: 100%;
-    border-radius: 8px;
-    background: #3b82f6;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 600;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: var(--sidebar-accent);
+  color: #ffffff; /* Kept white so the avatar initials always pop */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* ONLINE STATUS INDICATOR */
 .statusIndicator {
-    position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 10px;
-    height: 10px;
-    background: #10b981;
-    border: 2px solid var(--mainColor);
-    border-radius: 50%;
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  background: #10b981;
+  border: 2px solid var(--mainColor);
+  border-radius: 50%;
 }
 
 /* USER DETAILS */
 .userDetails {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-
-    line-height: 1.3;
-    overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  overflow: hidden;
 }
 
 /* USERNAME */
 .username {
-    font-size: 14px;
-    font-weight: 600;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sidebarText); /* Updated */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ROLE */
 .userRole {
-    font-size: 12px;
-    color: #94a3b8;
+  font-size: 12px;
+  color: var(--sidebarText-muted); /* Updated */
 }
 
 /* LOGOUT BUTTON */
 .logout {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    background: transparent;
-    border: none;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  color: var(--sidebarText-muted); /* Updated */
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .logout i {
-    font-size: 16px;
+  font-size: 16px;
 }
 
 .logout:hover {
-    color: #ef4444;
+  color: #ef4444;
 }

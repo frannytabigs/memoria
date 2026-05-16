@@ -1,4 +1,17 @@
 :root {
-  --navBar: #002147;
-  --ImageURL: url("../images/MandaueBackground.jpg");
+  --mainColor: #0f172a; /* Dark Knight */
+
+  /* ---> THE COMPANION VARIABLE <--- */
+  /* If mainColor is dark, make this #ffffff. If mainColor is light, make this #0f172a */
+  --sidebarText: #ffffff;
+
+  --backgroundImage: url("../images/MandaueBackground.jpg");
+
+  /* --- SIDEBAR DYNAMIC COLORS --- */
+  --sidebar-hover: color-mix(in srgb, var(--mainColor), white 12%);
+  --sidebar-border: color-mix(in srgb, var(--mainColor), white 18%);
+  --sidebar-accent: color-mix(in srgb, var(--mainColor), white 40%);
+
+  /* Dynamically muted text based on your chosen text color */
+  --sidebarText-muted: color-mix(in srgb, var(--sidebarText), transparent 30%);
 }

@@ -1,61 +1,108 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="Management system for the Cemetery. Locate plots, monitor leases, and manage notifications."
+    />
+    <meta content="/" property="og:url" />
+    <meta property="og:site_name" content="Memoria" />
+    <meta content="#2f3136" name="theme-color" />
+    <meta name="author" content="Team DND" />
+    <meta property="og:title" content="Memoria | Cemetery Management System" />
+    <meta
+      property="og:description"
+      content="Efficiently manage and locate records within the Cemetery."
+    />
+    <meta
+      property="og:image"
+      content="https://static.wikia.nocookie.net/reborn/images/6/67/Sky_Ring_Battle.PNG/revision/latest?cb=20120422065712"
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="robots" content="index, follow" />
+    <meta name="geo.region" content="PH-CEB" />
+    <meta name="geo.placename" content="Mandaue City" />
     <title>Map</title>
 
-    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/root.css" />
+    <link rel="stylesheet" href="assets/css/global.css" />
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
     <div class="sidebar">
-        <div class="sidebarTop">
-            <div class="memoriaLogo">
-                <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo">
-            </div>
-
-            <div class="sidebarDateTime" id="dateTimeDisplay"></div>
+      <div class="sidebarTop">
+        <div class="memoriaLogo">
+          <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo" />
         </div>
 
-        <div class="sidebarNav">
-            <div class="sidebarSection">Main</div>
-            <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
-            <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
-            <div class="menu active"><i class="fas fa-map"></i>Map</div>
+        <div class="sidebarDateTime" id="dateTimeDisplay"></div>
+      </div>
 
-            <div class="sidebarSection">Management</div>
-            <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
-            <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
-            <div class="menu"><i class="fas fa-user"></i>Accounts</div>
-            <div class="menu"><i class="fas fa-user"></i>Reports</div>
+      <div class="sidebarNav">
+        <div class="sidebarSection">Main</div>
+        <a href="dashboard.html">
+          <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
+        </a>
+        <a href="records.html">
+          <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
+        </a>
+        <a href="map.html">
+          <div class="menu active"><i class="fas fa-map"></i>Map</div>
+        </a>
 
-            <div class="sidebarSection">System</div>
-            <div class="menu"><i class="fas fa-history"></i>Logs</div>
-            <div class="menu"><i class="fas fa-cog"></i>Settings</div>
+        <div class="sidebarSection">Management</div>
+        <a href="reserve.html">
+          <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
+        </a>
+        <a href="monitor.html">
+          <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
+        </a>
+        <a href="accounts.html" id="accounts">
+          <div class="menu"><i class="fas fa-user"></i>Accounts</div>
+        </a>
+        <a href="reports.html">
+          <div class="menu"><i class="fas fa-file-alt"></i>Reports</div>
+        </a>
+
+        <div class="sidebarSection" id="system">System</div>
+        <a href="logs.html">
+          <div class="menu"><i class="fas fa-history"></i>Logs</div>
+        </a>
+        <a href="settings.html">
+          <div class="menu"><i class="fas fa-cog"></i>Settings</div>
+        </a>
+      </div>
+
+      <div class="sidebarFooter">
+        <div class="userCard">
+          <div class="userAvatar">
+            <div class="avatarBox">AD</div>
+            <div class="statusIndicator"></div>
+          </div>
+
+          <div class="userDetails">
+            <span class="username">Admin</span>
+            <span class="userRole">Administrator</span>
+          </div>
+
+          <button class="logout">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
         </div>
-
-        <div class="sidebarFooter">
-            <div class="userCard">
-                <div class="userAvatar">
-                    <div class="avatarBox">AD</div>
-                    <div class="statusIndicator"></div>
-                </div>
-
-                <div class="userDetails">
-                    <span class="username">Admin</span>
-                    <span class="userRole">Administrator</span>
-                </div>
-
-                <button class="logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
-        </div>
+      </div>
     </div>
-    
+
     <script src="assets/js/main.js"></script>
-</body>
+  </body>
 </html>
