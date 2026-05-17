@@ -164,52 +164,49 @@ if ($method === 'POST') {
     $phone_number = isset($_POST['phone_number']) ? trim($_POST['phone_number']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
         
-    $error_msg = "";
-
     // Username
     if (empty($username)) {
-        $error_msg .= "Username is required. ";
+        Response::error("Username is required.", 400);
     } elseif (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $username)) {
         // Letters, numbers, underscores only (3-20 chars)
-        $error_msg .= "Username must be 3-20 characters long and contain only letters, numbers, and underscores. ";
+        Response::error("Username must be 3-20 characters long and contain only letters, numbers, and underscores.", 400);
     }
 
     // Email
     if (empty($email)) {
-        $error_msg .= "Email is required. ";
+        Response::error("Email is required.", 400);
     } elseif (!preg_match('/^[^\s@]+@[^\s@]+\.[^\s@]+$/', $email)) {
-        $error_msg .= "Invalid email format. ";
+        Response::error("Invalid email format.", 400);
     }
 
     // Full Name
     if (empty($name)) {
-        $error_msg .= "Full name is required. ";
+        Response::error("Full name is required.", 400);
     } elseif (!preg_match('/^[a-zA-Z\s.\'-]{2,100}$/', $name)) {
         // Allows letters, spaces, dots, apostrophes, hyphens
-        $error_msg .= "Full name contains invalid characters. ";
+        Response::error("Full name contains invalid characters and must be between 2 and 100 characters long.", 400);
     }
 
     // Phone Number
+
     if (empty($phone_number)) {
-        $error_msg .= "Phone number is required. ";
-    } elseif (!preg_match('/^(09|\+639)\d{9}$/', $phone_number)) {
+        Response::error("Phone number is required.", 400);
+    } elseif (formatPhNumber($phone_number) === false) {
         // Accepts 09xxxxxxxxx or +639xxxxxxxxx
-        $error_msg .= "Invalid Philippine phone number format. ";
+        Response::error("Invalid Philippine phone number format.", 400);
     }
+
+    $phone_number = formatPhNumber($phone_number);
 
     // Password
     if (empty($password)) {
-        $error_msg .= "Password is required. ";
+        Response::error("Password is required.", 400);
     } elseif (!preg_match('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/', $password)) {
         // At least 6 chars, 1 uppercase, 1 lowercase, 1 number
-        $error_msg .= "Password must be at least 6 characters and include uppercase, lowercase, and a number. ";
+        Response::error("Password must be at least 6 characters and include uppercase, lowercase, and a number.", 400);
     }
 
-    if (!empty($error_msg)) {
-        systemLog("Failed registration attempt with username: $username, email: $email, name: $name, phone: $phone_number. Errors: $error_msg", null);
-        Response::error("Bad Request: " . trim($error_msg), 400);
-    }
-    $phone_number = formatPhNumber($phone_number);
+    systemLog("Public POST request to " . ($resourceId ?? 'users.php') . " with email: $email and username: $username and phone: $phone_number and name: $name", null);
 
  // SCENARIO A: POST /users.php/forgot-password
     if ($resourceId === 'forgot-password') {
@@ -262,6 +259,7 @@ if ($method === 'POST') {
             Response::success("Registration successful! Your account is Unverified. Please wait for admin verification to log in to your account.", null, 201); 
         } catch (PDOException $e) {
             if ($e->getCode() == 23000) {
+                systemLog("Registration failed due to duplicate entry: $username ($email) or phone number: $phone_number", null);
                 Response::error("Conflict: The username, phone number, or email is already registered.", 409);
             } else {
                 error_log($e->getMessage());

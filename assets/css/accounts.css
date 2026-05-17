@@ -33,7 +33,7 @@
 
 .searchBox input {
   width: 100%;
-  padding: 10px 14px 10px 40px;
+  padding: 10px 40px 10px 40px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
@@ -282,4 +282,21 @@ button.deleteBtn {
 button.deleteBtn:hover {
   background: #e11d48;
   color: #ffffff;
+}
+
+#clearSearchBtn {
+  display: none;
+  position: absolute;
+  right: 14px; /* Puts the X on the right side */
+  left: auto; /* Overrides the left: 14px from your general .searchBox i rule */
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #94a3b8;
+  transition: color 0.2s ease;
+  z-index: 5; /* Ensures you can click it */
+}
+
+#clearSearchBtn:hover {
+  color: #e11d48;
 }

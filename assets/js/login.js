@@ -13,6 +13,7 @@ form.addEventListener("submit", function (e) {
   password.disabled = true;
   loginButton.textContent = "Logging in...";
   loginButton.style.cursor = "not-allowed";
+
   setTimeout(() => {
     fetch("api/auth.php", {
       method: "POST",
@@ -21,21 +22,19 @@ form.addEventListener("submit", function (e) {
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          // showModal({
-          //   type: "success",
-          //   title: "Login Successful",
-          //   message: `Welcome back ${data.data?.first_name ?? "User"}!`,
-          //   actionText: "Proceed to dashboard",
-          //   actionLink: "/dashboard",
-          //   allowOutsideClick: false,
-          // });
-          window.location.href = "dashboard.html";
+          showAlertTOP(
+            "Login successful! Hello " +
+              data.data.name +
+              "! Redirecting to dashboard...",
+            "success",
+          );
+
+          // Give the user time to actually SEE the success message before redirecting
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 2555); // adjust this (1500–3000ms is usually good)
         } else {
-          // showModal({
-          //   type: "warning",
-          //   title: data.message,
-          //   actionText: "",
-          // });
+          showAlertTOP(data.message, "warning");
 
           // Smooth animation
           username.style.transition = "0.3s";
@@ -74,6 +73,7 @@ form.addEventListener("submit", function (e) {
               duration: 300,
             },
           );
+
           setTimeout(() => {
             username.style.borderColor = "";
             password.style.borderColor = "";
@@ -82,25 +82,25 @@ form.addEventListener("submit", function (e) {
             password.style.boxShadow = "";
           }, 1950);
         }
+
         //console.log(data);
       })
       .catch((error) => {
-        showModal({
-          type: "error",
-          title: "Error has occured",
-          message:
-            "An error occurred while processing your request. Please try again later",
-          actionLink: "/",
-          allowOutsideClick: true,
-        });
+        showAlertTOP(
+          "An error occurred while processing your request. Please try again later.",
+          "error",
+        );
         console.error("Error:", error);
       })
       .finally(() => {
+        if (data.success) {
+          return;
+        } // Don't re-enable inputs if login was successful and we're redirecting
         username.disabled = false;
         password.disabled = false;
         loginButton.disabled = false;
         loginButton.textContent = "Log In";
         loginButton.style.cursor = "pointer";
       });
-  }, 666);
+  }, 666); // Simulate a 1-second delay for better UX
 });

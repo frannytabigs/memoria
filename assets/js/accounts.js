@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusFilter = document.getElementById("statusFilter");
   const roleFilter = document.getElementById("roleFilter");
   const tableContainer = document.querySelector(".table");
+  const clearSearchBtn = document.getElementById("clearSearchBtn");
 
   // State Management
   let currentPage = 1;
@@ -210,7 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         // FIX: Handle 404 / No users found
         // This triggers the "No records found" row and hides pagination
-        alert("No users found in that criteria.");
+        showAlertTOP("No users found in that criteria.", "error");
         renderTable([]);
         renderPagination(null);
       }
@@ -421,7 +422,30 @@ document.addEventListener("DOMContentLoaded", () => {
     currentSearch = searchInput.value.trim();
     currentPage = 1;
     loadUsers(); // Fetches from API, renders, then applies current dropdown filters
+
+    // Toggle the clear button visibility based on whether there's a search term
+    if (clearSearchBtn) {
+      clearSearchBtn.style.display =
+        currentSearch.length > 0 ? "block" : "none";
+    }
   };
+
+  // Show/hide the 'X' button while typing
+  searchInput.addEventListener("input", () => {
+    clearSearchBtn.style.display =
+      searchInput.value.length > 0 ? "block" : "none";
+  });
+
+  // Clear the search and refresh the table when 'X' is clicked
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener("click", () => {
+      searchInput.value = ""; // Clear the input field
+      clearSearchBtn.style.display = "none"; // Hide the 'X' button
+      roleFilter.value = "all"; // Reset role filter
+      statusFilter.value = "all"; // Reset status filter
+      executeMasterUpdate(); // Trigger the data reload
+    });
+  }
 
   filterBtn.addEventListener("click", executeMasterUpdate);
 
@@ -432,7 +456,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  const searchIcon = document.querySelector(".searchBox i");
+  const searchIcon = document.querySelector(".searchBox .fa-search");
+
   if (searchIcon) {
     searchIcon.style.cursor = "pointer";
     searchIcon.addEventListener("click", executeMasterUpdate);

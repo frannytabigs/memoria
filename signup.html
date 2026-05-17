@@ -104,7 +104,13 @@
 
           <form action="#" id="signupform">
             <div class="inputBox">
-              <input type="text" placeholder="Fullname" name="name" required />
+              <input
+                type="text"
+                placeholder="Fullname"
+                name="name"
+                id="name"
+                required
+              />
             </div>
 
             <div class="inputBox">
@@ -112,6 +118,7 @@
                 type="text"
                 placeholder="Username"
                 name="username"
+                id="username"
                 required
               />
             </div>
@@ -121,6 +128,7 @@
                 type="email"
                 placeholder="Email Address"
                 name="email"
+                id="email"
                 required
               />
             </div>
@@ -130,6 +138,7 @@
                 type="tel"
                 placeholder="Phone Number"
                 name="phone_number"
+                id="phone_number"
                 required
               />
             </div>
@@ -139,6 +148,7 @@
                 type="password"
                 placeholder="Password"
                 name="password"
+                id="password"
                 required
               />
             </div>
@@ -148,7 +158,13 @@
               <span>I agree to terms & conditions</span>
             </label>
 
-            <button type="submit" class="singupBtn signupPage">Sign Up</button>
+            <button
+              type="submit"
+              class="singupBtn signupPage"
+              id="signupbutton"
+            >
+              Sign Up
+            </button>
           </form>
 
           <!-- RETURN TO LOGIN PAGE -->
@@ -158,6 +174,7 @@
     </div>
 
     <script src="assets/js/modal.js"></script>
+    <script src="assets/js/alert.js"></script>
     <script src="assets/js/loggedinalready.js"></script>
     <script src="assets/js/signup.js"></script>
   </body>
