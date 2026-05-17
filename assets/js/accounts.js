@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const uiContainer = document.createElement("div");
 
     uiContainer.innerHTML = `
+      <!-- Confirm Modal -->
       <div id="confirmModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:10000;">
           <div style="background:#fff; padding:32px; border-radius:16px; width:90%; max-width:400px; text-align:center;">
               <div id="modalIcon" style="font-size:32px; margin-bottom:14px;"></div>
@@ -38,31 +39,50 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
       </div>
 
+      <!-- Success / Error / Warning Alert -->
       <div id="successAlert" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); backdrop-filter:blur(3px); align-items:center; justify-content:center; z-index:10001;">
           <div style="background:#fff; padding:38px 30px; border-radius:18px; width:90%; max-width:380px; text-align:center;">
               <div id="alertIconContainer" style="font-size:34px; margin-bottom:18px;"></div>
-              <h3 style="font-size:22px; color:#1e293b; margin-bottom:10px;">Success</h3>
+              <h3 id="alertTitle" style="font-size:22px; color:#1e293b; margin-bottom:10px;">Success</h3>
               <p id="successMsg" style="font-size:14px; color:#64748b;"></p>
           </div>
       </div>
       
+      <!-- Global Loading Overlay -->
+      <div id="globalLoader" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(3px); align-items:center; justify-content:center; z-index:10005; flex-direction:column; color:#fff;">
+          <i class="fas fa-spinner fa-spin" style="font-size:42px; margin-bottom:16px;"></i>
+          <h3 id="loaderTitle" style="font-size:20px; font-weight:600; margin:0;">Processing...</h3>
+          <p style="font-size:14px; color:#cbd5e1; margin-top:8px;">Please wait, this might take a moment.</p>
+      </div>
+
       <div id="paginationContainer" style="display:none; justify-content:center; gap:8px; margin-top:20px; padding-bottom: 20px;"></div>
     `;
 
     document.body.appendChild(uiContainer);
-
-    // Append pagination right inside the .table container below the actual <table>
     tableContainer.appendChild(document.getElementById("paginationContainer"));
   };
 
   injectUIComponents();
 
+  // --- LOADER UTILITY --- //
+  const toggleLoader = (show, title = "Processing...") => {
+    const loader = document.getElementById("globalLoader");
+    const titleEl = document.getElementById("loaderTitle");
+    if (show) {
+      titleEl.textContent = title;
+      loader.style.display = "flex";
+    } else {
+      loader.style.display = "none";
+    }
+  };
+
   // Cancel edit if clicking outside the editing row or modal
   document.addEventListener("click", (e) => {
     const editingRow = document.querySelector('tr[data-state="edit"]');
     const modal = document.getElementById("confirmModal");
+    const loader = document.getElementById("globalLoader");
 
-    if (editingRow) {
+    if (editingRow && loader.style.display === "none") {
       const isClickInsideRow = editingRow.contains(e.target);
       const isClickInsideModal = modal.contains(e.target);
 
@@ -130,21 +150,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const alert = document.getElementById("successAlert");
     const msg = document.getElementById("successMsg");
     const icon = document.getElementById("alertIconContainer");
+    const title = document.getElementById("alertTitle");
 
     msg.textContent = message;
-    icon.innerHTML =
-      type === "delete"
-        ? `<i class="fas fa-trash-alt" style="color:#e11d48;"></i>`
-        : `<i class="fas fa-check-circle" style="color:#3b82f6;"></i>`;
+
+    if (type === "error") {
+      title.textContent = "Error";
+      title.style.color = "#e11d48"; // Red
+      icon.innerHTML = `<i class="fas fa-exclamation-circle" style="color:#e11d48;"></i>`;
+    } else if (type === "warning") {
+      title.textContent = "Partial Success";
+      title.style.color = "#d97706"; // Amber/Orange
+      icon.innerHTML = `<i class="fas fa-exclamation-triangle" style="color:#d97706;"></i>`;
+    } else if (type === "delete") {
+      title.textContent = "Deleted";
+      title.style.color = "#1e293b";
+      icon.innerHTML = `<i class="fas fa-trash-alt" style="color:#e11d48;"></i>`;
+    } else {
+      title.textContent = "Success";
+      title.style.color = "#1e293b";
+      icon.innerHTML = `<i class="fas fa-check-circle" style="color:#3b82f6;"></i>`;
+    }
 
     alert.style.display = "flex";
-    setTimeout(() => {
-      alert.style.display = "none";
-    }, 1500);
+
+    // Give more reading time for errors and warnings
+    setTimeout(
+      () => {
+        alert.style.display = "none";
+      },
+      type === "error" || type === "warning" ? 3500 : 1500,
+    );
   };
 
   // --- LOCAL FILTERING LOGIC --- //
-
   const applyLocalFilters = () => {
     const selectedStatus = statusFilter.value.toLowerCase();
     const selectedRole = roleFilter.value.toLowerCase();
@@ -185,12 +224,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Triggers automatically whenever the dropdown selection changes
   statusFilter.addEventListener("change", applyLocalFilters);
   roleFilter.addEventListener("change", applyLocalFilters);
 
   // --- API LOGIC --- //
-
   const loadUsers = async () => {
     try {
       const queryParams = new URLSearchParams();
@@ -207,11 +244,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (result.success) {
         renderTable(result.data.users);
         renderPagination(result.data.pagination);
-        applyLocalFilters(); // Always re-apply dropdowns after loading new data
+        applyLocalFilters();
       } else {
-        // FIX: Handle 404 / No users found
-        // This triggers the "No records found" row and hides pagination
-        showAlertTOP("No users found in that criteria.", "error");
+        if (typeof showAlertTOP === "function")
+          showAlertTOP("No users found in that criteria.", "error");
         renderTable([]);
         renderPagination(null);
       }
@@ -327,7 +363,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // --- ACTION EVENT LISTENERS --- //
-
   tableBody.addEventListener("click", async (e) => {
     const row = e.target.closest("tr");
     if (!row || row.id === "noDataRow" || row.id === "localNoDataRow") return;
@@ -352,8 +387,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const roleSelect = row.querySelector(".roleSelect");
       const statusSelect = row.querySelector(".statusSelect");
+
       const roleValue = roleSelect.value;
       const statusValue = statusSelect.value;
+
+      // If the target state is Verified, we assume an SMS attempt will happen
+      // (whether it's the first time, or retrying a failed attempt).
+      const isTargetVerified = statusValue.toLowerCase() === "verified";
+
+      // 1. Disable Selects so they can't be changed during request
+      roleSelect.disabled = true;
+      statusSelect.disabled = true;
+
+      // 2. Trigger the waiting overlay with accurate message
+      const loaderMsg = isTargetVerified
+        ? "Saving & Sending SMS..."
+        : "Saving Changes...";
+      toggleLoader(true, loaderMsg);
 
       try {
         const response = await fetch(`api/users/${userId}`, {
@@ -367,6 +417,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const result = await response.json();
 
+        // Check if database save was successful
         if (result.success) {
           row.querySelector(".roleCell .viewMode").textContent = roleValue;
           const statusSpan = row.querySelector(".statusCell .viewMode");
@@ -375,12 +426,32 @@ document.addEventListener("DOMContentLoaded", () => {
           row.dataset.state = "view";
 
           applyLocalFilters();
-          showAlert("Account updated successfully.", "save");
+
+          // If the backend signals that the SMS specifically failed despite the save
+          if (
+            result.sms_failed ||
+            (result.message &&
+              result.message.toLowerCase().includes("failed to send"))
+          ) {
+            showAlertTOP(
+              result.message || "Saved changes, but the SMS failed to send.",
+              "warning",
+            );
+          } else {
+            showAlert("Account updated successfully.", "save");
+          }
         } else {
-          alert("Failed to update user.");
+          const errorMsg = result.message || "Failed to update user.";
+          showAlertTOP(errorMsg, "error");
         }
       } catch (error) {
         console.error("Update failed", error);
+        showAlertTOP("A network or server error occurred.", "error");
+      } finally {
+        // 3. Unlock Selects and remove waiting overlay
+        roleSelect.disabled = false;
+        statusSelect.disabled = false;
+        toggleLoader(false);
       }
     }
 
@@ -388,6 +459,9 @@ document.addEventListener("DOMContentLoaded", () => {
       e.stopPropagation();
       const ok = await showConfirmModal("delete");
       if (!ok) return;
+
+      // Trigger the waiting overlay for deleting
+      toggleLoader(true, "Deleting user...");
 
       try {
         const response = await fetch(`api/users/${userId}`, {
@@ -407,43 +481,43 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           loadUsers();
         } else {
-          alert("Failed to delete user.");
+          const errorMsg = result.message || "Failed to delete user.";
+          showAlertTOP(errorMsg, "error");
         }
       } catch (error) {
         console.error("Delete failed", error);
+        showAlertTOP("A network or server error occurred.", "error");
+      } finally {
+        // Remove waiting overlay
+        toggleLoader(false);
       }
     }
   });
 
   // --- SEARCH & FILTER EXECUTION --- //
-
-  // Make the Filter button, Search Input, and Search Icon do a master update
   const executeMasterUpdate = () => {
     currentSearch = searchInput.value.trim();
     currentPage = 1;
-    loadUsers(); // Fetches from API, renders, then applies current dropdown filters
+    loadUsers();
 
-    // Toggle the clear button visibility based on whether there's a search term
     if (clearSearchBtn) {
       clearSearchBtn.style.display =
         currentSearch.length > 0 ? "block" : "none";
     }
   };
 
-  // Show/hide the 'X' button while typing
   searchInput.addEventListener("input", () => {
     clearSearchBtn.style.display =
       searchInput.value.length > 0 ? "block" : "none";
   });
 
-  // Clear the search and refresh the table when 'X' is clicked
   if (clearSearchBtn) {
     clearSearchBtn.addEventListener("click", () => {
-      searchInput.value = ""; // Clear the input field
-      clearSearchBtn.style.display = "none"; // Hide the 'X' button
-      roleFilter.value = "all"; // Reset role filter
-      statusFilter.value = "all"; // Reset status filter
-      executeMasterUpdate(); // Trigger the data reload
+      searchInput.value = "";
+      clearSearchBtn.style.display = "none";
+      roleFilter.value = "all";
+      statusFilter.value = "all";
+      executeMasterUpdate();
     });
   }
 
