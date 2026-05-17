@@ -55,6 +55,12 @@ function adminOnly() {
           element.style.display = "none";
         });
       }
+      document.getElementById("usernameLabel").textContent =
+        responseData.data.user.username;
+      document.getElementById("usernameLogo").textContent =
+        responseData.data.user.username.toUpperCase().substring(0, 3); // Get first 3 letters of username for logo
+      document.getElementById("roleLabel").textContent =
+        responseData.data.user.role;
     })
     .catch(function (error) {
       console.error("Error checking login status:", error);
