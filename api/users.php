@@ -373,12 +373,7 @@ if ($method === 'PUT') {
         if (isset($rawData['status']) && in_array($rawData['status'], ['Verified', 'Unverified'])) {
             
             $updateFields[] = "status = :status"; $queryParams[':status'] = $rawData['status'];
-            $statusCheckStmt = $pdo->prepare("SELECT status FROM users WHERE user_id = :id");
-            $statusCheckStmt->execute([':id' => $targetId]);
-            $currentStatus = $statusCheckStmt->fetchColumn();
-
-            // Only trigger the SMS if they are being changed FROM something else TO 'Verified'
-            if ($rawData['status'] === 'Verified' && $currentStatus !== 'Verified') {
+            if ($rawData['status'] === 'Verified') {
                 $isVerifying = true;
             }
         }
@@ -397,7 +392,7 @@ if ($method === 'PUT') {
         try {
             $stmt->execute($queryParams);
 
-            // Send SMS if newly verified
+            // Send SMS
             if (isset($isVerifying) && $isVerifying) {
                 $phoneStmt = $pdo->prepare("SELECT phone_number, name FROM users WHERE user_id = :id");
                 $phoneStmt->execute([':id' => $targetId]);
@@ -409,7 +404,14 @@ if ($method === 'PUT') {
                     if (!$smsStatus['success']) {
                         error_log("Failed to send verification SMS to User ID {$targetId}: " . $smsStatus['error']);
                         systemLog("Failed to send verification SMS to User ID {$targetId}. Error: " . $smsStatus['error'], $userData['user_id']);
-                        Response::success("User is verified but failed to send SMS notification: " . $smsStatus['error']);
+    
+                        // ✅ FIX: Return a success response, but include the sms_failed flag and a warning message
+                        echo json_encode([
+                            "success" => true,
+                            "sms_failed" => true,
+                            "message" => "Saved changes, but failed to send SMS: " . $smsStatus['error']
+                        ]);
+                        exit; // Stop execution here so it doesn't hit the Response::success below
                     }
                 }
             }

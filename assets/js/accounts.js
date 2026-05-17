@@ -436,6 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
             showAlertTOP(
               result.message || "Saved changes, but the SMS failed to send.",
               "warning",
+              6666,
             );
           } else {
             showAlert("Account updated successfully.", "save");
