@@ -193,7 +193,7 @@ if ($method === 'POST') {
         Response::error("Phone number is required.", 400);
     } elseif (formatPhNumber($phone_number) === false) {
         // Accepts 09xxxxxxxxx or +639xxxxxxxxx
-        Response::error("Invalid Philippine phone number format.", 400);
+        Response::error("Invalid Philippines phone number format.", 400);
     }
 
     $phone_number = formatPhNumber($phone_number);
@@ -328,19 +328,34 @@ if ($method === 'PUT') {
     // SCENARIO A: A user is editing their OWN account
     if ($userData['user_id'] === $targetId) {
         if (isset($rawData['name']) && trim($rawData['name']) !== '') {
+            if (!preg_match('/^[a-zA-Z\s.\'-]{2,100}$/', $rawData['name'])) {
+                Response::error("Full name contains invalid characters and must be between 2 and 100 characters long.", 400);
+            }
             $updateFields[] = "name = :name"; $queryParams[':name'] = trim($rawData['name']);
         }
         if (isset($rawData['username']) && trim($rawData['username']) !== '') {
+            if (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $rawData['username'])) {
+                Response::error("Username must be 3-20 characters long and contain only letters, numbers, and underscores.", 400);
+            }
             $updateFields[] = "username = :username"; $queryParams[':username'] = trim($rawData['username']);
         }
-        if (isset($rawData['phone_number']) && trim($rawData['phone_number']) !== '' && formatPhNumber($rawData['phone_number'])) {
+        if (isset($rawData['phone_number']) && trim($rawData['phone_number']) !== '') {
+            if (formatPhNumber($rawData['phone_number']) === false) {
+                Response::error("Invalid Philippines phone number format.", 400);
+            }
             $phone_number = formatPhNumber($rawData['phone_number']);
             $updateFields[] = "phone_number = :phone"; $queryParams[':phone'] = $phone_number;
         }
         if (isset($rawData['email']) && filter_var($rawData['email'], FILTER_VALIDATE_EMAIL)) {
+            if (!preg_match('/^[^\s@]+@[^\s@]+\.[^\s@]+$/', $rawData['email'])) {
+                Response::error("Invalid email format.", 400);
+            }
             $updateFields[] = "email = :email"; $queryParams[':email'] = trim($rawData  ['email']);
         }
         if (isset($rawData['password']) && strlen($rawData['password']) >= 6) {
+            if (!preg_match('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/', $rawData['password'])) {
+                Response::error("Password must be at least 6 characters and include uppercase, lowercase, and a number.", 400);
+            }
             $updateFields[] = "password_hash = :password_hash";
             $queryParams[':password_hash'] = password_hash($rawData['password'], PASSWORD_DEFAULT);
         }
