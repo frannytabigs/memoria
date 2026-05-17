@@ -60,18 +60,23 @@ if ($method === 'GET') {
  
     if (isset($_GET['search']) && trim($_GET['search']) !== '') {
         $searchTerm = '%' . trim($_GET['search']) . '%';
+        if (strlen(trim($_GET['search'])) < 3) {
+            Response::error("Search term must be at least 3 characters long", 400);
+        }
         $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at
             FROM users
             WHERE (username LIKE :search_username
                    OR email LIKE :search_email
-                   OR name LIKE :search_name)
+                   OR name LIKE :search_name
+                   OR phone_number LIKE :search_phone)
             ORDER BY user_id DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
         ':search_username' => $searchTerm,
         ':search_email' => $searchTerm,
-        ':search_name' => $searchTerm
-            ]);
+        ':search_name' => $searchTerm,
+        ':search_phone' => preg_replace('/09/', '+639', $searchTerm, 1)
+        ]);
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         systemLog($userData['name'] . " (" . $userData['username'] . ") performed a search for users with term: " . trim($_GET['search']), $userData['user_id']);
