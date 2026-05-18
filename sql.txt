@@ -1,8 +1,18 @@
--- DROP DATABASE memoria;
+-- ====================================================================================
+-- DATABASE SCHEMA: Memoria (Mandaue City Public Cemetery Management System)
+-- SITE: Mandaue City Public Cemetery
+-- DESCRIPTION: Core operational database (Excludes financial transactions)
+-- ====================================================================================
+
+-- DROP DATABASE IF EXISTS memoria_db;
 -- CREATE DATABASE memoria_db;
 -- USE memoria_db;
--- DROP TABLE users;
 
+-- ==========================================
+-- 1. SYSTEM & CONFIGURATION TABLES
+-- ==========================================
+
+-- USERS: Stores system access credentials for Admin and Staff.
 CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT, 
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -16,6 +26,8 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- SETTINGS: Key-value store for global variables (e.g., Mayor's name, SMS API keys).
+-- Prevents hardcoding values into the frontend or backend controllers.
 CREATE TABLE settings (
     setting_id INT AUTO_INCREMENT PRIMARY KEY,
     setting_key VARCHAR(50) NOT NULL UNIQUE,
@@ -24,39 +36,66 @@ CREATE TABLE settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Initial Settings Setup or Sample
 -- INSERT INTO settings (setting_key, setting_value, description) VALUES 
--- ('cemetery_name', 'Mandaue City Municipal Cemetery', 'The official name displayed on the dashboard'),
+-- ('gso_officer_name', 'ENGR. MARIVIC P. CABIGAS', 'Name of the General Services Officer for forms'),
+-- ('gso_officer_title', 'General Services Officer', 'Title of the GSO'),
+-- ('mayor_name', 'THADEO JOVITO M. OUANO', 'Name of the City Mayor for forms'),
+-- ('mayor_title', 'City Mayor', 'Title of the Mayor'),
+-- ('cemetery_name', 'Mandaue City Public Cemetery', 'The official name displayed on the documents'),
 -- ('textbee_api_key', 'your_long_api_key_here', 'API key for SMS gateway'),
 -- ('textbee_device_id', 'your_device_id_here', 'Android device ID for SMS routing');
 
--- CUSTOMIZED TABLE, NAME, SIGNATURES, COLORS, [LOGO[?]].... SMS API KEY TEXTBEE
+-- ==========================================
+-- 2. ENTITY TABLES (People & Places)
+-- ==========================================
 
--- 1. CONTACTS TABLE (The living family members, guardians, or CSWS officers)
+-- CONTACTS: The living individuals interacting with the cemetery (Requesting Party).
 CREATE TABLE contacts (
     contact_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255), -- Nullable in case the agency doesn't provide a specific person's name
-    address TEXT,
+    name VARCHAR(255),
+    address TEXT,                -- Specifics like Zone Ahus or Lub-ang ....
+    barangay VARCHAR(100),       -- Specifically for the "resident of [ ] Barangay" form requirement
     phone_number VARCHAR(20),
     email_address VARCHAR(100), 
-    remarks TEXT -- Good place to put "City Social Welfare Services"
+    remarks TEXT, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- 2A. BLOCKS TABLE (The big areas/buildings)
+-- DECEASED: The biological record of the buried individual. 
+-- This is permanent and separate from the burial event itself.
+CREATE TABLE deceased (
+    deceased_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255), 
+    sex ENUM('Male', 'Female', 'Unknown') DEFAULT 'Unknown',
+    date_of_birth DATE, 
+    date_of_death DATE, 
+    death_certificate VARCHAR(100), -- The death certificate attached from the form for identification when needed
+    last_known_address TEXT,
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- BLOCKS: The macro-locations (e.g., Niche Wall A, Bone Chamber B).
 CREATE TABLE blocks (
     block_id INT AUTO_INCREMENT PRIMARY KEY,
     block_name VARCHAR(100) UNIQUE NOT NULL, 
-    block_type ENUM('Niche Wall', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned'), -- Added 'Unmapped Area' just in case! added 'Private/Owned'
+    block_type ENUM('Niche Wall', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned'),
     total_rows INT,    
     total_columns INT, 
     max_capacity INT,
     area_sqm DECIMAL(10,2),
-    owner_contact_id INT,
-    coordinates JSON, -- on the maps visuals
+    owner_contact_id INT,        -- Links to contacts if a family owns a private mausoleum
+    coordinates JSON,            -- For mapping visuals
     remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL
 );
 
--- 2B. GRAVES TABLE (The individual holes/slots inside a block)
+-- GRAVES: The micro-locations (individual slots) inside a Block.
 CREATE TABLE graves (
     grave_id INT AUTO_INCREMENT PRIMARY KEY,
     block_id INT, 
@@ -64,122 +103,148 @@ CREATE TABLE graves (
     row_num INT,         
     col_num INT,         
     floor_level INT,     
-    status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance', 'Merged') DEFAULT 'Vacant', -- ADDED 'Merged'
-    merged_with_id INT,  -- NEW: Tells us which grave swallowed this one up    
-    coordinates JSON, -- on the map visuals
+    status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance', 'Merged') DEFAULT 'Vacant',
+    merged_with_id INT,          -- Self-referencing ID if walls are knocked down to combine graves
+    coordinates JSON,            -- If stand alone or unmapped or something
     remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (block_id) REFERENCES blocks(block_id) ON DELETE RESTRICT,
-    FOREIGN KEY (merged_with_id) REFERENCES graves(grave_id) ON DELETE SET NULL -- This links back to its own table!
+    FOREIGN KEY (merged_with_id) REFERENCES graves(grave_id) ON DELETE SET NULL 
 );
 
--- 3. DECEASED TABLE (Biological/identifying info)
-CREATE TABLE deceased (
-    deceased_id INT AUTO_INCREMENT PRIMARY KEY,
-    control_number VARCHAR(100) UNIQUE NOT NULL,
-    name VARCHAR(100), -- Nullable for unidentified individuals
-    sex ENUM('Male', 'Female', 'Unknown') DEFAULT 'Unknown',
-    date_of_birth DATE, -- Nullable if unknown
-    date_of_death DATE, -- Nullable if unknown
-    last_known_address TEXT,
-    remarks TEXT -- e.g., "Unidentified male, handled by CSWS"
-);
 
--- 4. INTERMENTS TABLE (The Burial Record)
+-- ==========================================
+-- 3. TRANSACTION TABLES (The Core Logic)
+-- ==========================================
+
+-- INTERMENTS: Acts as the digital version of the "Burial Clearance" form.
+-- Connects a Deceased, a Contact, and a Grave together for a specific time period.
 CREATE TABLE interments (
     interment_id INT AUTO_INCREMENT PRIMARY KEY,
-    deceased_id INT NOT NULL, -- There is always a physical body
-    grave_id INT,             -- FIXED: Points to graves, NOT blocks. Nullable for corner burials!
-    contact_id INT,           -- FIXED: Nullable for homeless/no family cases.
-    date_buried DATE,         -- Nullable just in case the exact historical date is lost
+    control_number VARCHAR(100) UNIQUE NOT NULL, 
+    deceased_id INT NOT NULL, 
+    grave_id INT,             
+    contact_id INT,           
+    
+    -- Document Checkboxes
+    assistance_type ENUM('Burial', 'Transfer', 'Other') NOT NULL DEFAULT 'Burial',
+    assistance_other_remarks VARCHAR(255), 
+    
+    -- Required Document Tracking
+    burial_permit_no VARCHAR(100),
+    burial_permit_date DATE,
+    transfer_permit_no VARCHAR(100),
+    transfer_permit_issued_by VARCHAR(150),
+    transfer_permit_date DATE,
+    exhumation_permit_no VARCHAR(100),
+    exhumation_permit_date DATE,
+    
+    -- Important Dates
+    date_buried DATE,            
     date_exhumed DATE, 
-    lease_expiration_date DATE, 
+    clearance_date DATE,         
+    lease_expiration_date DATE,  
+    
     status ENUM('Active', 'Expired', 'Exhumed', 'Moved to Family') DEFAULT 'Active',
+    
+    -- SIMPLIFIED SMS TRACKING
+    sms_status ENUM('Not Sent', 'Warning Sent', 'Expired Notice Sent') DEFAULT 'Not Sent',
+    last_sms_sent_at TIMESTAMP NULL,
+    
     remarks TEXT,
-    FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id),
-    FOREIGN KEY (grave_id) REFERENCES graves(grave_id), 
-    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id) ON DELETE RESTRICT,
+    FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT, 
+    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE RESTRICT
 );
 
--- 5. RESERVATIONS TABLE (Reserving vacant spots before death or burial)
+-- RESERVATIONS: Holds a grave slot before a burial occurs.
 CREATE TABLE reservations (
     reservation_id INT AUTO_INCREMENT PRIMARY KEY,
-    grave_id INT NOT NULL,    -- FIXED: You must reserve a specific grave, not a whole block.
-    contact_id INT, -- could be from csws or no contact and all...
+    grave_id INT NOT NULL,    
+    contact_id INT, 
     reservation_date DATE,
     expiration_date DATE, 
     status ENUM('Active', 'Fulfilled', 'Cancelled') DEFAULT 'Active',
     remarks TEXT,
-    FOREIGN KEY (grave_id) REFERENCES graves(grave_id), 
-    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT, 
+    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE RESTRICT
 );
 
--- 6. SMS NOTIFICATIONS TABLE (Audit trail for the TextBee API)
-CREATE TABLE sms_notifications (
-    notification_id INT AUTO_INCREMENT PRIMARY KEY,
-    interment_id INT,           -- Which burial this relates to
-    contact_id INT,             -- The family member receiving the text
-    user_id INT,                -- The Staff/Admin who clicked the "Send" button
-    phone_number VARCHAR(20),   -- Stored explicitly in case the contact changes their number later
-    message_type ENUM('1st Warning', 'Final Warning', 'Expired', 'Custom') DEFAULT '1st Warning',
-    message_content TEXT,       -- The exact text that was generated and sent
-    status ENUM('Pending', 'Sent', 'Failed') DEFAULT 'Pending', -- Crucial for TextBee tracking
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    remarks TEXT,
-    FOREIGN KEY (interment_id) REFERENCES interments(interment_id) ON DELETE SET NULL,
-    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
-);
--- CREATE INDEX FOR FASTER QUERY
-CREATE INDEX idx_lease_expiration ON interments(lease_expiration_date);
 
--- Pure vacant
--- SELECT grave_code FROM graves WHERE status = 'Vacant';
--- SET time_zone = '+08:00';
--- // Grabs the local date in YYYY-MM-DD format (e.g., "2026-05-04") const today = new Date().toLocaleDateString('en-CA');
--- SELECT * FROM interments WHERE lease_expiration_date < ?; -- The '?' is your JS date
+-- ==========================================
+-- 4. PERFORMANCE INDEXES
+-- ==========================================
+-- Indexes optimize database read times. They act like a table of contents in a book.
 
--- PART 1: Grab the purely Vacant graves
--- SELECT 
---    g.grave_id,
---    g.block_id,
---    b.block_name,
---    g.grave_code, 
---    NULL AS deceased_name,          -- No body here yet
---    NULL AS phone_number,           -- No family to call
---    NULL AS lease_expiration_date,  -- No lease yet
---    'Vacant' AS urgency_level       -- Custom status tag
--- FROM graves g
--- LEFT JOIN blocks b ON g.block_id = b.block_id
--- WHERE g.status = 'Vacant'
+-- Interments Table Indexes
+CREATE INDEX idx_lease_expiration ON interments(lease_expiration_date); -- Speeds up your daily expiring lease checks
+CREATE INDEX idx_interment_status ON interments(status);                -- Speeds up queries filtering by 'Active' vs 'Exhumed'
+CREATE INDEX idx_control_number ON interments(control_number);          -- Speeds up specific form lookups
 
--- UNION ALL
+-- Graves & Blocks Indexes
+CREATE INDEX idx_grave_status ON graves(status);                        -- Speeds up finding 'Vacant' slots for the map
+CREATE INDEX idx_block_type ON blocks(block_type);                      -- Speeds up filtering between Niche Walls and Bone Chambers
 
--- PART 2: Grab the Expiring and Expired interments
--- SELECT 
---    g.grave_id,
---    g.block_id,
---    b.block_name,
---    g.grave_code, 
---    d.name AS deceased_name, 
---    c.phone_number,
---    i.lease_expiration_date,
---    CASE 
---        WHEN i.lease_expiration_date < CURDATE() THEN 'Already Expired'
---        ELSE 'Expiring Soon'
---    END AS urgency_level
--- FROM interments i
--- JOIN graves g ON i.grave_id = g.grave_id
--- LEFT JOIN blocks b ON g.block_id = b.block_id
--- JOIN deceased d ON i.deceased_id = d.deceased_id
--- LEFT JOIN contacts c ON i.contact_id = c.contact_id 
--- WHERE i.status = 'Active' 
---  AND i.lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+-- People Indexes
+CREATE INDEX idx_deceased_name ON deceased(name);                       -- Crucial for the public/staff search function
+CREATE INDEX idx_contact_name ON contacts(name);                        -- Speeds up finding family records
 
--- THE SORTING MAGIC
--- ORDER BY 
---    CASE urgency_level
---        WHEN 'Vacant' THEN 1
---        WHEN 'Already Expired' THEN 2
---        WHEN 'Expiring Soon' THEN 3
---    END ASC,
---    lease_expiration_date ASC; -- Within the expired/expiring groups, sorts oldest dates to the top
+-- ==========================================
+-- END OF SCHEMA
+-- ==========================================
+
+-- ==============================================================================
+-- QUERY for: Vacant, Expired, and Expiring (30 Days)
+-- ==============================================================================
+
+SELECT 
+    -- 1. Get the Vacant Graves
+    g.grave_code,
+    b.block_name,
+    'Vacant' AS urgency_level,           -- Hardcoded tag for the frontend
+    NULL AS deceased_name,               -- No body yet
+    NULL AS family_contact,              -- No family to contact
+    NULL AS lease_expiration_date,       -- No lease
+    NULL AS sms_status                   -- No SMS needed
+FROM graves g
+JOIN blocks b ON g.block_id = b.block_id
+WHERE g.status = 'Vacant'
+
+UNION ALL
+
+SELECT 
+    -- 2. Get the Expired & Expiring Interments
+    g.grave_code,
+    b.block_name,
+    CASE 
+        WHEN i.lease_expiration_date < CURDATE() THEN 'Expired'
+        ELSE 'Expiring Soon'
+    END AS urgency_level,                -- Dynamically tags based on today's date
+    d.name AS deceased_name,
+    c.phone_number AS family_contact,
+    i.lease_expiration_date,
+    i.sms_status                         -- Pulls the simplified SMS tracking we just made!
+FROM interments i
+JOIN graves g ON i.grave_id = g.grave_id
+JOIN blocks b ON g.block_id = b.block_id
+JOIN deceased d ON i.deceased_id = d.deceased_id
+LEFT JOIN contacts c ON i.contact_id = c.contact_id 
+WHERE i.status = 'Active' 
+  -- Grabs anything that has already expired OR will expire within the next 30 days
+  AND i.lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+
+-- 3. The Sorting Magic (Most urgent at the top)
+ORDER BY 
+    CASE urgency_level
+        WHEN 'Expired' THEN 1            -- Action required immediately
+        WHEN 'Expiring Soon' THEN 2      -- Needs a warning text
+        WHEN 'Vacant' THEN 3             -- Just informative, no action needed
+    END ASC,
+    -- Within the Expired/Expiring groups, this sorts the oldest dates to the very top
+    lease_expiration_date ASC;
