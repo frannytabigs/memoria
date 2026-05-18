@@ -2,6 +2,12 @@
 require_once 'notallowed.php';
 require_once 'config.php'; // Load our new native config
 
+if (!defined('DB_HOST') || !defined('DB_NAME') || !defined('DB_USER') || !defined('DB_PASS') || !defined('DB_CHARSET') || !defined('JWT_SECRET') || !defined('JWT_ALGO') || !defined('JWT_EXPIRATION') || !defined('APP_URL') || !defined('LOG_SECRET_KEY')) {
+    require_once 'responses.php';
+    Response::error("Database configuration is incomplete. The config.php file is not properly configured.", 500);
+    die("Database configuration constants are not properly defined.");
+}
+
 header('Content-Type: application/json');
 
 $host = DB_HOST;
