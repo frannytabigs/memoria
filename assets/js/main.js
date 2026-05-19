@@ -199,15 +199,15 @@ function adminOnly() {
     })
     .then(function (responseData) {
       // console.log(responseData.data.user.role);
-      if (responseData.data.user.role != "Administrator") {
+      if (responseData.data.user.role == "Administrator") {
         document.querySelectorAll(".adminOnly").forEach(function (element) {
-          element.style.display = "none";
+          element.style.display = "block";
         });
       }
       document.getElementById("usernameLabel").textContent =
         responseData.data.user.username;
       document.getElementById("usernameLogo").textContent =
-        responseData.data.user.username.toUpperCase().substring(0, 3); // Get first 3 letters of username for logo
+        responseData.data.user.username.toUpperCase().substring(0, 2); // Get first 2 letters of username for logo
       document.getElementById("roleLabel").textContent =
         responseData.data.user.role;
     })

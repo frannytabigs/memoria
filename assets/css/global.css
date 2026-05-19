@@ -224,3 +224,7 @@ body {
 .logout:hover {
   color: #ef4444;
 }
+
+.adminOnly {
+  display: none;
+}
