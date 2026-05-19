@@ -32,12 +32,12 @@ function systemLog($action, $userId = 'System') {
 
 /**
  * Reads and decrypts the logs.txt file
- * * @return array An array of decrypted log strings
+ * @return array An array of decrypted log strings
  */
 function readLogs() {
-    
     $secretKey = LOG_SECRET_KEY; // Use the constant
     $method = 'aes-256-cbc';
+    $ivLength = openssl_cipher_iv_length($method); // This will be 16
     
     $logFile = __DIR__ . '/logs.txt';
     $decryptedLogs = [];
@@ -52,11 +52,16 @@ function readLogs() {
     foreach ($lines as $line) {
         $decoded = base64_decode($line);
         
-        // Split the IV and the Encrypted text back apart
-        if (strpos($decoded, '::') !== false) {
-            list($iv, $encrypted) = explode('::', $decoded, 2);
+        // Ensure the line is long enough to contain a 16-byte IV, '::', and some data
+        if (strlen($decoded) > $ivLength + 2) {
             
-            // Decrypt it
+            // 1. Grab EXACTLY the first 16 bytes. This ignores any accidental '::' inside the binary IV.
+            $iv = substr($decoded, 0, $ivLength);
+            
+            // 2. The encrypted text starts exactly 18 bytes in (16 for IV + 2 for '::')
+            $encrypted = substr($decoded, $ivLength + 2);
+            
+            // 3. Decrypt it safely
             $decrypted = openssl_decrypt($encrypted, $method, $secretKey, 0, $iv);
             
             if ($decrypted !== false) {
