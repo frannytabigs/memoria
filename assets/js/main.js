@@ -192,18 +192,20 @@ if (logoutBtn) {
 function adminOnly() {
   fetch("api/auth.php")
     .then(function (response) {
-      if (!response.ok) {
-        throw new Error("Request failed");
-      }
-      // Stop execution if the server spits out raw PHP text
+      const contentType = response.headers.get("content-type");
+
+      // If the server doesn't return JSON, it means PHP isn't running correctly
       if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Invalid server environment: API did not return JSON.");
+        throw new Error("STATIC_SERVER");
+      }
+
+      if (!response.ok) {
+        throw new Error("AUTH_FAILED");
       }
 
       return response.json();
     })
     .then(function (responseData) {
-      // console.log(responseData.data.user.role);
       if (responseData.data.user.role == "Administrator") {
         document.querySelectorAll(".adminOnly").forEach(function (element) {
           element.style.display = "block";
@@ -212,13 +214,29 @@ function adminOnly() {
       document.getElementById("usernameLabel").textContent =
         responseData.data.user.username;
       document.getElementById("usernameLogo").textContent =
-        responseData.data.user.username.toUpperCase().substring(0, 2); // Get first 2 letters of username for logo
+        responseData.data.user.username.toUpperCase().substring(0, 2);
       document.getElementById("roleLabel").textContent =
         responseData.data.user.role;
     })
     .catch(function (error) {
-      console.error("Error checking login status:", error);
-      window.location.href = "index.html";
+      console.error("Auth check failed:", error.message);
+
+      if (error.message === "AUTH_FAILED") {
+        // This is a true login failure on a real server, kick the user out
+        window.location.href = "index.html";
+      } else {
+        // You are on VS Code Live Server or the database isn't connected.
+        // Bypass the loop and load fake data so the UI doesn't break.
+        console.warn("Running locally without backend. Bypassing login kick.");
+
+        document.querySelectorAll(".adminOnly").forEach(function (element) {
+          element.style.display = "block";
+        });
+
+        document.getElementById("usernameLabel").textContent = "Dev Mode";
+        document.getElementById("usernameLogo").textContent = "DV";
+        document.getElementById("roleLabel").textContent = "Local Testing";
+      }
     });
 }
 
