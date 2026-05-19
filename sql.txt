@@ -44,7 +44,8 @@ CREATE TABLE settings (
 -- ('mayor_title', 'City Mayor', 'Title of the Mayor'),
 -- ('cemetery_name', 'Mandaue City Public Cemetery', 'The official name displayed on the documents'),
 -- ('textbee_api_key', 'your_long_api_key_here', 'API key for SMS gateway'),
--- ('textbee_device_id', 'your_device_id_here', 'Android device ID for SMS routing');
+-- ('textbee_device_id', 'your_device_id_here', 'Android device ID for SMS routing'),
+-- ('main_color', '#0f172a', 'Main Color of the side bar');
 
 -- ==========================================
 -- 2. ENTITY TABLES (People & Places)
