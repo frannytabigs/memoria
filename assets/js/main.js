@@ -195,6 +195,11 @@ function adminOnly() {
       if (!response.ok) {
         throw new Error("Request failed");
       }
+      // Stop execution if the server spits out raw PHP text
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Invalid server environment: API did not return JSON.");
+      }
+
       return response.json();
     })
     .then(function (responseData) {
