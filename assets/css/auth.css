@@ -293,3 +293,37 @@ form {
 .footer a:hover {
   text-decoration: underline;
 }
+
+/* SHOW/HIDE PASSWORD TOGGLE */
+.passwordBox {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordBox input {
+  /* Add padding to the right so the text doesn't run underneath the icon */
+  padding-right: 45px;
+}
+
+.togglePassword {
+  position: absolute;
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #606770;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.togglePassword:hover {
+  color: var(--mainColor);
+}
+
+.togglePassword:focus {
+  outline: none;
+}
