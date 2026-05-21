@@ -27,10 +27,16 @@ function kickStaff() {
     })
     .catch(function (error) {
       if (error.message === "STATIC_SERVER") {
+        console.warn(
+          "Auth check failed due to static server. Allowing access for testing purposes.",
+        );
+        console.error(
+          "Looks like you are running this page without the backend server???? THIS WILL BE BUGGY WTF NO GOODBYE",
+        );
         localStorage.setItem("memoria_role", "Administrator");
         localStorage.setItem(
           "memoria_username",
-          "DevModeOKAYYYY??/LIVESERVER?????????WTF",
+          "BUGGY_DevModeOKAYYYY??/LIVESERVER?????????WTF",
         );
         return; // Let them stay for Live Server testing
       }

@@ -225,7 +225,7 @@ body {
   color: #ef4444;
 }
 
-/* Hide by default */
+/* Hide by default to prevent unauthorized flickering */
 .adminOnly {
   display: none !important;
 }

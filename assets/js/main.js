@@ -248,18 +248,34 @@ function adminOnly() {
       } else {
         // DEV MODE FALLBACK (LIVE SERVER)
         console.warn("Running locally without backend. Bypassing login kick.");
-
-        // ADD THESE TWO LINES: Save dev mode to cache so it doesn't flicker next time!
+        console.error(
+          "Looks like you are running this page without the backend server???? THIS WILL BE BUGGY WTF NO GOODBYE",
+        );
         localStorage.setItem("memoria_role", "Administrator");
         localStorage.setItem(
           "memoria_username",
-          "DevModeOKAYYYY??/LIVESERVER?????????WTF",
+          "BUGGY_DevModeOKAYYYY??/LIVESERVER?????????WTF",
         );
         document.documentElement.classList.add("is-admin");
         document.getElementById("usernameLabel").textContent =
-          "DevModeOKAYYYY??/LIVESERVER?????????WTF";
-        document.getElementById("usernameLogo").textContent = "DE";
+          "BUGGY_DevModeOKAYYYY??/LIVESERVER?????????WTF";
+        document.getElementById("usernameLogo").textContent = "BU";
         document.getElementById("roleLabel").textContent = "Administrator";
+        showAlertTOP(
+          "Running in Dev Mode: Auth checks are bypassed!",
+          "warning",
+          5000,
+        );
+        showAlertTOP(
+          "Looks like you are running this page without the backend server???? THIS WILL BE BUGGY WTF NO GOODBYE",
+          "warning",
+          5000,
+        );
+        showAlertTOP(
+          "If you want to test admin features, consider setting up the backend server or be prepared for a buggy experience. use XAMPP??? LOL",
+          "warning",
+          7000,
+        );
       }
     });
 }
