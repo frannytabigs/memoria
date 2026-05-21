@@ -246,19 +246,20 @@ function adminOnly() {
         document.documentElement.classList.remove("is-admin");
         window.location.href = "index.html";
       } else {
-        // Update cache
-        localStorage.setItem("memoria_role", "Administrator"); // Assume admin for local testing
-        localStorage.setItem("memoria_username", "DevMode");
-
-        document.documentElement.classList.add("is-admin");
-
-        document.getElementById("usernameLabel").textContent = "DevMode";
-        document.getElementById("usernameLogo").textContent = "DevMode"
-          .toUpperCase()
-          .substring(0, 2);
-        document.getElementById("roleLabel").textContent = "Administrator";
-        // Dev Mode fallback
+        // DEV MODE FALLBACK (LIVE SERVER)
         console.warn("Running locally without backend. Bypassing login kick.");
+
+        // ADD THESE TWO LINES: Save dev mode to cache so it doesn't flicker next time!
+        localStorage.setItem("memoria_role", "Administrator");
+        localStorage.setItem(
+          "memoria_username",
+          "DevModeOKAYYYY??/LIVESERVER?????????WTF",
+        );
+        document.documentElement.classList.add("is-admin");
+        document.getElementById("usernameLabel").textContent =
+          "DevModeOKAYYYY??/LIVESERVER?????????WTF";
+        document.getElementById("usernameLogo").textContent = "DE";
+        document.getElementById("roleLabel").textContent = "Administrator";
       }
     });
 }

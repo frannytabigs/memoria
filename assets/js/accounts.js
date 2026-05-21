@@ -281,7 +281,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error("Error fetching users:", error);
-      tableBody.innerHTML = `<tr id="noDataRow"><td colspan="8" style="text-align:center; padding:40px; color:#e11d48;">Error loading data. Please try again later. If the issue persists, contact support.</td></tr>`;
+      setTimeout(() => {
+        tableBody.innerHTML = `<tr id="noDataRow"><td colspan="8" style="text-align:center; padding:40px; color:#e11d48;">Error loading data. Please try again later. If the issue persists, contact support.</td></tr>`;
+      }, 1000); // Simulate delay for skeleton loading
     }
   };
 
