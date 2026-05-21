@@ -105,6 +105,41 @@
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  table-layout: fixed; /* This stops the browser from auto-resizing columns */
+}
+
+/* SET SPECIFIC WIDTHS FOR ALL 8 COLUMNS */
+.table th:nth-child(1) {
+  width: 18%;
+} /* Name */
+.table th:nth-child(2) {
+  width: 12%;
+} /* Username */
+.table th:nth-child(3) {
+  width: 18%;
+} /* Email */
+.table th:nth-child(4) {
+  width: 14%;
+} /* Phone Number */
+.table th:nth-child(5) {
+  width: 10%;
+} /* Role */
+.table th:nth-child(6) {
+  width: 10%;
+} /* Status */
+.table th:nth-child(7) {
+  width: 10%;
+} /* ID */
+.table th:nth-child(8) {
+  width: 8%;
+} /* Action */
+
+/* Ensure long text doesn't break the fixed layout */
+.table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .table::-webkit-scrollbar {
@@ -299,4 +334,44 @@ button.deleteBtn:hover {
 
 #clearSearchBtn:hover {
   color: #e11d48;
+}
+
+/* SKELETON LOADER UI */
+.skeleton-row td {
+  padding: 15px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9; /* Matches typical table borders */
+}
+
+.skeleton-box {
+  height: 16px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* The shimmering light effect */
+.skeleton-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.8) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }

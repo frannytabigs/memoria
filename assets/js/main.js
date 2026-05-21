@@ -246,12 +246,19 @@ function adminOnly() {
         document.documentElement.classList.remove("is-admin");
         window.location.href = "index.html";
       } else {
+        // Update cache
+        localStorage.setItem("memoria_role", "Administrator"); // Assume admin for local testing
+        localStorage.setItem("memoria_username", "DevMode");
+
+        document.documentElement.classList.add("is-admin");
+
+        document.getElementById("usernameLabel").textContent = "DevMode";
+        document.getElementById("usernameLogo").textContent = "DevMode"
+          .toUpperCase()
+          .substring(0, 2);
+        document.getElementById("roleLabel").textContent = "Administrator";
         // Dev Mode fallback
         console.warn("Running locally without backend. Bypassing login kick.");
-        document.documentElement.classList.add("is-admin");
-        document.getElementById("usernameLabel").textContent = "Dev Mode";
-        document.getElementById("usernameLogo").textContent = "DV";
-        document.getElementById("roleLabel").textContent = "Local Testing";
       }
     });
 }

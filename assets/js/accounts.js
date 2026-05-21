@@ -21,6 +21,27 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   };
+  // --- SKELETON LOADER GENERATOR --- //
+  const renderSkeleton = () => {
+    // Generate 5 fake rows with randomized widths for realism
+    tableBody.innerHTML = Array(Math.floor(Math.random() * 5) + 1)
+      .fill(0)
+      .map(
+        () => `
+      <tr class="skeleton-row" style="pointer-events: none;">
+        <td><div class="skeleton-box" style="width: ${Math.floor(Math.random() * 40 + 50)}%;"></div></td>
+        <td><div class="skeleton-box" style="width: ${Math.floor(Math.random() * 30 + 40)}%;"></div></td>
+        <td><div class="skeleton-box" style="width: ${Math.floor(Math.random() * 40 + 50)}%;"></div></td>
+        <td><div class="skeleton-box" style="width: 80%;"></div></td>
+        <td><div class="skeleton-box" style="width: 60%;"></div></td>
+        <td><div class="skeleton-box" style="width: 70%;"></div></td>
+        <td><div class="skeleton-box" style="width: 50%;"></div></td>
+        <td><div class="skeleton-box" style="width: 80px; height: 30px; border-radius: 6px;"></div></td>
+      </tr>
+    `,
+      )
+      .join("");
+  };
 
   const injectUIComponents = () => {
     const uiContainer = document.createElement("div");
@@ -230,6 +251,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- API LOGIC --- //
   const loadUsers = async () => {
     try {
+      renderSkeleton(); // <--- ADD THIS LINE HERE
+
       const queryParams = new URLSearchParams();
       if (currentPage > 1) queryParams.append("page", currentPage);
       if (currentSearch) queryParams.append("search", currentSearch);
@@ -242,18 +265,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (result.success) {
-        renderTable(result.data.users);
-        renderPagination(result.data.pagination);
-        applyLocalFilters();
+        setTimeout(() => {
+          renderTable(result.data.users);
+          renderPagination(result.data.pagination);
+          applyLocalFilters();
+        }, 1000); // Simulate delay for skeleton loading
       } else {
-        if (typeof showAlertTOP === "function")
-          showAlertTOP("No users found in that criteria.", "error");
-        renderTable([]);
-        renderPagination(null);
+        setTimeout(() => {
+          if (typeof showAlertTOP === "function") {
+            showAlertTOP("No users found in that criteria.", "error");
+          }
+          renderTable([]);
+          renderPagination(null);
+        }, 1000); // Simulate delay for skeleton loading
       }
     } catch (error) {
       console.error("Error fetching users:", error);
-      tableBody.innerHTML = `<tr id="noDataRow"><td colspan="8" style="text-align:center; padding:40px; color:#e11d48;">Error loading data. Check console.</td></tr>`;
+      tableBody.innerHTML = `<tr id="noDataRow"><td colspan="8" style="text-align:center; padding:40px; color:#e11d48;">Error loading data. Please try again later. If the issue persists, contact support.</td></tr>`;
     }
   };
 
