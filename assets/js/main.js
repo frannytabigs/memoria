@@ -241,3 +241,21 @@ function adminOnly() {
 }
 
 adminOnly();
+
+// SIDEBAR ACTIVE (Auto-detects current page)
+document.addEventListener("DOMContentLoaded", () => {
+  const currentPath =
+    window.location.pathname.split("/").pop() || "dashboard.html";
+
+  document.querySelectorAll(".sidebarNav a").forEach((link) => {
+    const menuDiv = link.querySelector(".menu");
+    const linkHref = link.getAttribute("href");
+
+    // Check if the link's href matches the current URL
+    if (linkHref === currentPath) {
+      menuDiv.classList.add("active");
+    } else {
+      menuDiv.classList.remove("active");
+    }
+  });
+});
