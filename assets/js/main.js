@@ -176,10 +176,12 @@ if (logoutBtn) {
     if (!confirmed) return;
 
     try {
-      // optional: you can await this if backend matters
       fetch("api/auth.php", { method: "DELETE" });
 
-      // small delay makes UX feel smoother
+      // ADD THESE TWO LINES: Clear the memory cache!
+      localStorage.removeItem("memoria_role");
+      localStorage.removeItem("memoria_username");
+
       setTimeout(() => {
         window.location.href = "index.html";
       }, 150);
@@ -190,49 +192,63 @@ if (logoutBtn) {
 }
 
 function adminOnly() {
+  const cachedRole = localStorage.getItem("memoria_role");
+  const cachedUsername = localStorage.getItem("memoria_username");
+
+  // Instantly load cached text labels (The menus are already handled by the <head> script)
+  if (cachedUsername) {
+    document.getElementById("usernameLabel").textContent = cachedUsername;
+    document.getElementById("usernameLogo").textContent = cachedUsername
+      .toUpperCase()
+      .substring(0, 2);
+    document.getElementById("roleLabel").textContent = cachedRole;
+  }
+
+  // Background Verification
   fetch("api/auth.php")
     .then(function (response) {
       const contentType = response.headers.get("content-type");
-
-      // If the server doesn't return JSON, it means PHP isn't running correctly
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("STATIC_SERVER");
       }
-
       if (!response.ok) {
         throw new Error("AUTH_FAILED");
       }
-
       return response.json();
     })
     .then(function (responseData) {
-      if (responseData.data.user.role == "Administrator") {
-        document.querySelectorAll(".adminOnly").forEach(function (element) {
-          element.style.display = "block";
-        });
+      const user = responseData.data.user;
+
+      // Update cache
+      localStorage.setItem("memoria_role", user.role);
+      localStorage.setItem("memoria_username", user.username);
+
+      // Securely update UI based on true server response
+      if (user.role === "Administrator") {
+        document.documentElement.classList.add("is-admin");
+      } else {
+        document.documentElement.classList.remove("is-admin");
       }
-      document.getElementById("usernameLabel").textContent =
-        responseData.data.user.username;
-      document.getElementById("usernameLogo").textContent =
-        responseData.data.user.username.toUpperCase().substring(0, 2);
-      document.getElementById("roleLabel").textContent =
-        responseData.data.user.role;
+
+      document.getElementById("usernameLabel").textContent = user.username;
+      document.getElementById("usernameLogo").textContent = user.username
+        .toUpperCase()
+        .substring(0, 2);
+      document.getElementById("roleLabel").textContent = user.role;
     })
     .catch(function (error) {
       console.error("Auth check failed:", error.message);
 
       if (error.message === "AUTH_FAILED") {
-        // This is a true login failure on a real server, kick the user out
+        // Clear cache and redirect on true failure
+        localStorage.removeItem("memoria_role");
+        localStorage.removeItem("memoria_username");
+        document.documentElement.classList.remove("is-admin");
         window.location.href = "index.html";
       } else {
-        // You are on VS Code Live Server or the database isn't connected.
-        // Bypass the loop and load fake data so the UI doesn't break.
+        // Dev Mode fallback
         console.warn("Running locally without backend. Bypassing login kick.");
-
-        document.querySelectorAll(".adminOnly").forEach(function (element) {
-          element.style.display = "block";
-        });
-
+        document.documentElement.classList.add("is-admin");
         document.getElementById("usernameLabel").textContent = "Dev Mode";
         document.getElementById("usernameLogo").textContent = "DV";
         document.getElementById("roleLabel").textContent = "Local Testing";

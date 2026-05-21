@@ -225,6 +225,12 @@ body {
   color: #ef4444;
 }
 
+/* Hide by default */
 .adminOnly {
-  display: none;
+  display: none !important;
+}
+
+/* Show instantly if the page has the 'is-admin' class */
+html.is-admin .adminOnly {
+  display: block !important;
 }

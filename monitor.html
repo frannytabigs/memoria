@@ -64,6 +64,12 @@
         white-space: nowrap;
       }
     </style>
+    <script>
+      // Run this instantly before the page paints
+      if (localStorage.getItem("memoria_role") === "Administrator") {
+        document.documentElement.classList.add("is-admin");
+      }
+    </script>
   </head>
   <body>
     <div class="sidebar">
