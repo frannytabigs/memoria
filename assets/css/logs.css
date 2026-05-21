@@ -186,3 +186,56 @@ mark.search-highlight {
   background-color: #fee2e2;
   color: #991b1b;
 } /* Red (System Event) */
+
+/* --- SKELETON LOADER --- */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #f3f4f6;
+  pointer-events: none; /* Prevents hovering effects while loading */
+}
+
+/* The base shimmering box */
+.skeleton-box {
+  background: #f6f7f8;
+  background-image: linear-gradient(
+    to right,
+    #f6f7f8 0%,
+    #edeef1 20%,
+    #f6f7f8 40%,
+    #f6f7f8 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear forwards;
+  border-radius: 4px;
+}
+
+/* Sizing to match your exact log data layout */
+.skeleton-time {
+  width: 140px;
+  height: 16px;
+  margin-right: 30px; /* Spacer to mimic min-width */
+}
+
+.skeleton-action {
+  flex-grow: 1;
+  height: 16px;
+  margin-right: 30px;
+}
+
+.skeleton-user {
+  width: 90px;
+  height: 24px;
+  border-radius: 9999px; /* Matches the pill shape of your user badges */
+}

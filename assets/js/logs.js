@@ -3,19 +3,38 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchLogs();
 
   async function fetchLogs() {
+    const listElement = document.getElementById("logList");
+
+    // 1. Inject the skeleton UI before fetching
+    // We create 6 fake rows to fill the screen nicely
+    listElement.innerHTML = Array(6)
+      .fill(
+        `
+      <li class="skeleton-item">
+        <div class="skeleton-box skeleton-time"></div>
+        <div class="skeleton-box skeleton-action"></div>
+        <div class="skeleton-box skeleton-user"></div>
+      </li>
+    `,
+      )
+      .join("");
+
     try {
-      // Call your API
+      // 2. Call your API endpoints
       const response = await fetch("api/viewlogs");
       const result = await response.json();
 
       if (result.success && result.data && result.data.logs) {
-        renderLogs(result.data.logs);
+        setTimeout(() => renderLogs(result.data.logs), 1000); // This will overwrite the skeletons
       } else {
-        renderLogs(["No logs available."]); // Render an empty state if no logs are returned
+        setTimeout(() => renderLogs(["No logs available."]), 1000);
       }
     } catch (error) {
       console.error("Failed to fetch logs:", error);
-      renderLogs(["Error fetching logs. Please try again later."]); // Show an error message in the UI
+      setTimeout(
+        () => renderLogs(["Error fetching logs. Please try again later."]),
+        1000,
+      );
     }
   }
 
