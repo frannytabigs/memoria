@@ -120,11 +120,11 @@
     <div class="main">
       <div class="tableControls">
         <div class="subNav">
-          <button class="subNavItem active" onclick="showTab('burial', event)">
-            Burial Records
+          <button class="subNavItem active" onclick="showTab('block', event)">
+            Block
           </button>
-          <button class="subNavItem" onclick="showTab('block', event)">
-            Block Records
+          <button class="subNavItem" onclick="showTab('burial', event)">
+            Burial
           </button>
         </div>
 
@@ -135,7 +135,7 @@
 
         <button
           class="addRecordBtn"
-          onclick="openModal()"
+          onclick="openSeamlessModal()"
           title="Add New Record"
         >
           <i class="fas fa-plus"></i>
@@ -143,165 +143,394 @@
       </div>
 
       <div class="tableContainer">
-        <!-- BURIAL RECORDS -->
-        <div id="burialRecords" class="tableWrapper active">
+        <div class="tableWrapper active" id="blockRecords">
+          <table>
+            <thead>
+              <tr>
+                <th>Block Name</th>
+                <th>Type</th>
+                <th>Capacity</th>
+                <th>Area Sq. M.</th>
+                <th>Remarks</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody id="blockTableBody"></tbody>
+          </table>
+
+          <p class="noData" id="blockNoData">No Records Found</p>
+        </div>
+
+        <div class="tableWrapper" id="burialRecords">
           <table>
             <thead>
               <tr>
                 <th>Control No.</th>
                 <th>Name</th>
-                <th>Address</th>
+                <th>Sex</th>
+                <th>Date of Birth</th>
+                <th>Last Known Address</th>
                 <th>Date Buried</th>
                 <th>Block</th>
-                <th>Date Expiration</th>
+                <th>Expiration Date</th>
                 <th>Contact Person</th>
                 <th>Contact No.</th>
                 <th>Contact Address</th>
                 <th>Remarks</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>001-2026</td>
-                <td>Abcde F. Ghijk</td>
-                <td>Mandaue City</td>
-                <td>January 01, 2026</td>
-                <td>AA1</td>
-                <td>February 01, 2026</td>
-                <td>Lmnop Q. Rstuv</td>
-                <td>+63 912 345 6789</td>
-                <td>Mandaue City</td>
-                <td>-</td>
-                <td class="actions">
-                  <button class="printBtn"><i class="fas fa-print"></i></button>
-                  <button class="editBtn"><i class="fas fa-edit"></i></button>
-                  <button class="deleteBtn">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="noData">No data available</p>
-        </div>
-
-        <!-- BLOCK RECORDS -->
-        <div id="blockRecords" class="tableWrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Block</th>
-                <th>Status</th>
-                <th>Name</th>
-                <th>Floor</th>
-                <th>Remarks</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>AA1</td>
-                <td>Occupied</td>
-                <td>Abcde F. Ghijk</td>
-                <td>1</td>
-                <td>-</td>
-                <td class="actions">
-                  <button class="printBtn"><i class="fas fa-print"></i></button>
-                  <button class="editBtn"><i class="fas fa-edit"></i></button>
-                  <button class="deleteBtn">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
+
+            <tbody id="burialTableBody"></tbody>
           </table>
-          <p class="noData">No data available</p>
+
+          <p class="noData" id="burialNoData">No Records Found</p>
         </div>
       </div>
     </div>
 
-    <!-- MODAL OR FORM SECTION -->
-    <div id="recordModal" class="modal">
-      <div class="modaLcontent">
-        <div class="modalHeader">
-          <h3 id="modalTitle">Add Burial Record</h3>
-          <span class="closeModal" onclick="closeModal()">&times;</span>
-        </div>
+    <div id="blockModalOverlay" class="modalOverlay">
+      <form id="blockForm" onsubmit="event.preventDefault()">
+        <div class="paperForm">
+          <div class="formTitle">BLOCK</div>
 
-        <form id="recordForm">
-          <div class="formGrid">
-            <div class="formGroup span-3">
-              <label for="controlNo">Control No.</label>
-              <input type="text" id="controlNo" required />
+          <div class="sectionTitle">BLOCK PROPERTIES</div>
+          <div class="row">
+            <div class="col">
+              <label class="required">Block Name:</label>
+              <input type="text" id="blockName" required />
             </div>
-            <div class="formGroup span-3">
-              <label for="dateBuried">Date Buried</label>
-              <input type="date" id="dateBuried" required />
-            </div>
-
-            <div class="formGroup">
-              <label for="firstName">First Name</label>
-              <input type="text" id="firstName" required />
-            </div>
-            <div class="formGroup">
-              <label for="middleName">Middle Name</label>
-              <input type="text" id="middleName" />
-            </div>
-            <div class="formGroup">
-              <label for="lastName">Last Name</label>
-              <input type="text" id="lastName" required />
-            </div>
-            <div class="formGroup span-6">
-              <label for="deceasedAddress">Address (Deceased)</label>
-              <input type="text" id="deceasedAddress" required />
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="formGroup span-3">
-              <label for="blockNo">Block</label>
-              <input type="text" id="blockNo" required />
-            </div>
-            <div class="formGroup span-3">
-              <label for="floorLevel">Floor</label>
-              <input type="text" id="floorLevel" />
-            </div>
-            <div class="formGroup span-6">
-              <label for="expiration">Expiration</label>
-              <input type="text" id="expiration" readonly />
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="formGroup span-3">
-              <label for="contactPerson">Contact Person</label>
-              <input type="text" id="contactPerson" required />
-            </div>
-            <div class="formGroup span-3">
-              <label for="contactNumber">Contact Number</label>
-              <input type="tel" id="contactNumber" required />
-            </div>
-            <div class="formGroup span-6">
-              <label for="contactAddress">Contact Address</label>
-              <input type="text" id="contactAddress" required />
-            </div>
-
-            <div class="formGroup span-6">
-              <label for="remarks">Remarks</label>
-              <input type="text" id="remarks" />
+            <div class="col">
+              <label class="required">Block Type:</label>
+              <select
+                id="blockType"
+                onchange="toggleOwnerFieldsDisplay()"
+                required
+              >
+                <option value="" disabled selected>Select type...</option>
+                <option value="Niche Wall">Niche Wall</option>
+                <option value="Bone Chamber">Bone Chamber</option>
+                <option value="Lawn / Grounds">Lawn / Grounds</option>
+                <option value="Unmapped Area">Unmapped Area</option>
+                <option value="Private / Owned">Private / Owned</option>
+              </select>
             </div>
           </div>
 
-          <div class="modalFooter">
-            <button type="button" class="btnCancel" onclick="closeModal()">
+          <div class="row">
+            <div class="col">
+              <label>Max Capacity:</label>
+              <input type="number" id="blockCapacity" />
+            </div>
+            <div class="col">
+              <label>Area Square Meter (sqm):</label>
+              <input type="text" id="blockArea" />
+            </div>
+          </div>
+
+          <div id="ownerSectionContainer" class="conditionalOwnerSection">
+            <div class="sectionTitle">OWNER CONTACT INFORMATION</div>
+            <div class="row">
+              <div class="col" style="flex: 1.2">
+                <label class="required">Full Contact Name:</label>
+                <input type="text" id="ownerName" required />
+              </div>
+              <div class="col">
+                <label class="required">Contact Number:</label>
+                <input type="text" id="ownerPhone" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col" style="flex: 1.2">
+                <label class="required">Address (Purok/Zone/Street):</label>
+                <input type="text" id="ownerPurok" required />
+              </div>
+              <div class="col">
+                <label class="required">Barangay:</label>
+                <select id="ownerBarangay" required>
+                  <option value="" disabled selected>Select Barangay...</option>
+                  <option value="Alang-alang">Alang-alang</option>
+                  <option value="Bakilid">Bakilid</option>
+                  <option value="Banilad">Banilad</option>
+                  <option value="Basak">Basak</option>
+                  <option value="Cabancalan">Cabancalan</option>
+                  <option value="Cambaro">Cambaro</option>
+                  <option value="Canduman">Canduman</option>
+                  <option value="Casuntingan">Casuntingan</option>
+                  <option value="Casili">Casili</option>
+                  <option value="Centro">Centro</option>
+                  <option value="Cubacub">Cubacub</option>
+                  <option value="Guizo">Guizo</option>
+                  <option value="Ibabao-Estancia">Ibabao-Estancia</option>
+                  <option value="Jagobiao">Jagobiao</option>
+                  <option value="Labogon">Labogon</option>
+                  <option value="Looc">Looc</option>
+                  <option value="Maguikay">Maguikay</option>
+                  <option value="Mantuyong">Mantuyong</option>
+                  <option value="Opao">Opao</option>
+                  <option value="Pakna-an">Pakna-an</option>
+                  <option value="Pagsabungan">Pagsabungan</option>
+                  <option value="Subangdaku">Subangdaku</option>
+                  <option value="Tabok">Tabok</option>
+                  <option value="Tingub">Tingub</option>
+                  <option value="Tipolo">Tipolo</option>
+                  <option value="Umapad">Umapad</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col">
+                <label class="required">Email Address:</label>
+                <input type="email" id="ownerEmail" required />
+              </div>
+            </div>
+          </div>
+
+          <div class="sectionTitle">ADDITIONAL DETAILS</div>
+          <div class="row">
+            <div class="col">
+              <label>Remarks:</label>
+              <input type="text" id="blockRemarks" />
+            </div>
+          </div>
+
+          <div class="paperFormActions">
+            <button
+              type="button"
+              class="btnPaperCancel"
+              onclick="closeSeamlessModal('block')"
+            >
               Cancel
             </button>
-            <button type="submit" class="btnSave" id="btnSubmit">
-              Save Record
+            <button
+              type="button"
+              class="btnPaperSave"
+              onclick="submitBlockRegistrationForm()"
+            >
+              Save
             </button>
           </div>
-        </form>
+        </div>
+      </form>
+    </div>
+
+    <div class="modalOverlay" id="burialModalOverlay">
+      <form id="burialClearanceForm" onsubmit="event.preventDefault()">
+        <div class="paperForm">
+          <div class="formTitle">BURIAL CLEARANCE</div>
+
+          <div class="row">
+            <div class="col" style="flex: 0.3">
+              <label>Date:</label>
+              <input type="date" id="clearanceDate" />
+            </div>
+            <div class="col" style="flex: 0.3">
+              <label>Control No.</label>
+              <input type="text" id="controlNo" placeholder="Auto-generated" />
+            </div>
+          </div>
+
+          <div class="sectionTitle">REQUESTING PARTY (Contact Details)</div>
+          <div class="row">
+            <div class="col" style="flex: 1.2">
+              <label>That I (Full Name):</label>
+              <input type="text" id="reqName" required />
+            </div>
+            <div class="col">
+              <label>Purok / Zone / Street Name:</label>
+              <input type="text" id="reqStreet" />
+            </div>
+            <div class="col">
+              <label>Barangay Address:</label>
+              <select id="requesting_barangay">
+                <option value="" disabled selected>Select Barangay...</option>
+                <option value="Alang-alang">Alang-alang</option>
+                <option value="Bakilid">Bakilid</option>
+                <option value="Banilad">Banilad</option>
+                <option value="Basak">Basak</option>
+                <option value="Cabancalan">Cabancalan</option>
+                <option value="Cambaro">Cambaro</option>
+                <option value="Canduman">Canduman</option>
+                <option value="Casuntingan">Casuntingan</option>
+                <option value="Casili">Casili</option>
+                <option value="Centro">Centro</option>
+                <option value="Cubacub">Cubacub</option>
+                <option value="Guizo">Guizo</option>
+                <option value="Ibabao-Estancia">Ibabao-Estancia</option>
+                <option value="Jagobiao">Jagobiao</option>
+                <option value="Labogon">Labogon</option>
+                <option value="Looc">Looc</option>
+                <option value="Maguikay">Maguikay</option>
+                <option value="Mantuyong">Mantuyong</option>
+                <option value="Opao">Opao</option>
+                <option value="Pakna-an">Pakna-an</option>
+                <option value="Pagsabungan">Pagsabungan</option>
+                <option value="Subangdaku">Subangdaku</option>
+                <option value="Tabok">Tabok</option>
+                <option value="Tingub">Tingub</option>
+                <option value="Tipolo">Tipolo</option>
+                <option value="Umapad">Umapad</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label>Phone Number:</label>
+              <input type="text" id="reqPhone" placeholder="09XX-XXX-XXXX" />
+            </div>
+            <div class="col">
+              <label>Seeking assistance in the form of:</label>
+              <select id="reqAssistance">
+                <option>Burial of the late</option>
+                <option>
+                  Transfer the remains of the late to the bone chamber
+                </option>
+                <option>Other...</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sectionTitle">DECEASED INFORMATION</div>
+          <div class="row">
+            <div class="col" style="flex: 1.2">
+              <label>Name of Deceased:</label>
+              <input
+                type="text"
+                id="deceasedName"
+                placeholder="Full Name"
+                required
+              />
+            </div>
+            <div class="col" style="flex: 0.4">
+              <label>Sex:</label>
+              <select id="deceasedSex">
+                <option value="" disabled selected>Select...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+            <div class="col">
+              <label>Date of Birth:</label>
+              <input type="date" id="deceasedDob" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col" style="flex: 1.2">
+              <label>Last Known Address:</label>
+              <input type="text" id="deceasedAddress" />
+            </div>
+            <div class="col">
+              <label>Date of Death:</label>
+              <input type="date" id="deceasedDod" />
+            </div>
+            <div class="col">
+              <label>Death Certificate No:</label>
+              <input type="text" id="deceasedCert" />
+            </div>
+          </div>
+
+          <div class="sectionTitle">PERMITS & REQUIREMENTS</div>
+          <div class="row">
+            <div class="col">
+              <label>Burial Permit No.</label>
+              <input type="text" id="permitBurial" />
+            </div>
+            <div class="col">
+              <label>Exhumation Permit No.</label>
+              <input type="text" id="permitExhumation" />
+            </div>
+            <div class="col">
+              <label>Transfer Permit No.</label>
+              <input type="text" id="permitTransfer" />
+            </div>
+          </div>
+
+          <div class="sectionTitle">LOCATION ASSIGNMENT</div>
+          <div class="row">
+            <div class="col">
+              <label>Burial Type:</label>
+              <select id="burialBlock">
+                <option>Niche Wall</option>
+                <option>Bone Chamber</option>
+                <option>Lawn / Grounds</option>
+                <option>Unmapped Area</option>
+                <option>Private / Owned</option>
+              </select>
+            </div>
+            <div class="col">
+              <label>Specific Grave Code (if applicable):</label>
+              <input type="text" id="graveCode" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label>Date of Interment:</label>
+              <input type="date" id="dateInterment" />
+            </div>
+            <div class="col">
+              <label>Expiration Date:</label>
+              <input
+                type="date"
+                id="expirationDate"
+                style="background-color: #f8fafc; font-weight: 600"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div class="sectionTitle">REMARKS</div>
+          <div class="row">
+            <div class="col">
+              <input type="text" id="deceasedRemarks" />
+            </div>
+          </div>
+
+          <div class="paperFormActions">
+            <button
+              type="button"
+              class="btnPaperCancel"
+              onclick="closeSeamlessModal('deceased')"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btnPaperSave"
+              onclick="submitBurialClearanceForm()"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="ownerDetailsModalOverlay" class="modalOverlay">
+      <div class="paperForm" style="max-width: 540px">
+        <div class="formTitle" style="font-size: 18px; margin-bottom: 20px">
+          OWNER INFORMATION PROFILE
+        </div>
+
+        <div id="ownerDetailsContent" class="ownerDetailsDisplay"></div>
+
+        <div class="paperFormActions">
+          <button
+            type="button"
+            class="btnPaperCancel"
+            onclick="
+              document.getElementById(
+                'ownerDetailsModalOverlay',
+              ).style.display = 'none'
+            "
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
 

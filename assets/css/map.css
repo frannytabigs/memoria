@@ -1,0 +1,583 @@
+/* ── BASE LAYOUT ─────────────────────────────────────────── */
+.main {
+  margin-left: 260px;
+  padding: 30px;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+.mapCard {
+  background-color: #ffffff;
+  border-radius: 15px;
+  padding-bottom: 16px;
+}
+
+/* ── HEADER ──────────────────────────────────────────────── */
+.mapHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 15px;
+  color: #0f172a;
+  padding: 1.5rem 1.5rem 10px 1.5rem;
+}
+.mapHeader h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  padding-top: 6px;
+}
+.mapBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.editBtn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 10px;
+  font-family: "Inter", sans-serif;
+}
+.editBtn:hover {
+  background: #2563eb;
+}
+
+.saveBtn {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 10px;
+  font-family: "Inter", sans-serif;
+}
+.saveBtn:hover {
+  background: #16a34a;
+}
+
+.plotBtn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 10px;
+  font-family: "Inter", sans-serif;
+}
+.plotBtn:hover {
+  background: #2563eb;
+}
+
+.cancelBtn {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 10px;
+  font-family: "Inter", sans-serif;
+}
+.cancelBtn:hover {
+  background: #e2e8f0;
+}
+
+/* Reshape sub-toolbar buttons */
+.reshapeSubBtn {
+  background: #fff;
+  color: #f59e0b;
+  border: 1px solid #fcd34d;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 10px;
+  font-family: "Inter", sans-serif;
+}
+.reshapeSubBtn:hover {
+  background: #fffbeb;
+}
+.reshapeSubBtn.active {
+  background: #f59e0b;
+  color: #fff;
+  border-color: #f59e0b;
+}
+.reshapeSubBtn.active:hover {
+  background: #d97706;
+}
+.reshapeSubBtn.done {
+  background: #22c55e;
+  color: #fff;
+  border-color: #22c55e;
+}
+.reshapeSubBtn.done:hover {
+  background: #16a34a;
+}
+
+/* ── SEARCH ──────────────────────────────────────────────── */
+.mapSearch {
+  padding: 0 1.5rem 10px;
+}
+.mapSearch input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #0f172a;
+  background: #f8fafc;
+  outline: none;
+  font-family: "Inter", sans-serif;
+  box-sizing: border-box;
+}
+.mapSearch input:focus {
+  border-color: #93c5fd;
+  background: #fff;
+}
+
+.searchResults {
+  display: none;
+  margin: 0 1.5rem 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  position: relative;
+}
+.searchRow {
+  padding: 9px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #0f172a;
+}
+.searchRow:last-child {
+  border-bottom: none;
+}
+.searchRow:hover {
+  background: #f8fafc;
+}
+.searchRow strong {
+  font-weight: 500;
+}
+.searchRowSub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-left: 6px;
+}
+
+/* ── META ROW ────────────────────────────────────────────── */
+.mapMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem 6px;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 20px;
+}
+.mapBreadcrumb {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mapBreadcrumb .crumb {
+  color: #3b82f6;
+  cursor: pointer;
+}
+.mapBreadcrumb .crumb:hover {
+  text-decoration: underline;
+}
+.mapStatus {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── CANVAS ──────────────────────────────────────────────── */
+.mapCanvas {
+  height: 440px;
+  background-color: #e2e8f0;
+  margin: 0 1.5rem;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.mapCanvas canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+.mapHint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #475569;
+  pointer-events: none;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 3px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(2px);
+  max-width: 90%;
+  text-align: center;
+}
+.mapLoading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #64748b;
+  background: #e2e8f0;
+  border-radius: 12px;
+}
+
+/* ── PLOT VIEW ───────────────────────────────────────────── */
+.plotView {
+  display: none;
+  height: 440px;
+  margin: 0 1.5rem;
+  border-radius: 12px;
+  background: #e2e8f0;
+  padding: 16px;
+  overflow: auto;
+  box-sizing: border-box;
+}
+.plotViewHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.plotViewTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  flex: 1;
+}
+.plotModeBadge {
+  display: none;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 500;
+}
+.pvBtn {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background 0.15s;
+}
+.pvBtn:hover {
+  background: #f1f5f9;
+}
+.pvBtn.primary {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+.pvBtn.primary:hover {
+  background: #2563eb;
+}
+.pvBtn.success {
+  background: #22c55e;
+  color: #fff;
+  border-color: #22c55e;
+}
+.pvBtn.success:hover {
+  background: #16a34a;
+}
+
+/* ── PLOT GRID ───────────────────────────────────────────── */
+.plotGrid {
+  display: grid;
+  gap: 4px;
+}
+.plotCell {
+  width: 72px;
+  height: 52px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #94a3b8;
+  user-select: none;
+  transition: border-color 0.12s;
+}
+.plotCell.occupied {
+  background: #dcfce7;
+  border-color: #4ade80;
+  color: #166534;
+}
+.plotCell.reserved {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1e40af;
+}
+.plotCell.clickable {
+  cursor: pointer;
+}
+.plotCell.clickable:hover {
+  border-color: #94a3b8;
+  filter: brightness(0.97);
+}
+.plotCellLabel {
+  font-size: 9px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+}
+.plotCellSub {
+  font-size: 8px;
+  opacity: 0.75;
+}
+
+/* ── LEGEND ──────────────────────────────────────────────── */
+.mapLegend {
+  display: flex;
+  gap: 14px;
+  padding: 10px 1.5rem 0;
+  flex-wrap: wrap;
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+.legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+/* ── MODAL ───────────────────────────────────────────────── */
+.modalOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modalOverlay.open {
+  display: flex;
+}
+.modalBox {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  width: 340px;
+  max-width: 92vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+.modalBox h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 1rem;
+}
+.modalBox label {
+  font-size: 12px;
+  color: #64748b;
+  display: block;
+  margin-bottom: 4px;
+  margin-top: 10px;
+}
+.modalBox input,
+.modalBox select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #0f172a;
+  font-family: "Inter", sans-serif;
+  outline: none;
+  box-sizing: border-box;
+}
+.modalBox input:focus,
+.modalBox select:focus {
+  border-color: #93c5fd;
+}
+.modalRowPair {
+  display: flex;
+  gap: 8px;
+}
+.modalRowPair > div {
+  flex: 1;
+}
+.modalActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 1.25rem;
+}
+.modalActions button {
+  flex: 1;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background 0.15s;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+}
+.modalActions button:hover {
+  background: #f1f5f9;
+}
+.modalActions .btnPrimary {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+.modalActions .btnPrimary:hover {
+  background: #2563eb;
+}
+.modalDivider {
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  margin: 14px 0 0;
+}
+.modalExtraRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.modalExtraRow button {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background 0.15s;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+}
+.warnBtn {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  transition: background 0.15s;
+  margin-top: 0;
+}
+.warnBtn:hover {
+  background: #fef3c7;
+}
+.reshapeModalBtn {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  background: #fffbeb;
+  color: #f59e0b;
+  border: 1px solid #fcd34d;
+  transition: background 0.15s;
+  margin-bottom: 8px;
+}
+.reshapeModalBtn:hover {
+  background: #fef3c7;
+}
+.viewInfoBox {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  margin-top: 6px;
+  border: 1px solid #e2e8f0;
+}
+.viewInfoBox p {
+  margin: 3px 0;
+  color: #64748b;
+}
+.viewInfoBox strong {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+}
+.statusPill {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+.statusPill.occupied {
+  background: #dcfce7;
+  color: #166534;
+}
+.statusPill.reserved {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.modalNote {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 10px;
+}
+.modalNote a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+.modalNote a:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,501 @@
+.mainSetting {
+  margin-left: 260px;
+  padding: 30px;
+  min-height: 100vh;
+  background-color: #f4f6f9;
+}
+
+.settingHeader {
+  margin-bottom: 28px;
+  background-color: #ffffff;
+  height: 70px;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.settingHeader h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1d23;
+  margin: 0 0 4px;
+}
+
+.settingHeader p {
+  font-size: 13px;
+  color: #8a8f9c;
+  margin: 0;
+}
+
+.settingCard {
+  background-color: #ffffff;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  padding: 28px 32px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef0f4;
+}
+
+.settingCard:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1.5px solid #f0f2f5;
+}
+
+.sectionTitle i {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.sectionTitle.profile-title i {
+  background-color: #e8f0fe;
+  color: #4a7cfe;
+}
+
+.sectionTitle.system-title i {
+  background-color: #e6f9f0;
+  color: #27ae60;
+}
+
+.sectionTitle h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1d23;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.sectionTitle p {
+  font-size: 12px;
+  color: #9499a6;
+  margin: 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formGroup.full-width {
+  grid-column: 1 / -1;
+}
+
+.formGroup label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a5f6e;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  padding: 9px 13px;
+  border: 1.5px solid #e4e7ed;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-family: "Inter", sans-serif;
+  color: #1a1d23;
+  background: #fafbfc;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  outline: none;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+  border-color: #4a7cfe;
+  box-shadow: 0 0 0 3px rgba(74, 124, 254, 0.1);
+  background: #fff;
+}
+
+.formGroup input::placeholder,
+.formGroup textarea::placeholder {
+  color: #b8bcc8;
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.passwordWrapper {
+  position: relative;
+}
+
+.passwordWrapper input {
+  width: 100%;
+  padding-right: 40px;
+  box-sizing: border-box;
+}
+
+.passwordWrapper .togglePassword {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9499a6;
+  font-size: 13px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.passwordWrapper .togglePassword:hover {
+  color: #4a7cfe;
+}
+
+.formDivider {
+  grid-column: 1 / -1;
+  border: none;
+  border-top: 1.5px dashed #eff1f5;
+  margin: 10px 0;
+}
+
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.uploadRow .uploadPreview {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: #f0f2f5;
+  border: 1.5px dashed #d0d4dc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b0b5c0;
+  font-size: 18px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.uploadRow .uploadPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.uploadRow .uploadInfo {
+  flex: 1;
+}
+
+.uploadRow .uploadInfo span {
+  display: block;
+  font-size: 12px;
+  color: #9499a6;
+  margin-top: 2px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: #4a7cfe;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #3a6af0;
+  box-shadow: 0 3px 10px rgba(74, 124, 254, 0.3);
+}
+
+.btn-secondary {
+  background: #f0f2f5;
+  color: #3d4252;
+}
+
+.btn-secondary:hover {
+  background: #e4e7ed;
+}
+
+.btn-danger {
+  background: #fff0f0;
+  color: #e03e3e;
+}
+
+.btn-danger:hover {
+  background: #ffe0e0;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #4a7cfe;
+  border: 1.5px solid #c8d8fe;
+}
+
+.btn-ghost:hover {
+  background: #eef3ff;
+}
+
+.saveRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1.5px solid #f0f2f5;
+}
+
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.colorRow input[type="color"] {
+  width: 42px;
+  height: 38px;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1.5px solid #e4e7ed;
+  cursor: pointer;
+  background: #fafbfc;
+}
+
+.colorRow .colorLabel {
+  font-size: 13px;
+  color: #5a5f6e;
+  font-weight: 500;
+}
+
+.colorRow .colorHex {
+  font-size: 12px;
+  color: #9499a6;
+  font-family: monospace;
+}
+
+.systemGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+}
+
+.systemItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.systemItem label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a5f6e;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.systemItem input {
+  padding: 9px 13px;
+  border: 1.5px solid #e4e7ed;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-family: "Inter", sans-serif;
+  color: #1a1d23;
+  background: #fafbfc;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  outline: none;
+}
+
+.systemItem input:focus {
+  border-color: #4a7cfe;
+  box-shadow: 0 0 0 3px rgba(74, 124, 254, 0.1);
+  background: #fff;
+}
+
+.systemItem input::placeholder {
+  color: #b8bcc8;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.badge-static {
+  background: #fff7e6;
+  color: #d48806;
+}
+
+@media (max-width: 900px) {
+  .mainSetting {
+    margin-left: 0;
+    padding: 20px 16px;
+  }
+
+  .formGrid,
+  .systemGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.iconUploadRow {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.iconUploadBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fafbfc;
+  border: 1.5px solid #eef0f4;
+  border-radius: 12px;
+  padding: 12px 16px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.iconUploadMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.iconUploadMeta span {
+  font-size: 11.5px;
+  color: #9499a6;
+  line-height: 1.4;
+}
+
+.iconUploadName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a5f6e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.reportUploadRow {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.reportUploadBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fafbfc;
+  border: 1.5px solid #eef0f4;
+  border-radius: 12px;
+  padding: 14px 16px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.reportPreview {
+  width: 100%;
+  height: 90px;
+  border-radius: 8px;
+  background: #f0f2f5;
+  border: 1.5px dashed #d0d4dc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #b0b5c0;
+  font-size: 22px;
+  gap: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.reportPreview span {
+  font-size: 11px;
+  font-weight: 500;
+  color: #b8bcc8;
+}
+
+.reportPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.signaturePreview {
+  height: 70px;
+}
+
+.reportUploadMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reportUploadName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a5f6e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.reportUploadMeta span {
+  font-size: 11.5px;
+  color: #9499a6;
+}
+
+.excelCard {
+  background-color: #ffffff;
+  height: 120px;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef0f4;
+}
+
+.excelCard p {
+  margin-bottom: 5px;
+}

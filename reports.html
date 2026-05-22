@@ -36,6 +36,7 @@
       "
     />
     <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/reports.css" />
 
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -116,7 +117,688 @@
       </div>
     </div>
 
+    <div class="mainContent">
+      <div class="controlWorkspaceDeck">
+        <div class="dropdownWrapper" id="customDropdown">
+          <span class="dropdownLabel">Select Document Summary View</span>
+
+          <div class="customSelectTrigger" onclick="toggleDropdown()">
+            <div class="selectedOptionDisplay" id="selectedOptionTarget">
+              <i class="fas fa-id-badge"></i>
+              <span class="optionText">Interment Directory</span>
+            </div>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+
+          <div class="customOptionsPanel">
+            <div
+              class="customOptionRow"
+              data-value="capacity"
+              onclick="selectOption(this)"
+            >
+              <div class="optionContent">
+                <i class="fas fa-chart-pie"></i>
+                <span class="optionText">Cemetery Capacity Summary</span>
+              </div>
+              <span class="optionBadge">Stats</span>
+            </div>
+            <div
+              class="customOptionRow"
+              data-value="expirations"
+              onclick="selectOption(this)"
+            >
+              <div class="optionContent">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="optionText">Lease Expirations & Candidates</span>
+              </div>
+              <span
+                class="optionBadge"
+                style="background-color: #fee2e2; color: #ef4444"
+                >Alerts</span
+              >
+            </div>
+            <div
+              class="customOptionRow active"
+              data-value="interment"
+              onclick="selectOption(this)"
+            >
+              <div class="optionContent">
+                <i class="fas fa-id-badge"></i>
+                <span class="optionText">Interment Directory</span>
+              </div>
+              <span class="optionBadge">Logs</span>
+            </div>
+            <div
+              class="customOptionRow"
+              data-value="allgraves"
+              onclick="selectOption(this)"
+            >
+              <div class="optionContent">
+                <i class="fas fa-th"></i>
+                <span class="optionText">All Graves Registry Status</span>
+              </div>
+              <span class="optionBadge">Matrix</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="filter-panel-interment" class="filterEngineContainer">
+          <div class="filterGroupTitle">
+            <i class="fas fa-filter"></i> Document Target Filter Configuration
+          </div>
+          <div class="filterPillsRow">
+            <div
+              class="filterPill active"
+              data-filter="none"
+              onclick="applyFilterType('interment', 'none')"
+            >
+              No Filter
+            </div>
+            <div
+              class="filterPill"
+              data-filter="barangay"
+              onclick="applyFilterType('interment', 'barangay')"
+            >
+              By Barangay/Address
+            </div>
+            <div
+              class="filterPill"
+              data-filter="gender"
+              onclick="applyFilterType('interment', 'gender')"
+            >
+              By Gender
+            </div>
+            <div
+              class="filterPill"
+              data-filter="date"
+              onclick="applyFilterType('interment', 'date')"
+            >
+              By Year/Date
+            </div>
+            <div
+              class="filterPill"
+              data-filter="remarks"
+              onclick="applyFilterType('interment', 'remarks')"
+            >
+              By Remarks
+            </div>
+          </div>
+
+          <div id="interment-sec-barangay" class="secondaryParamSelector">
+            <span class="paramLabel">Select Barangay Location:</span>
+            <select
+              class="inlineSelect"
+              onchange="runDataFilterQuery('interment', 'barangay', this.value)"
+            >
+              <option value="all">-- All Barangays --</option>
+              <option value="Centro">Centro</option>
+              <option value="Cambaro">Cambaro</option>
+              <option value="Subangdaku">Subangdaku</option>
+            </select>
+          </div>
+
+          <div id="interment-sec-gender" class="secondaryParamSelector">
+            <span class="paramLabel">Select Gender Matrix:</span>
+            <select
+              class="inlineSelect"
+              onchange="runDataFilterQuery('interment', 'gender', this.value)"
+            >
+              <option value="all">-- All Genders --</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          <div id="interment-sec-date" class="secondaryParamSelector">
+            <span class="paramLabel">Select Year Range:</span>
+            <select
+              class="inlineSelect"
+              onchange="runDataFilterQuery('interment', 'date', this.value)"
+            >
+              <option value="all">-- All Timeline Years --</option>
+              <option value="2026">Year 2026</option>
+              <option value="2025">Year 2025</option>
+            </select>
+          </div>
+
+          <div id="interment-sec-remarks" class="secondaryParamSelector">
+            <span class="paramLabel">Categorized Case Condition:</span>
+            <select
+              class="inlineSelect"
+              onchange="runDataFilterQuery('interment', 'remarks', this.value)"
+            >
+              <option value="all">-- All Remarks --</option>
+              <option value="Family">Has Family Records</option>
+              <option value="No Family">No Family / Indigent Case</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="filter-panel-allgraves" class="filterEngineContainer">
+          <div class="filterGroupTitle">
+            <i class="fas fa-filter"></i> Document Target Filter Configuration
+          </div>
+          <div class="filterPillsRow">
+            <div
+              class="filterPill active"
+              data-filter="none"
+              onclick="applyFilterType('allgraves', 'none')"
+            >
+              No Filter
+            </div>
+            <div
+              class="filterPill"
+              data-filter="remarks"
+              onclick="applyFilterType('allgraves', 'remarks')"
+            >
+              By Status Condition Type
+            </div>
+          </div>
+
+          <div id="allgraves-sec-remarks" class="secondaryParamSelector">
+            <span class="paramLabel">Select Core Status:</span>
+            <select
+              class="inlineSelect"
+              onchange="runDataFilterQuery('allgraves', 'remarks', this.value)"
+            >
+              <option value="all">-- All Status Types --</option>
+              <option value="Vacant">Vacant</option>
+              <option value="Occupied">Occupied</option>
+              <option value="Reserved">Reserved</option>
+              <option value="Pending Exhumation">Pending Exhumation</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="report-capacity" class="reportCard">
+        <div class="docHeader">
+          <div class="headerRibbon"></div>
+          <div class="headerBody">
+            <div class="headerLogos">
+              <div class="logoPlaceholder">Mandaue<br />Seal</div>
+              <div class="logoPlaceholder">DGS<br />Logo</div>
+            </div>
+            <div class="headerText">
+              <div class="countryText">
+                Republic of the Philippines | City of Mandaue
+              </div>
+              <div class="deptName">DEPARTMENT OF GENERAL SERVICES</div>
+              <div class="sectionName">
+                CEMETERY AFFAIRS SECTION | Plaridel Street, Mandaue City, Cebu
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="docContentTitle">Cemetery Capacity Summary</h2>
+        <div class="docMetaSummary">
+          Mandaue City Public Cemetery &bull; Generated on: May 17, 2026
+        </div>
+
+        <div class="docSection">
+          <div class="docBlockHeader">Overall Cemetery Status</div>
+          <table class="cleanTable">
+            <thead>
+              <tr>
+                <th>Metric Indicator</th>
+                <th>Count Value</th>
+                <th>Percentage Allocation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Total Graves Registry Count</strong></td>
+                <td>1,500</td>
+                <td>100%</td>
+              </tr>
+              <tr>
+                <td><strong>Occupied Sites</strong></td>
+                <td>1,200</td>
+                <td>80%</td>
+              </tr>
+              <tr>
+                <td><strong>Vacant Units Available</strong></td>
+                <td>250</td>
+                <td>16.6%</td>
+              </tr>
+              <tr>
+                <td><strong>Reserved Spaces</strong></td>
+                <td>50</td>
+                <td>3.4%</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="docBlockHeader">Breakdown by Blocks</div>
+          <table class="cleanTable">
+            <thead>
+              <tr>
+                <th>Block</th>
+                <th>Structural Profile Type</th>
+                <th>Total Cap</th>
+                <th>Occupied</th>
+                <th>Vacant</th>
+                <th>Reserved</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>A</strong></td>
+                <td>Niche Wall</td>
+                <td>500</td>
+                <td>480</td>
+                <td>20</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td><strong>B</strong></td>
+                <td>Lawn/Grounds</td>
+                <td>800</td>
+                <td>600</td>
+                <td>180</td>
+                <td>20</td>
+              </tr>
+              <tr>
+                <td><strong>C</strong></td>
+                <td>Bone Chamber</td>
+                <td>200</td>
+                <td>120</td>
+                <td>50</td>
+                <td>30</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="signatorySection">
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE1</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE2</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE3</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE4</span
+            ><span class="sigTitle">Title</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="report-expirations" class="reportCard">
+        <div class="docHeader">
+          <div class="headerBody">
+            <div class="headerLogos">
+              <div class="logoPlaceholder">Mandaue<br />Seal</div>
+              <div class="logoPlaceholder">DGS<br />Logo</div>
+            </div>
+            <div class="headerText">
+              <div class="countryText">
+                Republic of the Philippines | City of Mandaue
+              </div>
+              <div class="deptName">DEPARTMENT OF GENERAL SERVICES</div>
+              <div class="sectionName">
+                CEMETERY AFFAIRS SECTION | Plaridel Street, Mandaue City, Cebu
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="docContentTitle">
+          Lease Expirations & Exhumation Candidates
+        </h2>
+        <div class="docMetaSummary">
+          Monitoring Target Period: Up to June 2026 &bull; Generated on: May 17,
+          2026
+        </div>
+
+        <div class="docSection">
+          <div
+            class="docBlockHeader"
+            style="color: #dc3545; border-bottom-color: #f8d7da"
+          >
+            ALREADY EXPIRED (Action Required)
+          </div>
+
+          <div class="bulletItem">
+            <strong>Grave C-14 (Block: Niche Wall C)</strong>
+            <div class="itemDetailBlock">
+              <strong>Deceased:</strong> Antonio Luna &nbsp;|&nbsp;
+              <strong>Expired On:</strong> 2026-03-01<br />
+              <strong>Contact:</strong> Juan Luna (09111111111)<br />
+              <strong>SMS Status:</strong>
+              <span style="color: #dc3545; font-weight: 600"
+                >2nd Warning Sent (2026-03-15)</span
+              >
+            </div>
+          </div>
+
+          <div class="bulletItem">
+            <strong>Grave D-02 (Block: Lawn/Grounds)</strong>
+            <div class="itemDetailBlock">
+              <strong>Deceased:</strong> Jose Rizal &nbsp;|&nbsp;
+              <strong>Expired On:</strong> 2026-04-15<br />
+              <strong>Contact:</strong> Paciano Rizal (09222222222)<br />
+              <strong>SMS Status:</strong>
+              <span style="color: #dc3545; font-weight: 700"
+                >Final Warning Sent (2026-05-01)</span
+              >
+            </div>
+          </div>
+
+          <div
+            class="docBlockHeader"
+            style="color: #b45309; border-bottom-color: #fef3c7"
+          >
+            EXPIRING SOON (Next 30 Days)
+          </div>
+
+          <div class="bulletItem">
+            <strong>Grave C-15 (Block: Niche Wall C)</strong>
+            <div class="itemDetailBlock">
+              <strong>Deceased:</strong> Emilio Aguinaldo &nbsp;|&nbsp;
+              <strong>Expires On:</strong> 2026-06-10<br />
+              <strong>Contact:</strong> Trinidad Aguinaldo (09333333333)<br />
+              <strong>SMS Status:</strong>
+              <span style="color: #b45309; font-weight: 600"
+                >1st Warning Sent (2026-05-10)</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="signatorySection">
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE1</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE2</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE3</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE4</span
+            ><span class="sigTitle">Title</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="report-interment" class="reportCard">
+        <div class="docHeader">
+          <div class="headerRibbon"></div>
+          <div class="headerBody">
+            <div class="headerLogos">
+              <div class="logoPlaceholder">Mandaue<br />Seal</div>
+              <div class="logoPlaceholder">DGS<br />Logo</div>
+            </div>
+            <div class="headerText">
+              <div class="countryText">
+                Republic of the Philippines | City of Mandaue
+              </div>
+              <div class="deptName">DEPARTMENT OF GENERAL SERVICES</div>
+              <div class="sectionName">
+                CEMETERY AFFAIRS SECTION | Plaridel Street, Mandaue City, Cebu
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="docContentTitle">Interment Directory</h2>
+        <div class="docMetaSummary">
+          Mandaue City Public Cemetery &bull; Generated on: May 17, 2026
+        </div>
+
+        <div class="docSection">
+          <div id="interment-fallback" class="noDataFallbackMessage">
+            No corresponding records found matching the configured filter setup
+            parameters.
+          </div>
+
+          <div class="docBlockHeader">January 2026</div>
+          <div
+            class="bulletItem"
+            data-barangay="Centro"
+            data-gender="Male"
+            data-date="2026"
+            data-remarks="Family"
+          >
+            &bull; <strong>Name:</strong> Sample Name |
+            <strong>DOD:</strong> 2025-12-28 |
+            <strong>Buried:</strong> 2026-01-05
+            <div class="itemDetailBlock">
+              <strong>Location:</strong> Lawn/Grounds - Block A, Grave A-12<br />
+              <strong>Contact Person:</strong> Sample Name (09123456789)
+              &nbsp;|&nbsp; <strong>Address:</strong> Brgy. Centro &nbsp;|&nbsp;
+              <strong>Gender:</strong> Male
+            </div>
+          </div>
+
+          <div
+            class="bulletItem"
+            data-barangay="Cambaro"
+            data-gender="Female"
+            data-date="2026"
+            data-remarks="No Family"
+          >
+            &bull; <strong>Name:</strong> Sample Name |
+            <strong>DOD:</strong> 2026-01-10 |
+            <strong>Buried:</strong> 2026-01-15
+            <div class="itemDetailBlock">
+              <strong>Location:</strong> Niche Wall - Block N, Grave N-05<br />
+              <strong>Contact Person:</strong> CSWS Officer (<span
+                style="color: #c01e2e"
+                >No Family Records Found</span
+              >) &nbsp;|&nbsp; <strong>Address:</strong> Brgy. Cambaro
+              &nbsp;|&nbsp; <strong>Gender:</strong> Female
+            </div>
+          </div>
+
+          <div class="docBlockHeader">February 2026</div>
+          <div
+            class="bulletItem"
+            data-barangay="Subangdaku"
+            data-gender="Male"
+            data-date="2026"
+            data-remarks="No Family"
+          >
+            &bull; <strong>Name:</strong> Unidentified Male |
+            <strong>DOD:</strong> Unknown | <strong>Buried:</strong> 2026-02-14
+            <div class="itemDetailBlock">
+              <strong>Location:</strong> Bone Chamber - Block B, Grave B-01<br />
+              <strong>Contact Person:</strong> CSWS Department Office
+              &nbsp;|&nbsp; <strong>Address:</strong> Brgy. Subangdaku
+              &nbsp;|&nbsp; <strong>Gender:</strong> Male
+            </div>
+          </div>
+
+          <div class="docBlockHeader">December 2025</div>
+          <div
+            class="bulletItem"
+            data-barangay="Centro"
+            data-gender="Male"
+            data-date="2025"
+            data-remarks="Family"
+          >
+            &bull; <strong>Name:</strong> Sample Name |
+            <strong>DOD:</strong> 2025-12-01 |
+            <strong>Buried:</strong> 2025-12-05
+            <div class="itemDetailBlock">
+              <strong>Location:</strong> Private/Owned - Block P, Grave P-99<br />
+              <strong>Contact Person:</strong> Sample Name (09987654321)
+              &nbsp;|&nbsp; <strong>Address:</strong> Brgy. Centro &nbsp;|&nbsp;
+              <strong>Gender:</strong> Male
+            </div>
+          </div>
+        </div>
+
+        <div class="signatorySection">
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">SAMPLE NAME1</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">SAMPLE NAME2</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">SAMPLE NAME3</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">SAMPLE NAME4</span
+            ><span class="sigTitle">Title</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="report-allgraves" class="reportCard">
+        <div class="docHeader">
+          <div class="headerRibbon"></div>
+          <div class="headerBody">
+            <div class="headerLogos">
+              <div class="logoPlaceholder">Mandaue<br />Seal</div>
+              <div class="logoPlaceholder">DGS<br />Logo</div>
+            </div>
+            <div class="headerText">
+              <div class="countryText">
+                Republic of the Philippines | City of Mandaue
+              </div>
+              <div class="deptName">DEPARTMENT OF GENERAL SERVICES</div>
+              <div class="sectionName">
+                CEMETERY AFFAIRS SECTION | Plaridel Street, Mandaue City, Cebu
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="docContentTitle">All Graves Registry Status</h2>
+        <div class="docMetaSummary">
+          Mandaue City Public Cemetery &bull; Generated on: May 17, 2026
+        </div>
+
+        <div class="docSection">
+          <div id="allgraves-fallback" class="noDataFallbackMessage">
+            No matching grave registry slots found.
+          </div>
+
+          <div class="docBlockHeader">Grave Registry Grid Matrix</div>
+
+          <div class="bulletItem" data-remarks="Vacant">
+            <strong>GraveCODE: GRV-2026-001A</strong>
+            <div class="itemDetailBlock">
+              &bull; <strong>Status Condition Profile:</strong>
+              <span style="color: #16a34a; font-weight: 600">Vacant</span><br />
+              <strong>Remarks/Structural Notes:</strong> Cleaned & Prepared
+              &nbsp;|&nbsp; <strong>Block Section:</strong> Block A (Niche Wall)
+            </div>
+          </div>
+
+          <div class="bulletItem" data-remarks="Occupied">
+            <strong>GraveCODE: GRV-2026-012B</strong>
+            <div class="itemDetailBlock">
+              &bull; <strong>Status Condition Profile:</strong>
+              <span style="color: #2563eb; font-weight: 600">Occupied</span
+              ><br />
+              <strong>Remarks/Structural Notes:</strong> Assigned to Sample Name
+              Profile &nbsp;|&nbsp; <strong>Block Section:</strong> Block A
+              (Lawn Grounds)
+            </div>
+          </div>
+
+          <div class="bulletItem" data-remarks="Reserved">
+            <strong>GraveCODE: GRV-2026-045C</strong>
+            <div class="itemDetailBlock">
+              &bull; <strong>Status Condition Profile:</strong>
+              <span style="color: #d97706; font-weight: 600">Reserved</span
+              ><br />
+              <strong>Remarks/Structural Notes:</strong> Advance Lease Deposited
+              &nbsp;|&nbsp; <strong>Block Section:</strong> Block B (Lawn
+              Grounds)
+            </div>
+          </div>
+
+          <div class="bulletItem" data-remarks="Pending Exhumation">
+            <strong>GraveCODE: GRV-2026-088N</strong>
+            <div class="itemDetailBlock">
+              &bull; <strong>Status Condition Profile:</strong>
+              <span style="color: #dc2626; font-weight: 600"
+                >Pending Exhumation</span
+              ><br />
+              <strong>Remarks/Structural Notes:</strong> Lease duration timeline
+              finished &nbsp;|&nbsp; <strong>Block Section:</strong> Block N
+              (Niche Wall)
+            </div>
+          </div>
+        </div>
+
+        <div class="signatorySection">
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE1</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE2</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE3</span
+            ><span class="sigTitle">Title</span>
+          </div>
+          <div class="sigContainer">
+            <div class="sigLine"></div>
+            <span class="sigName">IMPORTANT PEOPLE4</span
+            ><span class="sigTitle">Title</span>
+          </div>
+        </div>
+
+        <div class="docFooter">
+          <div class="footerGraphics">
+            <div class="orangeWedge"></div>
+            <div class="maroonWedge">
+              <div class="footerContactInfo">
+                (032) 423-6256 | 230-4500 &nbsp;&bull;&nbsp;
+                cmo@mandauecity.gov.ph &nbsp;&bull;&nbsp; www.mandauecity.gov.ph
+              </div>
+            </div>
+          </div>
+          <div class="footerBrand">
+            <span class="brandIcon">M</span>
+            <div class="brandText">
+              <div class="brandMain">One Mandaue</div>
+              <div class="brandSub">ONE VISION. ONE GOAL.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="assets/js/alert.js"></script>
     <script src="assets/js/main.js"></script>
+    <script src="assets/js/reports.js"></script>
   </body>
 </html>

@@ -1,12 +1,10 @@
-/* RESERVE MAIN */
 .main {
-  margin-left: 260px; /* Aligns with your existing sidebar width */
+  margin-left: 260px;
   padding: 30px;
   background-color: #f4f7f6;
   min-height: 100vh;
 }
 
-/* TABLE CONTAINER */
 .tableContainer {
   background: #ffffff;
   border-radius: 12px;
@@ -21,7 +19,6 @@
   max-height: 90vh;
 }
 
-/* TABLE SCROLLBAR */
 .tableWrapper::-webkit-scrollbar {
   width: 0px;
   height: 8px;
@@ -38,7 +35,6 @@ table {
   min-width: 1100px;
 }
 
-/* SCTICKY HEADER */
 thead th {
   position: sticky;
   top: 0;
@@ -63,15 +59,26 @@ tbody td {
   white-space: nowrap;
 }
 
-/* ACTION */
+.buriedHeader {
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+  border-bottom: 2px solid #0369a1 !important;
+}
+
+.buriedBg {
+  background-color: rgba(3, 105, 161, 0.025) !important;
+}
+
+/* ACTIONS */
 .actions {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.addBtn,
-.editBtn {
+.checkBtn,
+.editBtn,
+.deleteBtn {
   border: none;
   width: 32px;
   height: 32px;
@@ -83,18 +90,20 @@ tbody td {
   transition: all 0.2s ease;
 }
 
-.addBtn {
-  background: #e0f2fe;
-  color: #0369a1;
+/* CHECK */
+.checkBtn {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
-.addBtn:hover {
-  background: #0369a1;
+.checkBtn:hover {
+  background: #2563eb;
   color: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(3, 105, 161, 0.15);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.15);
 }
 
+/* EDIT */
 .editBtn {
   background: #d1fae5;
   color: #047857;
@@ -107,7 +116,19 @@ tbody td {
   box-shadow: 0 4px 8px rgba(4, 120, 87, 0.15);
 }
 
-/* CONTACT */
+/* DELETE */
+.deleteBtn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.deleteBtn:hover {
+  background: #dc2626;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.15);
+}
+
 .contactStatus {
   align-items: center;
   gap: 8px;

@@ -1,36 +1,87 @@
-const modal = document.getElementById('reserveModal');
-const form = document.querySelector('.reserveForm');
-const addButtons = document.querySelectorAll('.addBtn');
+document.addEventListener("DOMContentLoaded", function () {
+  const burialModal = document.getElementById("burialModalOverlay");
+  const burialForm = document.getElementById("burialClearanceForm");
+  const addButtons = document.querySelectorAll(".addBtn");
+  const dateIntermentInput = document.getElementById("dateInterment");
+  const expirationDateInput = document.getElementById("expirationDate");
+  const dateTimeDisplay = document.getElementById("dateTimeDisplay");
 
-addButtons.forEach(button => {
-    button.addEventListener('click', openReserveModal);
-});
-
-function openReserveModal() {
-    modal.style.display = 'flex';
-}
-
-function closeReserveModal() {
-    modal.style.display = 'none';
-    form.reset();
-}
-
-window.onclick = function(event) {
-    if (event.target == modal) {
-        closeReserveModal();
+  function updateSystemTime() {
+    const now = new Date();
+    const options = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
+    if (dateTimeDisplay) {
+      dateTimeDisplay.textContent = now.toLocaleDateString("en-US", options);
     }
-}
+  }
 
-form.addEventListener('submit', function(e) {
-    e.preventDefault();
+  updateSystemTime();
 
-    const firstName = document.getElementById('firstName').value;
-    const middleName = document.getElementById('middleName').value;
-    const lastName = document.getElementById('lastName').value;
+  function generateControlNumber() {
+    const first = Math.floor(1000 + Math.random() * 9000);
+    const second = Math.floor(1000 + Math.random() * 9000);
+    document.getElementById("controlNo").value = `${first}-${second}`;
+  }
 
-    const fullName = `${firstName} ${middleName} ${lastName}`;
+  function openBurialModal() {
+    if (!burialModal) return;
+    burialModal.style.display = "block";
+    document.body.style.overflow = "hidden";
+    document.getElementById("clearanceDate").valueAsDate = new Date();
+    generateControlNumber();
+  }
 
-    alert(`Reservation processed for ${fullName}`);
+  function closeModal() {
+    if (!burialModal) return;
+    burialModal.style.display = "none";
+    document.body.style.overflow = "auto";
+    burialForm.reset();
+  }
 
-    closeReserveModal();
+  addButtons.forEach((button) => {
+    button.addEventListener("click", function (e) {
+      e.preventDefault();
+      openBurialModal();
+    });
+  });
+
+  window.addEventListener("click", function (event) {
+    if (event.target === burialModal) {
+      closeModal();
+    }
+  });
+
+  window.autoCalculateExpirationDate = function () {
+    if (!dateIntermentInput.value) {
+      expirationDateInput.value = "";
+      return;
+    }
+
+    let intermentDate = new Date(dateIntermentInput.value);
+    intermentDate.setFullYear(intermentDate.getFullYear() + 5);
+
+    const year = intermentDate.getFullYear();
+    const month = String(intermentDate.getMonth() + 1).padStart(2, "0");
+    const day = String(intermentDate.getDate()).padStart(2, "0");
+
+    expirationDateInput.value = `${year}-${month}-${day}`;
+  };
+
+  window.closeSeamlessModal = function () {
+    closeModal();
+  };
+
+  window.submitBurialClearanceForm = function () {
+    if (!burialForm.checkValidity()) {
+      burialForm.reportValidity();
+      return;
+    }
+
+    alert("Burial Clearance Saved Successfully!");
+    closeModal();
+  };
 });

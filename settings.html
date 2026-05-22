@@ -36,7 +36,7 @@
       "
     />
     <link rel="stylesheet" href="assets/css/global.css" />
-
+    <link rel="stylesheet" href="assets/css/settings.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
@@ -116,6 +116,377 @@
       </div>
     </div>
 
+    <div class="mainSetting">
+      <div class="settingCard">
+        <div class="sectionTitle profile-title">
+          <i class="fas fa-user-circle"></i>
+          <div>
+            <h2>Profile Information</h2>
+            <p>Update your personal details and credentials</p>
+          </div>
+        </div>
+
+        <form id="profileForm" autocomplete="off">
+          <div class="formGrid">
+            <div class="formGroup">
+              <label for="profileName">Full Name</label>
+              <input type="text" id="profileName" />
+            </div>
+
+            <div class="formGroup">
+              <label for="profileUsername">Username</label>
+              <input type="text" id="profileUsername" />
+            </div>
+
+            <div class="formGroup">
+              <label for="profileEmail">Email Address</label>
+              <input type="email" id="profileEmail" />
+            </div>
+
+            <div class="formGroup">
+              <label for="profilePhone">Phone Number</label>
+              <input type="tel" id="profilePhone" />
+            </div>
+
+            <hr class="formDivider" />
+
+            <div class="formGroup">
+              <label for="profilePassword">New Password</label>
+              <div class="passwordWrapper">
+                <input type="password" id="profilePassword" />
+                <button
+                  type="button"
+                  class="togglePassword"
+                  onclick="togglePass('profilePassword', this)"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="formGroup">
+              <label for="profileConfirm">Confirm Password</label>
+              <div class="passwordWrapper">
+                <input type="password" id="profileConfirm" />
+                <button
+                  type="button"
+                  class="togglePassword"
+                  onclick="togglePass('profileConfirm', this)"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="saveRow">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="resetForm('profileForm')"
+            >
+              <i class="fas fa-undo"></i> Reset
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="settingCard">
+        <div class="sectionTitle system-title">
+          <i class="fas fa-cogs"></i>
+          <div>
+            <h2>System Configuration</h2>
+            <p>Manage branding, integrations, and report settings</p>
+          </div>
+        </div>
+
+        <form id="systemForm" autocomplete="off">
+          <div class="systemGrid">
+            <div class="systemItem" style="grid-column: 1/-1">
+              <label>System Icon</label>
+              <div class="iconUploadRow">
+                <div class="iconUploadBox">
+                  <div class="uploadPreview" id="iconPreview1">
+                    <i class="fas fa-image"></i>
+                  </div>
+                  <div class="iconUploadMeta">
+                    <span class="iconUploadName">Icon 1</span>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                      <label class="btn btn-secondary" style="cursor: pointer">
+                        <i class="fas fa-upload"></i> Upload Icon 1
+                        <input
+                          type="file"
+                          id="iconUpload1"
+                          accept="image/*"
+                          style="display: none"
+                          onchange="previewIcon(this, 'iconPreview1')"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        class="btn btn-danger"
+                        onclick="deleteIcon('iconPreview1', 'iconUpload1')"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                    <span>PNG or ICO, recommended 32×32px</span>
+                  </div>
+                </div>
+
+                <div class="iconUploadBox">
+                  <div class="uploadPreview" id="iconPreview2">
+                    <i class="fas fa-image"></i>
+                  </div>
+                  <div class="iconUploadMeta">
+                    <span class="iconUploadName">Icon 2</span>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                      <label class="btn btn-secondary" style="cursor: pointer">
+                        <i class="fas fa-upload"></i> Upload Icon 2
+                        <input
+                          type="file"
+                          id="iconUpload2"
+                          accept="image/*"
+                          style="display: none"
+                          onchange="previewIcon(this, 'iconPreview2')"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        class="btn btn-danger"
+                        onclick="deleteIcon('iconPreview2', 'iconUpload2')"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                    <span>PNG or ICO, recommended 32×32px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="systemItem">
+              <label>Cemetery Logo</label>
+              <div class="uploadRow">
+                <div class="uploadPreview" id="logoPreview">
+                  <i class="fas fa-image"></i>
+                </div>
+                <div class="uploadInfo">
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                    <label class="btn btn-secondary" style="cursor: pointer">
+                      <i class="fas fa-upload"></i> Upload Logo
+                      <input
+                        type="file"
+                        id="logoUpload"
+                        accept="image/*"
+                        style="display: none"
+                        onchange="previewLogo(this)"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      class="btn btn-danger"
+                      onclick="deleteLogo()"
+                    >
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
+                  </div>
+                  <span>PNG or SVG, recommended 200×60px</span>
+                </div>
+              </div>
+            </div>
+
+            <hr class="formDivider" style="grid-column: 1/-1" />
+
+            <div class="systemItem">
+              <label for="pageHeading">Page Heading</label>
+              <input type="text" id="pageHeading" />
+            </div>
+
+            <div class="systemItem">
+              <label for="cemeteryName">Cemetery Name</label>
+              <input type="text" id="cemeteryName" />
+            </div>
+
+            <div class="systemItem" style="grid-column: 1/-1">
+              <label for="cemeteryAddress">Cemetery Address</label>
+              <input type="text" id="cemeteryAddress" />
+            </div>
+
+            <hr class="formDivider" style="grid-column: 1/-1" />
+
+            <div class="systemItem">
+              <label>UI Primary Color</label>
+              <div class="colorRow">
+                <input
+                  type="color"
+                  id="uiColor"
+                  value="#4a7cfe"
+                  oninput="updateColorHex(this)"
+                />
+                <div>
+                  <div class="colorLabel">Primary Color</div>
+                  <div class="colorHex" id="uiColorHex">#4a7cfe</div>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  onclick="applyUIColor()"
+                  style="margin-left: auto"
+                >
+                  <i class="fas fa-paint-brush"></i> Apply
+                </button>
+              </div>
+            </div>
+
+            <div class="systemItem">
+              <label for="textbeeKey">Textbee API Key</label>
+              <div class="passwordWrapper">
+                <input type="password" id="textbeeKey" />
+                <button
+                  type="button"
+                  class="togglePassword"
+                  onclick="togglePass('textbeeKey', this)"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="systemItem">
+              <label for="deviceId">Textbee Device ID</label>
+              <input type="text" id="deviceId" />
+            </div>
+
+            <hr class="formDivider" style="grid-column: 1/-1" />
+
+            <div class="systemItem" style="grid-column: 1/-1">
+              <label>Reports Header & Footer</label>
+              <div class="reportUploadRow">
+                <div class="reportUploadBox">
+                  <div class="reportPreview" id="reportHeaderPreview">
+                    <i class="fas fa-file-image"></i>
+                    <span>No header uploaded</span>
+                  </div>
+                  <div class="reportUploadMeta">
+                    <span class="reportUploadName">Report Header</span>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                      <label class="btn btn-secondary" style="cursor: pointer">
+                        <i class="fas fa-upload"></i> Upload Header
+                        <input
+                          type="file"
+                          id="reportHeaderUpload"
+                          accept="image/*"
+                          style="display: none"
+                          onchange="previewReport(this, 'reportHeaderPreview')"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        class="btn btn-danger"
+                        onclick="
+                          deleteReport(
+                            'reportHeaderPreview',
+                            'reportHeaderUpload',
+                          )
+                        "
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                    <span>PNG or JPG, recommended 800×120px</span>
+                  </div>
+                </div>
+
+                <div class="reportUploadBox">
+                  <div class="reportPreview" id="reportFooterPreview">
+                    <i class="fas fa-file-image"></i>
+                    <span>No footer uploaded</span>
+                  </div>
+                  <div class="reportUploadMeta">
+                    <span class="reportUploadName">Report Footer</span>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                      <label class="btn btn-secondary" style="cursor: pointer">
+                        <i class="fas fa-upload"></i> Upload Footer
+                        <input
+                          type="file"
+                          id="reportFooterUpload"
+                          accept="image/*"
+                          style="display: none"
+                          onchange="previewReport(this, 'reportFooterPreview')"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        class="btn btn-danger"
+                        onclick="
+                          deleteReport(
+                            'reportFooterPreview',
+                            'reportFooterUpload',
+                          )
+                        "
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                    <span>PNG or JPG, recommended 800×80px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr class="formDivider" style="grid-column: 1/-1" />
+
+            <div class="systemItem" style="grid-column: 1/-1">
+              <label style="font-size: 13px; color: black"
+                >Reports Name, Title, and Signature</label
+              >
+            </div>
+          </div>
+
+          <div class="saveRow">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="resetForm('systemForm')"
+            >
+              <i class="fas fa-undo"></i> Reset
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Save Configuration
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="excelCard">
+        <div class="sectionTitle system-title">
+          <div>
+            <h2>Excel Import / Export</h2>
+            <p>Import records from an Excel file or export current data</p>
+            <button
+              type="button"
+              class="btn btn-danger"
+              onclick="importExcel('')"
+            >
+              <i class="fas fa-upload"></i>
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              onclick="exportExcel('')"
+            >
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/settings.js"></script>
     <script src="assets/js/alert.js"></script>
     <script src="assets/js/main.js"></script>
   </body>

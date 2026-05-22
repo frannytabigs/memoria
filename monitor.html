@@ -24,46 +24,6 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-
-    <style>
-      .tableContainer {
-        width: 100%;
-        overflow: hidden;
-      }
-
-      .tableWrapper {
-        overflow-x: auto;
-        width: 100%;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 2100px;
-      }
-
-      thead th,
-      tbody td {
-        white-space: nowrap;
-        vertical-align: middle;
-      }
-
-      .buried-header-bg {
-        background-color: #f0f9ff !important;
-        color: #0369a1 !important;
-        border-bottom: 2px solid #0369a1 !important;
-      }
-
-      .buried-col-bg {
-        background-color: rgba(3, 105, 161, 0.025) !important;
-      }
-
-      .actions {
-        display: flex;
-        gap: 8px;
-        white-space: nowrap;
-      }
-    </style>
     <script>
       // Run this instantly before the page paints
       if (localStorage.getItem("memoria_role") === "Administrator") {
@@ -147,11 +107,11 @@
                 <th>Contact Person</th>
                 <th>Contact No.</th>
 
-                <th class="buried-header-bg">Name</th>
-                <th class="buried-header-bg">Address</th>
-                <th class="buried-header-bg">Contact Person</th>
-                <th class="buried-header-bg">Contact No.</th>
-                <th class="buried-header-bg">Contact Address</th>
+                <th class="buriedHeader">Name</th>
+                <th class="buriedHeader">Address</th>
+                <th class="buriedHeader">Contact Person</th>
+                <th class="buriedHeader">Contact No.</th>
+                <th class="buriedHeader">Contact Address</th>
 
                 <th>Remarks</th>
                 <th>Action</th>
@@ -166,16 +126,19 @@
                 <td>Lmnop Q. Rstuv</td>
                 <td class="contactStatus statusNotified">+63 912 345 6789</td>
 
-                <td class="buried-col-bg">Juan Dela Cruz</td>
-                <td class="buried-col-bg">123 Mulberry St, Manila</td>
-                <td class="buried-col-bg">Maria Clara</td>
-                <td class="buried-col-bg">+63 999 888 7777</td>
-                <td class="buried-col-bg">456 Oak Ave, Quezon City</td>
+                <td class="buriedBg">Abcde F. Ghijk</td>
+                <td class="buriedBg">123 Mandaue City</td>
+                <td class="buriedBg">Lmnop Q. Rstuv</td>
+                <td class="buriedBg">+63 999 888 7777</td>
+                <td class="buriedBg">123 Mandaue City</td>
 
-                <td>Buried</td>
+                <td>-</td>
                 <td class="actions">
-                  <button class="addBtn"><i class="fas fa-plus"></i></button>
+                  <button class="checkBtn"><i class="fas fa-check"></i></button>
                   <button class="editBtn"><i class="fas fa-edit"></i></button>
+                  <button class="deleteBtn">
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </td>
               </tr>
 
@@ -189,16 +152,19 @@
                   <i class="fas fa-bell notifyIcon"></i>
                 </td>
 
-                <td class="buried-col-bg">Cardo Dalisay</td>
-                <td class="buried-col-bg">789 Tondo, Manila</td>
-                <td class="buried-col-bg">Alyana Dalisay</td>
-                <td class="buried-col-bg">+63 915 222 3333</td>
-                <td class="buried-col-bg">789 Tondo, Manila</td>
+                <td class="buriedBg">Abcde F. Ghijk</td>
+                <td class="buriedBg">123 Mandaue City</td>
+                <td class="buriedBg">Lmnop Q. Rstuv</td>
+                <td class="buriedBg">+63 915 222 3333</td>
+                <td class="buriedBg">123 Mandaue City</td>
 
-                <td>Buried</td>
+                <td>-</td>
                 <td class="actions">
-                  <button class="addBtn"><i class="fas fa-plus"></i></button>
+                  <button class="checkBtn"><i class="fas fa-check"></i></button>
                   <button class="editBtn"><i class="fas fa-edit"></i></button>
+                  <button class="deleteBtn">
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -208,6 +174,7 @@
     </div>
 
     <script src="assets/js/alert.js"></script>
+    <script src="assets/js/monitor.js"></script>
     <script src="assets/js/main.js"></script>
   </body>
 </html>

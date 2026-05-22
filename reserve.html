@@ -139,11 +139,19 @@
                 <td>AA1</td>
                 <td>January 01, 2026</td>
                 <td>Lmnop Q. Rstuv</td>
-                <td class="contactStatus statusNotified">+63 912 345 6789</td>
+                <td class="statusNotified">
+                  <div class="contactStatus statusNotified">
+                    +63 912 345 6789
+                  </div>
+                </td>
                 <td>-</td>
                 <td class="actions">
-                  <button class="addBtn"><i class="fas fa-plus"></i></button>
-                  <button class="editBtn"><i class="fas fa-edit"></i></button>
+                  <button class="addBtn" title="Create Burial Clearance">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                  <button class="editBtn" title="Edit Reservation">
+                    <i class="fas fa-edit"></i>
+                  </button>
                 </td>
               </tr>
 
@@ -152,14 +160,23 @@
                 <td>AA1</td>
                 <td>January 01, 2026</td>
                 <td>Lmnop Q. Rstuv</td>
-                <td class="contactStatus statusPending">
-                  <span>+63 912 345 6789</span>
-                  <i class="fas fa-bell notifyIcon"></i>
+                <td>
+                  <div class="contactStatus statusPending">
+                    <span>+63 912 345 6789</span>
+                    <i
+                      class="fas fa-bell notifyIcon"
+                      title="Send Notification Alert"
+                    ></i>
+                  </div>
                 </td>
                 <td>-</td>
                 <td class="actions">
-                  <button class="addBtn"><i class="fas fa-plus"></i></button>
-                  <button class="editBtn"><i class="fas fa-edit"></i></button>
+                  <button class="addBtn" title="Create Burial Clearance">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                  <button class="editBtn" title="Edit Reservation">
+                    <i class="fas fa-edit"></i>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -168,77 +185,226 @@
       </div>
     </div>
 
-    <div id="reserveModal" class="modal">
-      <div class="modalContent">
-        <div class="modalHeader">
-          <h2>Reservation</h2>
-          <span class="closeBtn" onclick="closeReserveModal()">&times;</span>
-        </div>
+    <div class="modalOverlay" id="burialModalOverlay">
+      <form id="burialClearanceForm" onsubmit="event.preventDefault()">
+        <div class="paperForm">
+          <div class="formTitle">BURIAL CLEARANCE</div>
 
-        <form id="reserveForm">
-          <div class="formSection">
-            <span class="sectionTitle">Occupant Information</span>
-            <div class="form-grid-3">
+          <div class="row">
+            <div class="col" style="flex: 0.4">
+              <label>Date:</label>
+              <input type="date" id="clearanceDate" />
+            </div>
+
+            <div class="col" style="flex: 0.3">
+              <label>Control No.</label>
               <input
                 type="text"
-                id="firstName"
-                placeholder="First Name"
-                required
-              />
-              <input type="text" id="middleName" placeholder="Middle Name" />
-              <input
-                type="text"
-                id="lastName"
-                placeholder="Last Name"
-                required
-              />
-              <input
-                type="text"
-                id="occAddress"
-                class="full-width"
-                placeholder="Address"
-                required
+                id="controlNo"
+                placeholder="Auto-generated"
+                readonly
+                style="background-color: #f8fafc; font-weight: 600"
               />
             </div>
           </div>
 
-          <div class="formSection">
-            <span class="sectionTitle">Contact Person</span>
-            <div class="form-grid-2">
+          <div class="sectionTitle">REQUESTING PARTY (Contact Details)</div>
+
+          <div class="row">
+            <div class="col" style="flex: 1.2">
+              <label>That I (Full Name):</label>
+              <input type="text" id="reqName" required />
+            </div>
+
+            <div class="col">
+              <label>Purok / Zone / Street Name:</label>
+              <input type="text" id="reqStreet" />
+            </div>
+
+            <div class="col">
+              <label>Barangay Address:</label>
+              <select id="requesting_barangay">
+                <option value="" disabled selected>Select Barangay...</option>
+                <option value="Alang-alang">Alang-alang</option>
+                <option value="Bakilid">Bakilid</option>
+                <option value="Banilad">Banilad</option>
+                <option value="Basak">Basak</option>
+                <option value="Cabancalan">Cabancalan</option>
+                <option value="Cambaro">Cambaro</option>
+                <option value="Canduman">Canduman</option>
+                <option value="Casuntingan">Casuntingan</option>
+                <option value="Casili">Casili</option>
+                <option value="Centro">Centro</option>
+                <option value="Cubacub">Cubacub</option>
+                <option value="Guizo">Guizo</option>
+                <option value="Ibabao-Estancia">Ibabao-Estancia</option>
+                <option value="Jagobiao">Jagobiao</option>
+                <option value="Labogon">Labogon</option>
+                <option value="Looc">Looc</option>
+                <option value="Maguikay">Maguikay</option>
+                <option value="Mantuyong">Mantuyong</option>
+                <option value="Opao">Opao</option>
+                <option value="Pakna-an">Pakna-an</option>
+                <option value="Pagsabungan">Pagsabungan</option>
+                <option value="Subangdaku">Subangdaku</option>
+                <option value="Tabok">Tabok</option>
+                <option value="Tingub">Tingub</option>
+                <option value="Tipolo">Tipolo</option>
+                <option value="Umapad">Umapad</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label>Phone Number:</label>
+              <input type="text" id="reqPhone" placeholder="09XX-XXX-XXXX" />
+            </div>
+
+            <div class="col">
+              <label>Seeking assistance in the form of:</label>
+              <select id="reqAssistance">
+                <option>Burial of the late...</option>
+                <option>Transfer the remains of the late...</option>
+                <option>Other...</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sectionTitle">DECEASED INFORMATION</div>
+
+          <div class="row">
+            <div class="col" style="flex: 1.2">
+              <label>Name of Deceased:</label>
               <input
                 type="text"
-                id="conName"
-                placeholder="Contact Name"
+                id="deceasedName"
+                placeholder="Full Name"
                 required
               />
+            </div>
+
+            <div class="col" style="flex: 0.4">
+              <label>Sex:</label>
+              <select id="deceasedSex">
+                <option value="" disabled selected>Select...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
+            <div class="col">
+              <label>Date of Birth:</label>
+              <input type="date" id="deceasedDob" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col" style="flex: 1.2">
+              <label>Last Known Address:</label>
+              <input type="text" id="deceasedAddress" />
+            </div>
+
+            <div class="col">
+              <label>Date of Death:</label>
+              <input type="date" id="deceasedDod" />
+            </div>
+
+            <div class="col">
+              <label>Death Certificate No:</label>
+              <input type="text" id="deceasedCert" />
+            </div>
+          </div>
+
+          <div class="sectionTitle">PERMITS & REQUIREMENTS</div>
+
+          <div class="row">
+            <div class="col">
+              <label>Burial Permit No.</label>
+              <input type="text" id="permitBurial" />
+            </div>
+
+            <div class="col">
+              <label>Exhumation Permit No.</label>
+              <input type="text" id="permitExhumation" />
+            </div>
+
+            <div class="col">
+              <label>Transfer Permit No.</label>
+              <input type="text" id="permitTransfer" />
+            </div>
+          </div>
+
+          <div class="sectionTitle">
+            LOCATION ASSIGNMENT & RECORD SCHEDULING
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label>Burial Type:</label>
+              <select id="burialBlock">
+                <option>Niche Wall</option>
+                <option>Bone Chamber</option>
+                <option>Lawn / Grounds</option>
+                <option>Unmapped Area</option>
+                <option>Private / Owned</option>
+              </select>
+            </div>
+
+            <div class="col">
+              <label>Specific Grave Code (if applicable):</label>
+              <input type="text" id="graveCode" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label>Date of Interment:</label>
               <input
-                type="tel"
-                id="conPhone"
-                placeholder="Contact Number"
+                type="date"
+                id="dateInterment"
+                onchange="autoCalculateExpirationDate()"
                 required
               />
+            </div>
+
+            <div class="col">
+              <label>Expiration Date:</label>
               <input
-                type="text"
-                id="conAddress"
-                class="full-width-2"
-                placeholder="Contact Address"
-                required
+                type="date"
+                id="expirationDate"
+                style="background-color: #f8fafc; font-weight: 600"
+                readonly
               />
             </div>
           </div>
 
-          <div class="modalFooter">
+          <div class="sectionTitle">REMARKS</div>
+
+          <div class="row">
+            <div class="col">
+              <input type="text" id="deceasedRemarks" />
+            </div>
+          </div>
+
+          <div class="paperFormActions">
             <button
               type="button"
-              class="btnCancel"
-              onclick="closeReserveModal()"
+              class="btnPaperCancel"
+              onclick="closeSeamlessModal('deceased')"
             >
               Cancel
             </button>
-            <button type="submit" class="btnSave">Confirm Reservation</button>
+            <button
+              type="button"
+              class="btnPaperSave"
+              onclick="submitBurialClearanceForm()"
+            >
+              Save
+            </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
 
     <script src="assets/js/alert.js"></script>

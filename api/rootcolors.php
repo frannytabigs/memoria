@@ -26,7 +26,7 @@ $hasImage = file_exists($bgRelativePath);
 <?php if ($hasColor): ?>
   --mainColor: <?= $mainColor ?>;
 
-  --sidebarText: #ffffff;
+  --sidebarText: contrast-color(var(--mainColor));
 
   --sidebar-hover: color-mix(in srgb, var(--mainColor), white 12%);
   --sidebar-border: color-mix(in srgb, var(--mainColor), white 18%);

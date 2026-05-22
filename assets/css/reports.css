@@ -1,0 +1,490 @@
+body {
+  display: flex;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background-color: #f0f2f5;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 30px;
+  margin-left: 260px; /* Adjust based on sidebar width */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Top controls deck alignment area */
+.controlWorkspaceDeck {
+  width: 100%;
+  max-width: 816px;
+  margin-bottom: 25px;
+}
+
+/* ==================== CUSTOM DRIVEN DROPDOWN SYSTEM ==================== */
+.dropdownWrapper {
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  user-select: none;
+}
+
+.dropdownLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.customSelectTrigger {
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.customSelectTrigger:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.customSelectTrigger i.fa-chevron-down {
+  font-size: 13px;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.dropdownWrapper.open .customSelectTrigger {
+  border-color: #0056b3;
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
+}
+
+.dropdownWrapper.open .customSelectTrigger i.fa-chevron-down {
+  transform: rotate(180deg);
+}
+
+.selectedOptionDisplay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selectedOptionDisplay i {
+  color: #0056b3;
+  font-size: 16px;
+}
+
+.customOptionsPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  padding: 6px 0;
+}
+
+.dropdownWrapper.open .customOptionsPanel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.customOptionRow {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.customOptionRow:hover {
+  background-color: #f8fafc;
+}
+
+.customOptionRow.active {
+  background-color: #f1f5f9;
+}
+
+.optionContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.optionContent i {
+  font-size: 15px;
+  color: #64748b;
+  width: 20px;
+  text-align: center;
+}
+
+.customOptionRow.active .optionContent i,
+.customOptionRow.active .optionText {
+  color: #0056b3;
+  font-weight: 600;
+}
+
+.optionText {
+  font-size: 14.5px;
+  color: #334155;
+}
+
+.optionBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.customOptionRow.active .optionBadge {
+  background-color: rgba(0, 86, 179, 0.1);
+  color: #0056b3;
+}
+
+/* ==================== ACTIVE FILTERS BAR COMPONENT (OUTSIDE PAPER) ==================== */
+.filterEngineContainer {
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  box-sizing: border-box;
+  display: none; /* Controlled dynamically via Javascript based on select view */
+}
+
+.filterEngineContainer.visible {
+  display: block;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.filterGroupTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filterPillsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterPill {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filterPill:hover {
+  border-color: #94a3b8;
+  color: #1e293b;
+  background-color: #f1f5f9;
+}
+
+.filterPill.active {
+  background-color: #0056b3;
+  border-color: #0056b3;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Secondary parameters element select dropdown box */
+.secondaryParamSelector {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.2s ease-out;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.secondaryParamSelector.visible {
+  display: flex;
+}
+
+.paramLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.inlineSelect {
+  padding: 6px 12px;
+  font-size: 13.5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  outline: none;
+  background-color: #fff;
+  color: #334155;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+/* ==================== OFFICIAL DOCUMENT PAPER STYLING ==================== */
+.reportCard {
+  display: none;
+  background-color: #fff;
+  width: 100%;
+  max-width: 816px;
+  min-height: 1056px;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid #dcdcdc;
+  box-sizing: border-box;
+  padding: 140px 60px 120px 60px;
+  margin: 0 auto 40px auto;
+  animation: fadeIn 0.35s ease-out;
+}
+
+.reportCard.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* DYNAMIC HEADER STYLING (Image 1) */
+.docHeader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 115px;
+  box-sizing: border-box;
+  border-bottom: 3px solid #0056b3;
+  background: #fff;
+}
+
+.headerRibbon {
+  width: 100%;
+  height: 16px;
+  background: linear-gradient;
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 0% 100%);
+}
+
+.headerBody {
+  display: flex;
+  align-items: center;
+  padding: 12px 45px 0 45px;
+}
+
+.headerLogos {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 18px;
+  border-right: 2px solid #222;
+  height: 55px;
+}
+
+.logoPlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  border: 1px dashed #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #666;
+  text-align: center;
+  font-weight: bold;
+}
+
+.headerText {
+  padding-left: 18px;
+}
+
+.countryText {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: #555;
+  text-transform: uppercase;
+}
+
+.deptName {
+  font-size: 21px;
+  font-weight: 700;
+  color: #44464a;
+  margin: 2px 0;
+  letter-spacing: -0.5px;
+}
+
+.sectionName {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* DOCUMENT CONTENT COMPONENTS */
+.docContentTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e293b;
+  text-align: center;
+  margin: 10px 0 5px 0;
+  text-transform: uppercase;
+}
+
+.docMetaSummary {
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+
+.docSection {
+  margin-bottom: 20px;
+  flex-grow: 1;
+}
+
+.docBlockHeader {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  border-bottom: 2px solid #cbd5e1;
+  padding-bottom: 4px;
+  margin: 20px 0 12px 0;
+  letter-spacing: 0.5px;
+}
+
+.cleanTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+  font-size: 13px;
+}
+
+.cleanTable th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cleanTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: top;
+}
+
+.bulletItem {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #334155;
+  margin-bottom: 14px;
+  padding-left: 10px;
+  transition: all 0.2s ease;
+}
+
+.bulletItem.hiddenRow {
+  display: none !important;
+}
+
+.noDataFallbackMessage {
+  display: none;
+  text-align: center;
+  padding: 30px;
+  font-size: 14px;
+  color: #94a3b8;
+  font-style: italic;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  margin-top: 15px;
+}
+
+.itemDetailBlock {
+  margin-left: 15px;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+/* Signatures block Layout */
+.signatorySection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px 40px;
+  margin-top: 30px;
+  padding-top: 15px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.sigContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.sigLine {
+  border-bottom: 1px solid #1e293b;
+  width: 85%;
+  margin-top: 35px;
+  margin-bottom: 4px;
+}
+
+.sigName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+}
+
+.sigTitle {
+  font-size: 11px;
+  color: #64748b;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

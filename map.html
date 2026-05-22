@@ -36,6 +36,7 @@
       "
     />
     <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/map.css" />
 
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -116,6 +117,141 @@
       </div>
     </div>
 
+    <div class="main">
+      <div class="mapCard">
+        <div class="mapHeader">
+          <h3>Mandaue City Public Cemetery 2D Map</h3>
+          <div class="mapBtn">
+            <!-- Normal map-edit toolbar -->
+            <button class="editBtn" id="btnEditMap">Edit map</button>
+            <button class="saveBtn" id="btnSaveMap" style="display: none">
+              Save map
+            </button>
+            <button class="plotBtn" id="btnAddBlock" style="display: none">
+              Add block
+            </button>
+            <button class="cancelBtn" id="btnCancelAdd" style="display: none">
+              Cancel draw
+            </button>
+            <!-- Reshape sub-toolbar (shown only during reshape mode) -->
+            <button
+              class="reshapeSubBtn active"
+              id="btnCutLine"
+              style="display: none"
+              onclick="MAP.setReshapeTool('cut')"
+            >
+              &#9986; Cut Line
+            </button>
+            <button
+              class="reshapeSubBtn"
+              id="btnDrawLine"
+              style="display: none"
+              onclick="MAP.setReshapeTool('draw')"
+            >
+              &#9998; Draw Line
+            </button>
+            <button
+              class="reshapeSubBtn done"
+              id="btnDoneReshape"
+              style="display: none"
+              onclick="MAP.exitReshapeMode()"
+            >
+              &#10003; Done Reshape
+            </button>
+            <button
+              class="cancelBtn"
+              id="btnUndoReshape"
+              style="display: none"
+              onclick="MAP.undoReshape()"
+            >
+              &#8630; Undo
+            </button>
+          </div>
+        </div>
+
+        <div class="mapSearch">
+          <input
+            type="text"
+            id="mapSearchInput"
+            placeholder="Search by name..."
+          />
+        </div>
+        <div class="searchResults" id="searchResults"></div>
+
+        <div class="mapMeta">
+          <div class="mapBreadcrumb" id="mapBreadcrumb"></div>
+          <div class="mapStatus" id="mapStatus"></div>
+        </div>
+
+        <div class="mapCanvas" id="mapCanvas">
+          <canvas id="mapCvs"></canvas>
+          <div class="mapHint" id="mapHint"></div>
+          <div class="mapLoading" id="mapLoading">Loading map&hellip;</div>
+        </div>
+
+        <div class="plotView" id="plotView">
+          <div class="plotViewHeader">
+            <span class="plotViewTitle" id="pvTitle"></span>
+            <span class="plotModeBadge" id="pvBadge">Editing plots</span>
+            <button class="pvBtn" onclick="MAP.backToMap()">
+              &#8592; Map overview
+            </button>
+            <button
+              class="pvBtn primary"
+              id="btnEditBlock"
+              onclick="MAP.toggleEditBlock()"
+            >
+              Edit block
+            </button>
+            <button
+              class="pvBtn success"
+              id="btnDoneBlock"
+              onclick="MAP.toggleEditBlock()"
+              style="display: none"
+            >
+              Done editing
+            </button>
+          </div>
+          <div class="plotGrid" id="plotGrid"></div>
+        </div>
+
+        <div class="mapLegend">
+          <div class="legendItem">
+            <div
+              class="legendDot"
+              style="background: #fff; border-color: #cbd5e1"
+            ></div>
+            Available
+          </div>
+          <div class="legendItem">
+            <div
+              class="legendDot"
+              style="background: #dcfce7; border-color: #4ade80"
+            ></div>
+            Occupied
+          </div>
+          <div class="legendItem">
+            <div
+              class="legendDot"
+              style="background: #dbeafe; border-color: #60a5fa"
+            ></div>
+            Reserved
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modalOverlay" id="modalOverlay">
+      <div class="modalBox">
+        <h3 id="modalTitle"></h3>
+        <div id="modalBody"></div>
+        <div class="modalActions">
+          <button id="modalCancel">Cancel</button>
+          <button id="modalConfirm" class="btnPrimary">Save</button>
+        </div>
+      </div>
+    </div>
+    <script src="assets/js/map.js"></script>
     <script src="assets/js/alert.js"></script>
     <script src="assets/js/main.js"></script>
   </body>

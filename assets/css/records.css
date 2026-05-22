@@ -1,4 +1,4 @@
-/* --- RECORDS MAIN --- */
+/* RECORDS MAIN */
 .main {
   margin-left: 260px;
   padding: 30px;
@@ -7,7 +7,7 @@
   font-family: "Inter", sans-serif;
 }
 
-/* --- TABLE CONTROLS & NAVIGATION --- */
+/* TABLE CONTROLS */
 .tableControls {
   display: flex;
   justify-content: space-between;
@@ -43,7 +43,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* --- SEARCH BAR --- */
+/* SEARCH BAR */
 .searchBar {
   position: relative;
   width: 320px;
@@ -67,7 +67,7 @@
   font-size: 14px;
 }
 
-/* --- TABLE CONTAINER & WRAPPER --- */
+/* TABLE CONTAINER */
 .tableContainer {
   background: #ffffff;
   border-radius: 12px;
@@ -89,7 +89,7 @@
   display: block;
 }
 
-/* Custom Scrollbar */
+/* SCROLLBAR */
 .tableWrapper::-webkit-scrollbar {
   width: 0px;
   height: 8px;
@@ -104,7 +104,7 @@
   background: #f1f5f9;
 }
 
-/* --- TABLE STYLING --- */
+/* TABLE STYLE */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -137,13 +137,13 @@ tbody td {
   white-space: nowrap;
 }
 
-/* --- ACTIONS & BUTTONS --- */
+/* ACTIONS & BUTTONS */
 .actions {
   display: flex;
   gap: 8px;
 }
 
-.printBtn,
+.viewBtn,
 .editBtn,
 .deleteBtn {
   border: none;
@@ -157,20 +157,22 @@ tbody td {
   transition: opacity 0.2s;
 }
 
-.printBtn {
+.viewBtn {
   background: #fef9c3;
   color: #ca8a04;
 }
+
 .editBtn {
   background: #e0f2fe;
   color: #0369a1;
 }
+
 .deleteBtn {
   background: #fee2e2;
   color: #b91c1c;
 }
 
-.printBtn:hover,
+.viewBtn:hover,
 .editBtn:hover,
 .deleteBtn:hover {
   opacity: 0.8;
@@ -184,7 +186,7 @@ tbody td {
   display: none;
 }
 
-/* --- CIRCULAR ADD BUTTON (FAB) --- */
+/* CIRCULAR ADD BUTTON */
 .addRecordBtn {
   position: fixed;
   bottom: 30px;
@@ -215,156 +217,184 @@ tbody td {
   transform: scale(0.9);
 }
 
-/* --- MODAL SYSTEM --- */
-.modal {
+/* MODAL / FORM */
+.modalOverlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.7);
-  justify-content: center;
-  align-items: center;
+  background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 1000;
+  z-index: 2000;
+  overflow-y: scroll;
+  padding: 40px 20px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.modaLcontent {
-  background: #ffffff;
-  width: 750px;
-  max-height: 85vh;
-  overflow-y: auto;
-  border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modalPop 0.3s ease-out;
+.modalOverlay::-webkit-scrollbar {
+  display: none;
 }
 
-.modalHeader {
-  padding: 20px 30px;
-  border-bottom: 1px solid #e2e8f0;
+.paperForm {
+  background-color: white;
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  color: #333;
+  text-align: left;
+  position: relative;
+}
+
+.paperForm .formTitle {
+  text-align: center;
+  font-weight: bold;
+  font-size: 20px;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+  font-family: Arial, sans-serif;
+  color: #222;
+}
+
+.paperForm .formTitle {
+  text-align: center;
+  font-weight: bold;
+  font-size: 20px;
+  margin-bottom: 30px;
+  letter-spacing: 1px;
+  font-family: Arial, sans-serif;
+  color: #222;
+}
+
+.paperForm .row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 10;
+  margin-bottom: 15px;
+  gap: 20px;
 }
 
-.modalHeader h3 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.closeModal {
-  color: #94a3b8;
-  font-size: 24px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.closeModal:hover {
-  color: #ef4444;
-}
-
-/* --- FORM GRID --- */
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-  padding: 25px 30px;
-}
-
-.formGroup {
+.paperForm .col {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  grid-column: span 2;
+  position: relative;
 }
 
-.formGroup.span-3 {
-  grid-column: span 3;
-}
-.formGroup.span-6 {
-  grid-column: span 6;
-}
-
-.formGroup label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #64748b;
+.paperForm label {
+  font-size: 12px;
+  font-weight: bold;
   margin-bottom: 6px;
+  color: #475569;
+}
+
+.paperForm input[type="text"],
+.paperForm input[type="date"],
+.paperForm input[type="number"],
+.paperForm input[type="email"],
+.paperForm select {
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  background: white;
+  color: #334155;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.paperForm select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'><path d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 14px) center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+.paperForm input:focus,
+.paperForm select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.paperForm .sectionTitle {
+  padding: 6px 0;
+  font-weight: 700;
+  font-size: 13px;
+  margin: 25px 0 15px 0;
+  border-bottom: 2px solid #1e293b;
+  color: #1e293b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.formGroup input {
-  padding: 11px 14px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #f8fafc;
-  color: #334155;
-  transition: all 0.2s;
+.conditionalOwnerSection {
+  display: none;
 }
 
-.formGroup input:focus {
-  outline: none;
-  border-color: #2563eb;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.formGroup input[readonly] {
-  background: #f1f5f9;
-  cursor: not-allowed;
-  color: #64748b;
-}
-
-.divider {
-  grid-column: span 6;
-  height: 1px;
-  background: #e2e8f0;
-  margin: 10px 0;
-}
-
-/* --- MODAL FOOTER --- */
-.modalFooter {
-  padding: 18px 30px;
-  background: #f8fafc;
+.paperFormActions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  border-top: 1px solid #e2e8f0;
-  border-radius: 0 0 16px 16px;
+  margin-top: 30px;
 }
 
-.btnCancel {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
+.btnPaperCancel {
   background: white;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   color: #64748b;
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
-.btnCancel:hover {
+.btnPaperCancel:hover {
   background: #f1f5f9;
   color: #1e293b;
 }
 
-.btnSave {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  background: #2563eb;
+.btnPaperSave {
+  background: #1e3a8a;
   color: white;
+  padding: 10px 28px;
   border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
   transition: background 0.2s;
 }
 
-.btnSave:hover {
-  background: #1d4ed8;
+.btnPaperSave:hover {
+  background: #172554;
+}
+
+.ownerDetailsDisplay {
+  line-height: 1.6;
+  font-size: 14px;
+  color: #334155;
+}
+
+.ownerDetailsDisplay p {
+  margin-bottom: 12px;
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 6px;
+}
+
+.ownerDetailsDisplay strong {
+  color: #1e293b;
+  display: inline-block;
+  width: 160px;
+}
+
+.required::after {
+  content: " *";
+  color: #ef4444;
 }
