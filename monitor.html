@@ -35,7 +35,16 @@
     <div class="sidebar">
       <div class="sidebarTop">
         <div class="memoriaLogo">
-          <img src="assets/images/MemoriaLogo.png" alt="Memoria Logo" />
+          <img
+            id="cemetery-logo"
+            src="api/images/cemetery_logo.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MemoriaLogo.png';
+              console.error('Failed to load dynamic logo. Using default logo.');
+            "
+            alt="Memoria Logo"
+          />
         </div>
 
         <div class="sidebarDateTime" id="dateTimeDisplay"></div>
