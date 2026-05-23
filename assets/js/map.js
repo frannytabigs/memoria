@@ -9,12 +9,12 @@ const MAP = (() => {
   let addMode = false;
   let resizeMode = false;
   let reshapeMode = false;
-  let reshapeBid = null; // block currently being reshaped
-  let reshapeTool = "cut"; // 'cut' | 'draw'
-  let reshapeHistory = []; // undo stack: array of points arrays
-  let cutFirstPoint = null; // first edge-click for Cut Line tool
-  let drawPoints = []; // accumulated clicks for Draw Line tool
-  let mousePos = { x: 0, y: 0 }; // live mouse position for preview line
+  let reshapeBid = null;
+  let reshapeTool = "cut";
+  let reshapeHistory = [];
+  let cutFirstPoint = null;
+  let drawPoints = [];
+  let mousePos = { x: 0, y: 0 };
   let resizingBid = null;
   let view = "map";
   let curBlock = null;
@@ -31,6 +31,7 @@ const MAP = (() => {
   function uid() {
     return Math.random().toString(36).slice(2, 8);
   }
+
   function snap(v) {
     return Math.round(v / CELL) * CELL;
   }
@@ -85,7 +86,6 @@ const MAP = (() => {
     return dist(p, { x: a.x + t * dx, y: a.y + t * dy });
   }
 
-  // Project point onto segment, return { point, t } where t ∈ [0,1]
   function projectOntoSegment(p, a, b) {
     const dx = b.x - a.x,
       dy = b.y - a.y;
@@ -98,7 +98,6 @@ const MAP = (() => {
     return { point: { x: snap(a.x + t * dx), y: snap(a.y + t * dy) }, t };
   }
 
-  // Find the closest edge of a polygon to a point; returns { edgeIndex, point, dist }
   function closestEdge(pts, px, py) {
     let best = null,
       bestDist = Infinity;
@@ -112,27 +111,6 @@ const MAP = (() => {
         best = { edgeIndex: i, point: proj.point, dist: d };
       }
     }
-    return best;
-  }
-
-  // Insert a point on a polygon edge at edgeIndex (after index i, before i+1)
-  function insertPointOnEdge(pts, edgeIndex, point) {
-    const out = [...pts];
-    out.splice(edgeIndex + 1, 0, { ...point });
-    return out;
-  }
-
-  // Find closest existing vertex to (mx,my) within radius
-  function closestVertex(pts, mx, my, radius) {
-    let best = null,
-      bestDist = radius;
-    pts.forEach((p, i) => {
-      const d = dist({ x: mx, y: my }, p);
-      if (d < bestDist) {
-        bestDist = d;
-        best = i;
-      }
-    });
     return best;
   }
 
@@ -155,17 +133,22 @@ const MAP = (() => {
       .replace(/"/g, "&quot;");
   }
 
-  // ── CANVAS SIZE ──────────────────────────────────────────
+  // ── CANVAS SIZE (DPI Fix) ────────────────────────────────
   function syncCanvasSize() {
     const w = canvasWrap.clientWidth,
       h = canvasWrap.clientHeight;
-    if (cv.width !== w || cv.height !== h) {
-      cv.width = w;
-      cv.height = h;
+    const dpr = window.devicePixelRatio || 1;
+
+    if (cv.width !== w * dpr || cv.height !== h * dpr) {
+      cv.width = w * dpr;
+      cv.height = h * dpr;
+      cv.style.width = `${w}px`;
+      cv.style.height = `${h}px`;
+      ctx.scale(dpr, dpr);
     }
   }
 
-  // ── PERSISTENCE (manual save only) ───────────────────────
+  // ── PERSISTENCE ──────────────────────────────────────────
   function persistSave() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ blocks, blockOrder }));
@@ -196,13 +179,15 @@ const MAP = (() => {
   }
 
   function flashSaved() {
-    // No save indicator element needed — just a console note; add one to HTML if desired
+    setHint("Map saved successfully!");
+    setTimeout(() => setHint(""), 3000);
   }
 
   // ── DRAW ─────────────────────────────────────────────────
   function draw() {
     syncCanvasSize();
-    ctx.clearRect(0, 0, cv.width, cv.height);
+    // Use client dimensions since context is scaled
+    ctx.clearRect(0, 0, canvasWrap.clientWidth, canvasWrap.clientHeight);
     if (view !== "map") return;
 
     if (!blockOrder.length) {
@@ -213,8 +198,8 @@ const MAP = (() => {
         mapEditMode
           ? 'Click "Add block" then drag to draw a block.'
           : 'No blocks yet. Click "Edit map" to get started.',
-        cv.width / 2,
-        cv.height / 2,
+        canvasWrap.clientWidth / 2,
+        canvasWrap.clientHeight / 2,
       );
       return;
     }
@@ -232,12 +217,12 @@ const MAP = (() => {
 
       ctx.globalAlpha = reshapeMode && !isResh ? 0.25 : isRes ? 0.4 : 1;
 
-      // Fill + stroke polygon
       ctx.beginPath();
       pts.forEach((p, i) =>
         i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y),
       );
       ctx.closePath();
+
       ctx.fillStyle = isResh ? "#fef9c3" : "#dbeafe";
       ctx.strokeStyle = isResh
         ? "#f59e0b"
@@ -250,11 +235,11 @@ const MAP = (() => {
       ctx.fill();
       ctx.stroke();
 
-      // Labels
       ctx.fillStyle = "#1e3a5f";
       ctx.font = "500 13px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(b.name, cx, cy - 14);
+
       ctx.fillStyle = "#2563eb";
       ctx.font = "10px Inter, sans-serif";
       ctx.fillText(`${b.rows}\u00d7${b.cols} plots`, cx, cy + 2);
@@ -277,12 +262,9 @@ const MAP = (() => {
         );
       }
 
-      // ── RESHAPE OVERLAYS ──
       if (isResh) {
-        // Draw edge dots + vertex dots
         pts.forEach((p, i) => {
           const next = pts[(i + 1) % pts.length];
-          // Edge midpoint indicator
           const mx2 = (p.x + next.x) / 2,
             my2 = (p.y + next.y) / 2;
           ctx.beginPath();
@@ -291,8 +273,7 @@ const MAP = (() => {
           ctx.fill();
         });
 
-        // Vertex handles
-        pts.forEach((p, i) => {
+        pts.forEach((p) => {
           ctx.beginPath();
           ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
           ctx.fillStyle = "#6366f1";
@@ -302,9 +283,7 @@ const MAP = (() => {
           ctx.stroke();
         });
 
-        // Cut tool: highlight nearest edge + first point already picked
         if (reshapeTool === "cut") {
-          // First cut point indicator
           if (cutFirstPoint) {
             ctx.beginPath();
             ctx.arc(cutFirstPoint.x, cutFirstPoint.y, 7, 0, Math.PI * 2);
@@ -313,7 +292,7 @@ const MAP = (() => {
             ctx.lineWidth = 2;
             ctx.fill();
             ctx.stroke();
-            // Preview line to mouse
+
             ctx.beginPath();
             ctx.moveTo(cutFirstPoint.x, cutFirstPoint.y);
             ctx.lineTo(mousePos.x, mousePos.y);
@@ -323,7 +302,6 @@ const MAP = (() => {
             ctx.stroke();
             ctx.setLineDash([]);
           }
-          // Hover: show closest edge point
           const edge = closestEdge(pts, mousePos.x, mousePos.y);
           if (edge && edge.dist < 20) {
             ctx.beginPath();
@@ -336,9 +314,7 @@ const MAP = (() => {
           }
         }
 
-        // Draw tool: show placed points + preview line
         if (reshapeTool === "draw" && drawPoints.length > 0) {
-          // Draw placed points
           ctx.beginPath();
           ctx.moveTo(drawPoints[0].x, drawPoints[0].y);
           drawPoints.forEach((p, i) => {
@@ -361,7 +337,6 @@ const MAP = (() => {
             ctx.stroke();
           });
 
-          // Show snap-to-edge indicator for first and last point
           const edge = closestEdge(pts, mousePos.x, mousePos.y);
           if (edge && edge.dist < 20) {
             ctx.beginPath();
@@ -372,19 +347,7 @@ const MAP = (() => {
             ctx.fill();
             ctx.stroke();
           }
-
-          // First placed point highlight (to indicate where to close)
-          ctx.beginPath();
-          ctx.arc(drawPoints[0].x, drawPoints[0].y, 7, 0, Math.PI * 2);
-          ctx.fillStyle = "#16a34a";
-          ctx.strokeStyle = "#fff";
-          ctx.lineWidth = 2;
-          ctx.fill();
-          ctx.stroke();
-        }
-
-        // Draw tool with no points: show edge snap indicator
-        if (reshapeTool === "draw" && drawPoints.length === 0) {
+        } else if (reshapeTool === "draw" && drawPoints.length === 0) {
           const edge = closestEdge(pts, mousePos.x, mousePos.y);
           if (edge && edge.dist < 20) {
             ctx.beginPath();
@@ -397,11 +360,9 @@ const MAP = (() => {
           }
         }
       }
-
       ctx.globalAlpha = 1;
     });
 
-    // Drag preview
     if (drag.active) {
       const x = Math.min(drag.sx, drag.ex),
         y = Math.min(drag.sy, drag.ey);
@@ -435,141 +396,101 @@ const MAP = (() => {
   }
 
   function getXY(e) {
-    const r = cv.getBoundingClientRect(),
-      s = e.touches ? e.touches[0] : e;
+    const r = cv.getBoundingClientRect();
+    const s = e.touches ? e.touches[0] : e;
     return { x: s.clientX - r.left, y: s.clientY - r.top };
   }
 
   // ── RESHAPE LOGIC ────────────────────────────────────────
-
-  /**
-   * CUT LINE tool:
-   * User clicks two points on polygon edges. The polygon is "cut" along that
-   * line — the smaller region (the cut-off chunk) is removed, leaving an
-   * arbitrary new shape. Works for any convex or concave polygon.
-   *
-   * Algorithm:
-   * 1. Click 1: find nearest edge, insert point P1 on that edge → store
-   * 2. Click 2: find nearest edge, insert point P2 on that edge → cut
-   * 3. Build two sub-polygons from P1→P2 going each way around; keep the larger one.
-   */
   function handleCutClick(mx, my) {
     const pts = ensurePolygon(blocks[reshapeBid]);
     const edge = closestEdge(pts, mx, my);
     if (!edge || edge.dist > 24) return;
 
     if (!cutFirstPoint) {
-      // Store first point — insert it into polygon temporarily for reference
       cutFirstPoint = { ...edge.point, edgeIndex: edge.edgeIndex };
       draw();
       return;
     }
 
-    // We have both points — perform the cut
     const p1 = cutFirstPoint;
     const p2 = { ...edge.point, edgeIndex: edge.edgeIndex };
-
-    // Reset first point
     cutFirstPoint = null;
 
-    // Insert both cut-points into the polygon (higher index first to avoid shift)
     let workPts = [...pts];
-
-    // Insert p2 first (if its edge index >= p1's edge index, to avoid index shifting)
     let idx1 = p1.edgeIndex,
       idx2 = p2.edgeIndex;
     let pt1 = { x: p1.x, y: p1.y },
       pt2 = { x: p2.x, y: p2.y };
 
-    if (idx2 < idx1 || idx2 === idx1) {
-      // Swap so we always insert higher index first
+    // Same-edge fix: Distance sorting to avoid self-intersecting shapes
+    if (idx1 === idx2) {
+      const edgeStart = pts[idx1];
+      if (dist(edgeStart, pt1) > dist(edgeStart, pt2)) {
+        [pt1, pt2] = [pt2, pt1];
+      }
+    } else if (idx2 < idx1) {
       [idx1, idx2] = [idx2, idx1];
       [pt1, pt2] = [pt2, pt1];
     }
 
-    // Insert pt2 at idx2+1
     workPts.splice(idx2 + 1, 0, { ...pt2 });
-    // Insert pt1 at idx1+1 (idx2+1 shifted everything >= idx2+1 by 1, idx1 < idx2 so unaffected)
     workPts.splice(idx1 + 1, 0, { ...pt1 });
 
-    // Now find the indices of the two inserted points in workPts
-    const i1 = idx1 + 1;
-    const i2 = idx2 + 2; // +2 because we inserted at idx1+1 before it
-
-    // Build two polygons by going each way between i1 and i2
+    const i1 = idx1 + 1,
+      i2 = idx2 + 2;
     const polyA = [],
       polyB = [];
-    // polyA: from i1 → i2 going forward
+
     for (let i = i1; ; i = (i + 1) % workPts.length) {
       polyA.push(workPts[i]);
       if (i === i2) break;
     }
-    // polyB: from i2 → i1 going forward
     for (let i = i2; ; i = (i + 1) % workPts.length) {
       polyB.push(workPts[i]);
       if (i === i1) break;
     }
 
-    // Keep the larger polygon (by bounding-box area)
     const areaOf = (arr) => {
       const b = polyBounds(arr);
       return b.w * b.h;
     };
     const kept = areaOf(polyA) >= areaOf(polyB) ? polyA : polyB;
 
-    // Validate: must have at least 3 points
     if (kept.length < 3) {
       draw();
       return;
     }
 
-    // Push history and apply
     reshapeHistory.push([...pts]);
     blocks[reshapeBid].points = kept;
     draw();
   }
 
-  /**
-   * DRAW LINE tool:
-   * User clicks on the polygon border to start, places intermediate points freely
-   * (snapping to the grid), and clicks on the border again to finish.
-   * The new path replaces the original border segment between the two border points,
-   * effectively "indenting" or "extruding" that section.
-   *
-   * Click 1 on border: start point (snapped to nearest edge)
-   * Clicks 2..N anywhere: intermediate waypoints
-   * Final click on border (within 20px): close the cut, apply.
-   */
   function handleDrawClick(mx, my) {
     const pts = ensurePolygon(blocks[reshapeBid]);
     const edge = closestEdge(pts, mx, my);
     const onEdge = edge && edge.dist < 24;
 
     if (drawPoints.length === 0) {
-      // Must start on the polygon edge
       if (!onEdge) return;
       drawPoints = [{ ...edge.point, edgeIndex: edge.edgeIndex, onEdge: true }];
       draw();
       return;
     }
 
-    // Check if closing: final click near the polygon edge (and not near start)
     if (onEdge && drawPoints.length >= 1) {
       const startPt = drawPoints[0];
-      // Avoid closing immediately on same spot
       if (dist(edge.point, startPt) < 10 && drawPoints.length < 2) return;
 
       const endPt = { ...edge.point, edgeIndex: edge.edgeIndex };
-
-      // Build the replacement: insert the drawn path between the two edge-snap points
       let workPts = [...pts];
       let idx1 = startPt.edgeIndex,
         idx2 = endPt.edgeIndex;
-      let pt1 = { x: startPt.x, y: startPt.y };
-      let pt2 = { x: endPt.x, y: endPt.y };
+      let pt1 = { x: startPt.x, y: startPt.y },
+        pt2 = { x: endPt.x, y: endPt.y };
       const midPoints = drawPoints.slice(1).map((p) => ({ x: p.x, y: p.y }));
 
-      // Insert in correct order (higher index first to avoid shift)
       if (idx2 < idx1) {
         [idx1, idx2] = [idx2, idx1];
         [pt1, pt2] = [pt2, pt1];
@@ -579,29 +500,20 @@ const MAP = (() => {
       workPts.splice(idx2 + 1, 0, { ...pt2 });
       workPts.splice(idx1 + 1, 0, { ...pt1 });
 
-      const i1 = idx1 + 1;
-      const i2 = idx2 + 2;
+      const i1 = idx1 + 1,
+        i2 = idx2 + 2;
+      const polyB = [];
 
-      // Replace the short arc (i1 → i2) with the drawn path
-      // Build the new polygon: keep far arc, replace near arc with drawn points
-      const polyA = [],
-        polyB = [];
-      for (let i = i1; ; i = (i + 1) % workPts.length) {
-        polyA.push(workPts[i]);
-        if (i === i2) break;
-      }
       for (let i = i2; ; i = (i + 1) % workPts.length) {
         polyB.push(workPts[i]);
         if (i === i1) break;
       }
 
-      // polyA is the short arc we're replacing; polyB is the long arc we're keeping
-      // New polygon = polyB + midPoints in between
       const newPoly = [
         pt1,
         ...midPoints,
         pt2,
-        ...polyB.slice(1, polyB.length - 1), // exclude pt2 and pt1 which are already added
+        ...polyB.slice(1, polyB.length - 1),
       ];
 
       if (newPoly.length < 3) {
@@ -617,15 +529,19 @@ const MAP = (() => {
       return;
     }
 
-    // Intermediate waypoint — snap to grid
     drawPoints.push({ x: snap(mx), y: snap(my), onEdge: false });
     draw();
   }
 
   // ── CANVAS EVENTS ────────────────────────────────────────
   function initCanvasEvents() {
-    cv.addEventListener("mousemove", (e) => {
+    const handleMove = (e) => {
       if (view !== "map") return;
+      // Prevent browser scroll when dragging/drawing on touch screens
+      if (drag.active || (reshapeMode && drawPoints.length > 0)) {
+        if (e.cancelable) e.preventDefault();
+      }
+
       const { x, y } = getXY(e);
       mousePos = { x, y };
 
@@ -639,7 +555,7 @@ const MAP = (() => {
       if (reshapeMode) {
         draw();
         return;
-      } // redraws preview
+      }
 
       const bid = hitBlock(x, y);
       if (bid !== hoveredBlock) {
@@ -651,22 +567,16 @@ const MAP = (() => {
         : addMode || resizeMode
           ? "crosshair"
           : "default";
-    });
+    };
 
-    cv.addEventListener("mousedown", (e) => {
+    const handleDown = (e) => {
       if (view !== "map") return;
       const { x, y } = getXY(e);
 
       if (reshapeMode) {
         if (!reshapeBid) return;
-        if (reshapeTool === "cut") {
-          handleCutClick(x, y);
-          return;
-        }
-        if (reshapeTool === "draw") {
-          handleDrawClick(x, y);
-          return;
-        }
+        if (reshapeTool === "cut") handleCutClick(x, y);
+        else if (reshapeTool === "draw") handleDrawClick(x, y);
         return;
       }
 
@@ -684,20 +594,30 @@ const MAP = (() => {
       const bid = hitBlock(x, y);
       if (!bid) return;
       mapEditMode ? openBlockEditModal(bid) : openBlockView(bid);
-    });
+    };
 
-    cv.addEventListener("mouseup", (e) => {
+    const handleUp = (e) => {
       if (!drag.active) return;
-      const { x, y } = getXY(e);
-      drag.ex = snap(x);
-      drag.ey = snap(y);
+
+      // On touchend we don't have active touches[0], use tracked drag coords
+      let targetX = drag.ex,
+        targetY = drag.ey;
+      if (e.type !== "touchend" && e.clientX) {
+        const pos = getXY(e);
+        targetX = snap(pos.x);
+        targetY = snap(pos.y);
+      }
+
+      drag.ex = targetX;
+      drag.ey = targetY;
       const rx = Math.min(drag.sx, drag.ex),
         ry = Math.min(drag.sy, drag.ey);
       const rw = Math.max(snap(Math.abs(drag.ex - drag.sx)), CELL * 2);
       const rh = Math.max(snap(Math.abs(drag.ey - drag.sy)), CELL * 2);
+
       drag.active = false;
       if (resizeMode && resizingBid) finishResize(rx, ry, rw, rh);
-      else if (addMode && rw >= CELL * 2 && rh >= CELL * 2)
+      else if (addMode && rw >= CELL * 2 && rh >= CELL * 2) {
         openNewBlockModal(
           rx,
           ry,
@@ -706,11 +626,20 @@ const MAP = (() => {
           Math.max(1, Math.round(rh / CELL)),
           Math.max(1, Math.round(rw / CELL)),
         );
-      else draw();
-    });
+      } else draw();
+    };
+
+    // Mouse bindings
+    cv.addEventListener("mousemove", handleMove);
+    cv.addEventListener("mousedown", handleDown);
+    cv.addEventListener("mouseup", handleUp);
+
+    // Touch bindings (Crucial fix for Mobile/iPad)
+    cv.addEventListener("touchmove", handleMove, { passive: false });
+    cv.addEventListener("touchstart", handleDown, { passive: false });
+    cv.addEventListener("touchend", handleUp);
 
     cv.addEventListener("dblclick", (e) => {
-      // Double-click in Draw mode = finish the drawn line early (treat as edge click)
       if (!reshapeMode || reshapeTool !== "draw" || drawPoints.length < 2)
         return;
       const { x, y } = getXY(e);
@@ -719,18 +648,15 @@ const MAP = (() => {
       if (edge && edge.dist < 30) handleDrawClick(x, y);
     });
 
-    window.addEventListener("mouseup", () => {
-      if (drag.active) {
-        drag.active = false;
-        draw();
-      }
+    window.addEventListener("mouseup", (e) => {
+      if (drag.active) handleUp(e);
     });
+
     window.addEventListener("resize", () => {
       syncCanvasSize();
       draw();
     });
 
-    // Escape key: cancel current reshape action without losing progress
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         if (reshapeMode) {
@@ -745,9 +671,12 @@ const MAP = (() => {
   // ── BUTTON WIRING ────────────────────────────────────────
   function initButtons() {
     $("btnEditMap").addEventListener("click", enterEditMap);
+
     $("btnSaveMap").addEventListener("click", () => {
       persistSave();
+      exitEditMap(); // Fixed: Exits mode properly
     });
+
     $("btnAddBlock").addEventListener("click", startAdd);
     $("btnCancelAdd").addEventListener("click", cancelAdd);
     $("mapSearchInput").addEventListener("input", (e) =>
@@ -810,7 +739,7 @@ const MAP = (() => {
   }
 
   function setHint(t) {
-    $("mapHint").textContent = t;
+    if ($("mapHint")) $("mapHint").textContent = t;
   }
 
   // ── RESHAPE MODE ─────────────────────────────────────────
@@ -825,7 +754,6 @@ const MAP = (() => {
     resizeMode = false;
     resizingBid = null;
     drag.active = false;
-    // Show reshape toolbar, hide normal toolbar items
     $("btnAddBlock").style.display = "none";
     $("btnCancelAdd").style.display = "none";
     $("btnCutLine").style.display = "";
@@ -835,9 +763,7 @@ const MAP = (() => {
     _highlightReshapeTool();
     canvasWrap.style.cursor = "crosshair";
     closeModal();
-    setHint(
-      "CUT LINE: click two points on edges to cut away a section. DRAW LINE: click edge → draw points → click edge to add a protrusion.",
-    );
+    setHint("CUT LINE: click two points on edges to cut away a section.");
     draw();
   }
 
@@ -860,11 +786,11 @@ const MAP = (() => {
     _highlightReshapeTool();
     if (tool === "cut")
       setHint(
-        "CUT LINE: click a point on any edge (first cut), then click a second edge point to slice off that section.",
+        "CUT LINE: click a point on an edge, then click a second point to slice.",
       );
     if (tool === "draw")
       setHint(
-        "DRAW LINE: click on an edge to start, click anywhere to add waypoints, then click another edge to finish the new shape.",
+        "DRAW LINE: click edge → add waypoints → click edge to finish shape.",
       );
     draw();
   }
@@ -910,7 +836,8 @@ const MAP = (() => {
         <div><label>Columns</label><input type="number" id="fBc" min="1" max="30" value="${cols}"></div>
         <div><label>Rows</label><input type="number" id="fBr" min="1" max="30" value="${rows}"></div>
       </div>
-      <p style="font-size:11px;color:#94a3b8;margin-top:8px">Drawn area: ${bw}&times;${bh}px &mdash; adjust plot divisions above.</p>`;
+      <p style="font-size:11px;color:#94a3b8;margin-top:8px">Drawn area: ${bw}&times;${bh}px &mdash; adjust divisions above.</p>`;
+
     $("modalConfirm").textContent = "Save";
     $("modalConfirm").className = "btnPrimary";
     $("modalConfirm").style.display = "";
@@ -976,6 +903,7 @@ const MAP = (() => {
         <button style="background:#3b82f6;color:#fff;border:1px solid #3b82f6;border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;" onclick="MAP.closeModal();MAP.openBlockView('${bid}')">View plots</button>
         <button style="background:#fff;color:#ef4444;border:1px solid #fca5a5;border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;" onclick="MAP.deleteBlock('${bid}')">Delete block</button>
       </div>`;
+
     $("modalConfirm").textContent = "Save changes";
     $("modalConfirm").className = "btnPrimary";
     $("modalConfirm").style.display = "";
@@ -1120,7 +1048,7 @@ const MAP = (() => {
         <option value="available" ${!data.status || data.status === "available" ? "selected" : ""}>Available (clear)</option>
       </select>
       <label>Notes (optional)</label>
-      <input type="text" id="fPnt" value="${escHtml(data.notes || "")}" placeholder="e.g. Family lot, prepaid&hellip;">`;
+      <input type="text" id="fPnt" value="${escHtml(data.notes || "")}" placeholder="e.g. Family lot...">`;
     $("modalConfirm").textContent = "Save";
     $("modalConfirm").className = "btnPrimary";
     $("modalConfirm").style.display = "";
@@ -1151,13 +1079,14 @@ const MAP = (() => {
     const status = $("fPs").value;
     if (!blocks[curBlock].plots) blocks[curBlock].plots = {};
     if (status === "available") delete blocks[curBlock].plots[curPlot];
-    else
+    else {
       blocks[curBlock].plots[curPlot] = {
         name: $("fPn").value.trim(),
         years: $("fPy").value.trim(),
         status,
         notes: $("fPnt").value.trim(),
       };
+    }
     closeModal();
     renderPlotGrid();
     updateStatus();
@@ -1168,6 +1097,7 @@ const MAP = (() => {
     $("modalOverlay").classList.add("open");
   }
   function closeModal() {
+    if (!$("modalOverlay")) return;
     $("modalOverlay").classList.remove("open");
     $("modalConfirm").style.display = "";
     $("modalCancel").textContent = "Cancel";
