@@ -463,21 +463,23 @@ document.addEventListener("DOMContentLoaded", () => {
             (result.message &&
               result.message.toLowerCase().includes("failed to send"))
           ) {
-            showAlertTOP(
+            // FIX: Use local showAlert for warning
+            showAlert(
               result.message || "Saved changes, but the SMS failed to send.",
               "warning",
-              6666,
             );
           } else {
             showAlert("Account updated successfully.", "save");
           }
         } else {
           const errorMsg = result.message || "Failed to update user.";
-          showAlertTOP(errorMsg, "error");
+          // FIX: Use local showAlert for error
+          showAlert(errorMsg, "error");
         }
       } catch (error) {
         console.error("Update failed", error);
-        showAlertTOP("A network or server error occurred.", "error");
+        // FIX: Use local showAlert for catch block
+        showAlert("A network or server error occurred.", "error");
       } finally {
         // 3. Unlock Selects and remove waiting overlay
         roleSelect.disabled = false;
@@ -513,11 +515,13 @@ document.addEventListener("DOMContentLoaded", () => {
           loadUsers();
         } else {
           const errorMsg = result.message || "Failed to delete user.";
-          showAlertTOP(errorMsg, "error");
+          // FIX: Use local showAlert
+          showAlert(errorMsg, "error");
         }
       } catch (error) {
         console.error("Delete failed", error);
-        showAlertTOP("A network or server error occurred.", "error");
+        // FIX: Use local showAlert
+        showAlert("A network or server error occurred.", "error");
       } finally {
         // Remove waiting overlay
         toggleLoader(false);

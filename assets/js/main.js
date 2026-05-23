@@ -299,3 +299,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Run a background check every 60 seconds (60000ms)
+  const SESSION_CHECK_INTERVAL = 60000;
+
+  setInterval(async () => {
+    try {
+      // Pinging auth.php triggers usercheck.php
+      const response = await fetch("api/auth.php");
+
+      // If the API responds with 401 Unauthorized, they were unverified or deleted
+      if (response.status === 401 || response.status === 403) {
+        console.warn("Session revoked by administrator. Logging out...");
+
+        // Optional: Show an alert before redirecting
+        if (typeof showAlert === "function") {
+          showAlert(
+            "Your account status was changed. Logging out...",
+            "warning",
+          );
+        }
+
+        setTimeout(() => {
+          // Change "index.html" to whatever your login page is named
+          window.location.href = "index.html";
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Background session check failed", error);
+    }
+  }, SESSION_CHECK_INTERVAL);
+});

@@ -60,6 +60,10 @@ function sendSmsViaTextBee($phoneNumber, $message, $include_cemetery_name = true
             'x-api-key: ' . $apiKey 
         ]);
 
+        // ADD THESE TWO LINES: Set timeouts so it doesn't hang indefinitely
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // 5 seconds to connect
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);       // 10 seconds total to execute
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
