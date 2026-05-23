@@ -1,4 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
+  //dashboard.html
+  fetch("api/dashboard.php")
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        document.getElementById("unverifiedaccounts").textContent =
+          data.data.unverifiedCount;
+      }
+    })
+    .catch((error) => console.error("Error fetching dashboard data:", error));
+
   // AUTO CURRENT YEAR
   const yearText = document.getElementById("currentYear");
   if (yearText) {
