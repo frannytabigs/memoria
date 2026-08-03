@@ -29,13 +29,13 @@ function handleRateLimit($limit = 30, $period = 60) {
         
         file_put_contents($file, json_encode($data));
         
-        Response::error("Slow down! Please try again later", 429);
+        Response::error("My apologies, please slow down, you are exhausting the system resources. Please try again later in " . ($now + $period - $now) . " seconds.", 429);
     }
 
     $data['requests'][] = $now;
     file_put_contents($file, json_encode($data));
 }
 
-handleRateLimit(1,1);
+handleRateLimit(30, 60); // 30 requests per 60 seconds
 
 ?>

@@ -4,7 +4,7 @@ define('ITS_ME_JUSTTOVERIFY', true);
 require_once 'logs.php';
  
 require_once 'responses.php';
-require_once 'usercheck.php';
+require_once 'checkuser.php';
     
 $userData = checkuser();
 // ==========================================

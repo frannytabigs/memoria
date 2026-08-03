@@ -1,0 +1,15 @@
+changes soon I guess:
+
+auth.php -   setcookie('auth_token', $jwt, [
+            'expires' => time() + $JWT_EXPIRATION,
+            'path' => '/',
+            'secure' => false, // set true in HTTPS (production)
+            'httponly' => true,
+            'samesite' => 'Strict'
+        ]);
+
+config.php - ofc
+
+textbee - change textbee.php if you change to another SMS API, 
+ - the database column as well
+    - currently used in the users.php for sending notification

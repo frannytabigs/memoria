@@ -3,7 +3,6 @@
 define('ITS_ME_JUSTTOVERIFY', true);
 require_once 'database.php';
 require_once 'responses.php'; 
-// require_once 'ratelimit.php';
 require_once 'logs.php';
 require_once 'config.php';
 
@@ -22,7 +21,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
 if ($method === 'DELETE') {
     
-    require_once 'usercheck.php';
+    require_once 'checkuser.php';
 
     $userData = checkuser(false);
     if ($userData) systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['user_id']); 
@@ -32,7 +31,7 @@ if ($method === 'DELETE') {
 }
 
 if ($method === 'GET') {
-   require_once 'usercheck.php';
+   require_once 'checkuser.php';
    $userData = checkuser(); 
    Response::success("Logged in", ["user" => $userData]);
 }
