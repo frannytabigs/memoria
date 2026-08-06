@@ -44,12 +44,12 @@
 
     # FIX: Allow valid .php files in the api folder to execute.
     # Without this, the internal redirect below will get blocked by the catch-alls!
-    RewriteRule ^api/[a-zA-Z0-9_-]+\.php$ - [L]
-
-    # Route simple /api/<name> requests to /api/<name>.php
+    RewriteRule ^api/[a-zA-Z0-9_-]+\.php(/.*)?$ - [L]
+    
+    # Route simple /api/<name> requests AND /api/<name>/<extra> to /api/<name>.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^api/([a-zA-Z0-9_-]+)$ api/$1.php [L]
+    RewriteRule ^api/([a-zA-Z0-9_-]+)(/.*)?$ api/$1.php$2 [L]
 
     # Block any other API paths (like subfolders or weird extensions)
     RewriteRule ^api/ - [R=404,L]
