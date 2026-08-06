@@ -4,7 +4,7 @@ require_once 'config.php';
 
 /**
  * Writes an encrypted log entry to logs.txt
- * * @param string $action The description of what happened
+ * @param string $action The description of what happened
  * @param int|string $userId The ID of the user who did it (optional)
  */
 function systemLog($action, $userId = 'System') {
@@ -15,8 +15,16 @@ function systemLog($action, $userId = 'System') {
     $ivLength = openssl_cipher_iv_length($method);
     $iv = openssl_random_pseudo_bytes($ivLength);
     
-    // 2. Format the message
-    $date = date('Y-m-d H:i:s');
+    // 2. Format the message using your DB_TIMEZONE constant
+    try {
+        $timezone = new DateTimeZone(DB_TIMEZONE); // Accepts '+08:00' or 'Asia/Manila'
+        $datetime = new DateTime('now', $timezone);
+        $date = $datetime->format('Y-m-d H:i:s');
+    } catch (Exception $e) {
+        // Fallback just in case the constant is empty or malformed
+        $date = date('Y-m-d H:i:s');
+    }
+
     $rawMessage = "[$date] $action (User ID: $userId)";
     
     // 3. Encrypt the message
