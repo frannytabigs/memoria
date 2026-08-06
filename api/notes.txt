@@ -26,3 +26,15 @@ textbee
 - change textbee.php if you change to another SMS API, 
 - the database column as well
 - currently used in the users.php for sending notification
+
+
+things I saw:
+accounts.html 
+- the searching, make local first then search from the api
+- the pagination i guess
+
+logs.html 
+- not needed pagination i guess since it is all and people can wait.
+- also its just to tiring
+
+ratelimit - must be fixed i guess....

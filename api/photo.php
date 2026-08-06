@@ -22,9 +22,20 @@ switch ($method) {
     // GET: List all images
     // ---------------------------------------------------------
     case 'GET':
-        $result = $manager->getAllImages();
-        systemLog("User {$userData['username']} retrieved all images.",$userData['username']);
-        Response::send(200, true, '', null, $result);
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        
+        // If they are searching, force the limit to 101 as requested.
+        // Otherwise, use their requested limit (or default to 20).
+        if ($search !== '') {
+            $limit = 101;
+        } else {
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        }
+        
+        // Pass all three arguments to the manager
+        $result = $manager->getAllImages($page, $limit, $search);
+        systemLog("{$userData['name']} ({$userData['username']}) retrieved image list. Page: {$page}, Limit: {$limit}, Search: '{$search}'", $userData['user_id']);        Response::send(200, true, '', null, $result);
         break;
 
     // ---------------------------------------------------------

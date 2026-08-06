@@ -69,7 +69,8 @@ if ($method === 'GET') {
                    OR email LIKE :search_email
                    OR name LIKE :search_name
                    OR phone_number LIKE :search_phone)
-            ORDER BY user_id DESC";
+            ORDER BY user_id DESC
+            LIMIT 101"; // Limit to 101 to check if there are more than 100 results, IF THATS THE CASE, THEN the search should be very specific LOL
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
         ':search_username' => $searchTerm,
@@ -105,19 +106,28 @@ if ($method === 'GET') {
 
     // SCENARIO C: GET /users.php (List all users)
     if ($resourceId === null) {
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+      $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
         
-        if ($page < 1) $page = 1;
+        // 1. Secure the limit bounds (min 1, max 100)
         if ($limit < 1) $limit = 10;
         if ($limit > 100) $limit = 100; 
 
+        // 2. Query the total users FIRST
+        $countSql = "SELECT COUNT(*) FROM users";
+        $totalUsers = (int) $pdo->query($countSql)->fetchColumn();
+        
+        // 3. Calculate total pages (ensure it is at least 1 even if the table is empty)
+        $totalPages = max(1, (int)ceil($totalUsers / $limit));
+        
+        // 4. FIX: Cap the requested page. 
+        // It cannot be less than 1, and it cannot be greater than the total available pages.
+        $page = max(1, min($page, $totalPages));
+
+        // 5. Now it is 100% safe to calculate the offset without integer overflows
         $offset = ($page - 1) * $limit;
 
-        $countSql = "SELECT COUNT(*) FROM users";
-        $totalUsers = $pdo->query($countSql)->fetchColumn();
-        $totalPages = ceil($totalUsers / $limit);
-        
+        // 6. Execute the main query
         $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at 
                 FROM users 
                 ORDER BY user_id DESC 
@@ -131,6 +141,7 @@ if ($method === 'GET') {
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved user list (Page $page)", $userData['user_id']);
+        
         Response::success("Users retrieved successfully", [
             "users" => $users,
             "pagination" => [

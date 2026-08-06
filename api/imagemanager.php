@@ -11,7 +11,6 @@ class ImageManager {
     private $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     private $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-    // Notice: $uploadDirPath = null (no quotes)
     // Default max file size is 10MB (10 * 1024 * 1024 bytes)
     public function __construct($uploadDirPath = null, $baseUrlPath = null, $maxFileSize = 10485760) {
         $this->uploadDir = $uploadDirPath ?? __DIR__ . '/images/';
@@ -61,7 +60,7 @@ class ImageManager {
             return 'Invalid file extension. Only JPG, PNG, GIF, and WEBP are allowed.';
         }
 
-        // 3. Strictly Verify MIME Type using finfo (better than mime_content_type)
+        // 3. Strictly Verify MIME Type using finfo
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $filePath);
         finfo_close($finfo);
@@ -71,24 +70,66 @@ class ImageManager {
         }
 
         // 4. Deep Inspection: Verify it has valid image dimensions
-        // This stops hackers from renaming a .php text file to .jpg
         if (@getimagesize($filePath) === false) {
             return 'File is corrupted or is not a valid image.';
         }
 
-        return true; // Passed all security checks
+        return true;
     }
 
-    public function getAllImages() {
-        $files = array_diff(scandir($this->uploadDir), array('.', '..'));
+    /**
+     * GET ALL IMAGES WITH PAGINATION AND SEARCH
+     * Defaults to Page 1, Limit 20 (or 101 if searching)
+     */
+    public function getAllImages($page = 1, $limit = 20, $search = '') {
+        // Get all files, filter out '.' and '..'
+        $files = array_values(array_diff(scandir($this->uploadDir), array('.', '..')));
+        
+        // SEARCH FILTER: If a search term is provided, filter the array
+        if (!empty($search)) {
+            $searchTerm = trim($search);
+            $files = array_filter($files, function($file) use ($searchTerm) {
+                // stripos makes the search case-insensitive
+                return stripos($file, $searchTerm) !== false;
+            });
+            // Re-index the array after filtering
+            $files = array_values($files);
+        }
+
+        // Ensure limit is a positive integer
+        $limit = max(1, (int)$limit);
+        $page = max(1, (int)$page);
+        
+        // Calculate pagination metadata
+        $totalImages = count($files);
+        $totalPages = max(1, (int)ceil($totalImages / $limit));
+        
+        // Cap the requested page to prevent integer overflows
+        $page = max(1, min($page, $totalPages));
+        
+        // Calculate the starting index (offset) safely
+        $offset = ($page - 1) * $limit;
+        
+        // Slice the array to get only the images for the requested page
+        $pagedFiles = array_slice($files, $offset, $limit);
+        
         $images = [];
-        foreach ($files as $file) {
+        foreach ($pagedFiles as $file) {
             $images[] = [
                 'filename' => $file,
                 'url' => $this->baseUrl . $file
             ];
         }
-        return ['success' => true, 'count' => count($images), 'images' => array_values($images)];
+        
+        return [
+            'success' => true, 
+            'count' => count($images),
+            'total_images' => $totalImages,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'search_term' => $search, // Echo back what was searched
+            'images' => $images
+        ];
     }
 
     public function uploadImage($tmpFilePath, $originalName) {
@@ -128,8 +169,6 @@ class ImageManager {
             return ['success' => false, 'error' => 'Target image does not exist.'];
         }
 
-        // SECURITY: We must save the raw PUT stream to a temporary file FIRST.
-        // We cannot save it directly to the public folder without validating it.
         $tempFile = tempnam(sys_get_temp_dir(), 'img_replace_');
         
         if (is_string($sourceStreamOrFile) && $sourceStreamOrFile === 'php://input') {
@@ -138,14 +177,12 @@ class ImageManager {
             copy($sourceStreamOrFile, $tempFile);
         }
 
-        // Run Security Checks on the temporary file using the target filename's extension
         $validation = $this->validateImage($tempFile, $safeFile);
         if ($validation !== true) {
-            unlink($tempFile); // Delete the dangerous temp file
+            unlink($tempFile);
             return ['success' => false, 'error' => $validation];
         }
 
-        // If safe, overwrite the destination
         if (rename($tempFile, $destination)) {
             return [
                 'success' => true, 
@@ -155,7 +192,7 @@ class ImageManager {
             ];
         }
 
-        unlink($tempFile); // Clean up on failure
+        unlink($tempFile); 
         return ['success' => false, 'error' => 'Failed to update image.'];
     }
 
@@ -172,5 +209,4 @@ class ImageManager {
         return ['success' => false, 'error' => 'Image not found.'];
     }
 }
-
 ?>
