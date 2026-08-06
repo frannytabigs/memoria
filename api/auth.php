@@ -4,24 +4,27 @@ define('ITS_ME_JUSTTOVERIFY', true);
 require_once 'database.php';
 require_once 'responses.php'; 
 require_once 'logs.php';
-require_once 'config.php';
+// require_once 'config.php';
 
-// Manually require the JWT files
-require_once 'jwt/JWTExceptionWithPayloadInterface.php'; // <-- ADD THIS AT THE TOP
-require_once 'jwt/BeforeValidException.php';
-require_once 'jwt/ExpiredException.php';
-require_once 'jwt/SignatureInvalidException.php';
-require_once 'jwt/Key.php';
-require_once 'jwt/JWT.php';
+// // Manually require the JWT files
+// require_once 'jwt/JWTExceptionWithPayloadInterface.php'; // <-- ADD THIS AT THE TOP
+// require_once 'jwt/BeforeValidException.php';
+// require_once 'jwt/ExpiredException.php';
+// require_once 'jwt/SignatureInvalidException.php';
+// require_once 'jwt/Key.php';
+// require_once 'jwt/JWT.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+
+require_once 'checkuser.php';
+
 
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
 if ($method === 'DELETE') {
     
-    require_once 'checkuser.php';
+    // require_once 'checkuser.php';
 
     $userData = checkuser(false);
     if ($userData) systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['user_id']); 
@@ -31,7 +34,7 @@ if ($method === 'DELETE') {
 }
 
 if ($method === 'GET') {
-   require_once 'checkuser.php';
+//    require_once 'checkuser.php';
    $userData = checkuser(); 
    Response::success("Logged in", ["user" => $userData]);
 }
@@ -65,7 +68,7 @@ try {
             Response::error("Your account is not verified yet. Please wait for admin verification.", 403);
         }
 
-       $JWT_SECRET = JWT_SECRET;
+        $JWT_SECRET = JWT_SECRET;
         $JWT_ALGO = JWT_ALGO;
         $JWT_EXPIRATION = intval(JWT_EXPIRATION);
 
