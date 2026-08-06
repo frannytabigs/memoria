@@ -1,5 +1,5 @@
 <?php
-require_once 'notallowed.php';
+// require_once 'notallowed.php';
 require_once 'responses.php'; 
 require_once 'config.php';
 require_once 'database.php'; // MUST INCLUDE DATABASE CONNECTION

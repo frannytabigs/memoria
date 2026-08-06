@@ -2,7 +2,7 @@
 
 // Ensure database connection is available
 require_once 'database.php';
-require_once 'notallowed.php';
+// require_once 'notallowed.php';
 
 /**
  * Sends an SMS message using the TextBee API.

@@ -1,3 +1,4 @@
+-- HUHUHUHUHUHUHUHUH NOT YET OKAY???? SO FAR
 -- ====================================================================================
 -- DATABASE SCHEMA: Memoria (Mandaue City Public Cemetery Management System)
 -- SITE: Mandaue City Public Cemetery
@@ -26,6 +27,9 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- INSERT INTO `users` (`user_id`, `username`, `role`, `status`, `email`, `phone_number`, `password_hash`, `name`, `created_at`, `updated_at`) VALUES (NULL, 'staff', 'Staff', 'Unverified', 'staff@gmail.com', '+639210985470', '$2y$10$jePgdcFYDoDy6etwAZHim.eWRiX6cEJdF2A6K0JtIi6nJ7AOQ7q4a', 'Admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+
 -- SETTINGS: Key-value store for global variables (e.g., Mayor's name, SMS API keys).
 -- Prevents hardcoding values into the frontend or backend controllers.
 CREATE TABLE settings (
@@ -33,6 +37,7 @@ CREATE TABLE settings (
     setting_key VARCHAR(50) NOT NULL UNIQUE,
     setting_value TEXT,
     description VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
