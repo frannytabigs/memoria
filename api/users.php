@@ -97,7 +97,7 @@ if ($method === 'GET') {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved profile of user ID " . $resourceId, $userData['user_id']);
+            systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved profile of user ID " . $resourceId . ' (username: ' . $user['username'] . ', name: ' . $user['name'] . ')', $userData['user_id']);
             Response::success("User retrieved successfully", ["user" => $user]);
         } else {
             Response::error("User not found", 404);
