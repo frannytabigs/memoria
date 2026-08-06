@@ -4,7 +4,7 @@ Make sure memoria_db is okay or setted up in phpmyadmin, the sql.text
 
 config.php set it up, the root and password, the everything
 
-.htaccess - The RewriteBase / and everything, basically if its in root folder or something right
+.htaccess - The RewriteBase / and everything, basically if its in root folder or something right -if something is 404 or missing or shits, maybe this is the problem!!!!????
 
 the notallowed.php 404 html load it change it if its not in the roootest root folder lol
 
