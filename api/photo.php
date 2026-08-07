@@ -30,9 +30,9 @@ switch ($method) {
         $result = $manager->getAllImages($page, 20, $search);
         $searchTerm = '';
         if ($search !== '') {
-            $searchTerm = "Search: '{$search}'";
+            $searchTerm = ",Search: '{$search}'";
         } 
-        systemLog("{$userData['name']} ({$userData['username']}) retrieved image list. Page: {$page}, Limit: 20, {$searchTerm}", $userData['user_id']);        
+        systemLog("{$userData['name']} ({$userData['username']}) retrieved image list. Page: {$page} {$searchTerm}", $userData['user_id']);        
        
         if ($search !== '') {
             $dataresult = [
@@ -77,7 +77,7 @@ switch ($method) {
         );
 
         if ($result['success']) {
-            systemLog("User {$userData['username']} uploaded a new image. ({$result['filename']})", $userData['user_id']);
+            systemLog("{$userData['name']} ({$userData['username']}) uploaded a new image. ({$result['filename']})", $userData['user_id']);
             $dataresult = [
                 'filename' => $result['filename'],
                 'size_in_bytes' => $result['size_in_bytes'],
@@ -122,7 +122,7 @@ switch ($method) {
         $result = $manager->deleteImage($fileToDelete);
         
         if ($result['success']) {
-            systemLog("User {$userData['username']} deleted an image. ({$fileToDelete})", $userData['user_id']);
+            systemLog("{$userData['name']} ({$userData['username']}) deleted an image. ({$fileToDelete})", $userData['user_id']);
             Response::success("Image deleted successfully. " . "Filename: {$fileToDelete}");
         } else {
             Response::error($result['error'], $result['status_code'] ?? 400);
