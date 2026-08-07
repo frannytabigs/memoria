@@ -38,3 +38,7 @@ logs.html
 - also its just to tiring
 
 ratelimit - must be fixed i guess....
+
+# Limit request body to 10MB to prevent lag from massive files idk??? APACHE SERVER LIMIT. .htacess
+# LimitRequestBody 10485760
+????

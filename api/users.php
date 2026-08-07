@@ -47,7 +47,7 @@ if ($method === 'GET') {
     // SCENARIO A: GET /users.php/me (Get own profile)
     if ($resourceId === 'me' || (string)$resourceId === (string)$userData['user_id']) {
         systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved their own profile", $userData['user_id']);
-        Response::success("Profile retrieved", ["user" => $userData]);
+        Response::success("Profile retrieved", ["users" => [$userData]]);
     }
 
 
@@ -83,7 +83,7 @@ if ($method === 'GET') {
         systemLog($userData['name'] . " (" . $userData['username'] . ") performed a search for users with term: " . trim($_GET['search']), $userData['user_id']);
         
         if ($users) {
-            Response::success("Search results retrieved", ["users" => $users]);
+            Response::success("Search results retrieved", ["users" => $users, "search_term" => trim($_GET['search'])]);
         } else {
             Response::error("No users found matching the search criteria", 404);
         }
@@ -98,7 +98,7 @@ if ($method === 'GET') {
 
         if ($user) {
             systemLog($userData['name'] . " (" . $userData['username'] . ") retrieved profile of user ID " . $resourceId . ' (username: ' . $user['username'] . ', name: ' . $user['name'] . ')', $userData['user_id']);
-            Response::success("User retrieved successfully", ["user" => $user]);
+            Response::success("User retrieved successfully", ["users" => [$user]]);
         } else {
             Response::error("User not found", 404);
         }

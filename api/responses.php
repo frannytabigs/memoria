@@ -4,14 +4,10 @@ require_once 'notallowed.php';
 
 class Response {
     
-    public static function send($status, $success, $message, $data = null, $owned = null) {
+    public static function send($status, $success, $message, $data = null,) {
+        
         http_response_code($status);
         header('Content-Type: application/json');
-        
-        if ($owned !== null) {
-            echo json_encode($owned, JSON_PRETTY_PRINT);
-            exit(); 
-        }
 
         $responseBody = [
             'success' => $success,
