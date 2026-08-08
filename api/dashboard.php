@@ -1,9 +1,9 @@
 <?php
 define('ITS_ME_JUSTTOVERIFY', true);
 
-require_once 'responses.php';
+// require_once 'responses.php';
 require_once 'checkuser.php';
-require_once 'database.php';
+// require_once 'database.php';
 
 $userData = checkuser();
 // ==========================================

@@ -1,8 +1,8 @@
 <?php
 
 define('ITS_ME_JUSTTOVERIFY', true);
-require_once 'database.php';
-require_once 'responses.php'; 
+// require_once 'database.php';
+// require_once 'responses.php'; 
 require_once 'logs.php';
 // require_once 'config.php';
 
@@ -27,10 +27,12 @@ if ($method === 'DELETE') {
     // require_once 'checkuser.php';
 
     $userData = checkuser(false);
-    if ($userData) systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['user_id']); 
-
-    setcookie('auth_token', '', time() - 3600, '/');
-    Response::success("Logged out successfully");
+    if ($userData) {
+        systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['user_id']); 
+        setcookie('auth_token', '', time() - JWT_EXPIRATION, '/');
+        Response::success("Logged out successfully");
+    }
+    Response::error("Not logged in", 401);
 }
 
 if ($method === 'GET') {
@@ -42,6 +44,13 @@ if ($method === 'GET') {
 
 if ($method !== 'POST') {
     Response::error("Method not allowed", 405); 
+}
+
+$userData = checkuser(false); // Check if user is already logged in, but don't force exit
+if ($userData) {
+
+    setcookie('auth_token', '', time() - JWT_EXPIRATION, '/');
+    Response::error("Already logged in as " . $userData['username'] . ". Try again, I logged you out", 400);
 }
 
 if (empty($_POST['username']) || empty($_POST['password'])) {
