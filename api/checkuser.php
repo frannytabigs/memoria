@@ -58,7 +58,7 @@ function checkuser($force_exit = true) {
 
         // If user was deleted or unverified by admin, kill the session
         if (!$dbUser || $dbUser['status'] !== 'Verified') {
-            setcookie('auth_token', '', time() - 3600, '/'); 
+            setcookie('auth_token', '', time() - JWT_EXPIRATION, '/'); 
             if ($force_exit) {
                 Response::error("Account is unverified or restricted.", 401);
             }
@@ -72,7 +72,7 @@ function checkuser($force_exit = true) {
         return $userData;
     }
     catch (Exception $e) {
-        setcookie('auth_token', '', time() - 3600, '/');
+        setcookie('auth_token', '', time() - JWT_EXPIRATION, '/');
         if ($force_exit) {
             Response::error("Invalid session", 401);
         }
