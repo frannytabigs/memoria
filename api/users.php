@@ -65,7 +65,7 @@ if ($method === 'GET') {
         }
         $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at
             FROM users
-            WHERE (username LIKE :search_username
+            WHERE deleted_at IS NULL AND (username LIKE :search_username
                    OR email LIKE :search_email
                    OR name LIKE :search_name
                    OR phone_number LIKE :search_phone)
@@ -91,7 +91,7 @@ if ($method === 'GET') {
 
     // SCENARIO B: GET /users.php/{id} (Get specific user)
     if (is_numeric($resourceId)) {
-        $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at FROM users WHERE user_id = :id LIMIT 1";
+        $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at FROM users WHERE user_id = :id AND deleted_at IS NULL LIMIT 1";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':id' => $resourceId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -114,7 +114,7 @@ if ($method === 'GET') {
         if ($limit > 100) $limit = 100; 
 
         // 2. Query the total users FIRST
-        $countSql = "SELECT COUNT(*) FROM users";
+        $countSql = "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL";
         $totalUsers = (int) $pdo->query($countSql)->fetchColumn();
         
         // 3. Calculate total pages (ensure it is at least 1 even if the table is empty)
@@ -130,6 +130,7 @@ if ($method === 'GET') {
         // 6. Execute the main query
         $sql = "SELECT user_id, username, email, role, status, phone_number, name, updated_at, created_at 
                 FROM users 
+                WHERE deleted_at IS NULL
                 ORDER BY user_id DESC 
                 LIMIT :limit OFFSET :offset";
                 
@@ -303,9 +304,17 @@ if ($method === 'DELETE') {
         Response::error("Forbidden: You cannot delete your own account", 403);
     }
 
-    $sql = "DELETE FROM users WHERE user_id = :id";
+    $sql = "UPDATE users 
+            SET deleted_at = CURRENT_TIMESTAMP,
+                status = 'Unverified',
+                username = CONCAT(username, '_deleted_', user_id),
+                email = CONCAT(email, '_deleted_', user_id),
+                updated_by = :admin_id 
+            WHERE user_id = :id AND deleted_at IS NULL";
+            
     $stmt = $pdo->prepare($sql);
     $stmt->bindParam(':id', $userIdToDelete, PDO::PARAM_INT);
+    $stmt->bindParam(':admin_id', $userData['user_id'], PDO::PARAM_INT);
     
     try {
         $stmt->execute();
@@ -382,10 +391,13 @@ if ($method === 'PUT') {
 
         $isVerifying = false;
         if (isset($rawData['status']) && in_array($rawData['status'], ['Verified', 'Unverified'])) {
+            $updateFields[] = "status = :status"; 
+            $queryParams[':status'] = $rawData['status'];
             
-            $updateFields[] = "status = :status"; $queryParams[':status'] = $rawData['status'];
             if ($rawData['status'] === 'Verified') {
                 $isVerifying = true;
+                $updateFields[] = "verified_by = :verified_by";
+                $queryParams[':verified_by'] = $userData['user_id'];
             }
         }
     } 
@@ -396,7 +408,12 @@ if ($method === 'PUT') {
     // Execute the Update
     if (!empty($updateFields)) {
         $updateFields[] = "updated_at = NOW()";
-        $sql = "UPDATE users SET " . implode(", ", $updateFields) . " WHERE user_id = :id";
+        
+        // Track exactly who made this edit
+        $updateFields[] = "updated_by = :updated_by";
+        $queryParams[':updated_by'] = $userData['user_id'];
+
+        $sql = "UPDATE users SET " . implode(", ", $updateFields) . " WHERE user_id = :id AND deleted_at IS NULL";
         $queryParams[':id'] = $targetId;
         $stmt = $pdo->prepare($sql);
         
