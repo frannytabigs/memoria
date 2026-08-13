@@ -42,3 +42,7 @@ ratelimit - must be fixed i guess....
 # Limit request body to 10MB to prevent lag from massive files idk??? APACHE SERVER LIMIT. .htacess
 # LimitRequestBody 10485760
 ????
+
+
+RECOMMENDATIONS / SOON FUTURE I GUESS:
+- Add photo/scan documents and attach it to the file or something...
