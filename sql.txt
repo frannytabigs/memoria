@@ -24,7 +24,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     name VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL
 );
 
 -- INSERT INTO `users` (`user_id`, `username`, `role`, `status`, `email`, `phone_number`, `password_hash`, `name`, `created_at`, `updated_at`) VALUES (NULL, 'staff', 'Staff', 'Unverified', 'staff@gmail.com', '+639210985470', '$2y$10$jePgdcFYDoDy6etwAZHim.eWRiX6cEJdF2A6K0JtIi6nJ7AOQ7q4a', 'Admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -66,7 +67,12 @@ CREATE TABLE contacts (
     email_address VARCHAR(100), 
     remarks TEXT, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NULL,
+    updated_by INT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- DECEASED: The biological record of the buried individual. 
@@ -81,7 +87,12 @@ CREATE TABLE deceased (
     last_known_address TEXT,
     remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NULL,
+    updated_by INT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- BLOCKS: The macro-locations (e.g., Niche Wall A, Bone Chamber B).
@@ -91,6 +102,7 @@ CREATE TABLE blocks (
     block_type ENUM('Niche Wall', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned'),
     total_rows INT,    
     total_columns INT, 
+    grid_config JSON, -- Stores JSON defining row/col formats (alpha/numeric) and grid origin (top-left, bottom-left) for frontend rendering
     max_capacity INT,
     area_sqm DECIMAL(10,2),
     owner_contact_id INT,        -- Links to contacts if a family owns a private mausoleum
@@ -98,6 +110,11 @@ CREATE TABLE blocks (
     remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NULL,
+    updated_by INT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
     FOREIGN KEY (owner_contact_id) REFERENCES contacts(contact_id) ON DELETE SET NULL
 );
 
@@ -109,14 +126,19 @@ CREATE TABLE graves (
     row_num INT,         
     col_num INT,         
     floor_level INT,     
-    status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance', 'Merged') DEFAULT 'Vacant',
-    merged_with_id INT,          -- Self-referencing ID if walls are knocked down to combine graves
-    coordinates JSON,            -- If stand alone or unmapped or something
+    status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance') DEFAULT 'Vacant', -- ENUM ('Merged') Removed for the future???
+    -- merged_with_id INT,          REMOVED, FOR THE FUTURE I GUESS?? Self-referencing ID if walls are knocked down to combine graves
+    -- FOR THE FUTURE??? coordinates JSON,            -- If stand alone or unmapped or something
     remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (block_id) REFERENCES blocks(block_id) ON DELETE RESTRICT,
-    FOREIGN KEY (merged_with_id) REFERENCES graves(grave_id) ON DELETE SET NULL 
+    created_by INT NULL,
+    updated_by INT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (block_id) REFERENCES blocks(block_id) ON DELETE RESTRICT
+    -- FOREIGN KEY (merged_with_id) REFERENCES graves(grave_id) ON DELETE SET NULL 
 );
 
 
@@ -138,12 +160,12 @@ CREATE TABLE interments (
     assistance_other_remarks VARCHAR(255), 
     
     -- Required Document Tracking
-    burial_permit_no VARCHAR(100),
+    burial_permit_number VARCHAR(100),
     burial_permit_date DATE,
-    transfer_permit_no VARCHAR(100),
+    transfer_permit_number VARCHAR(100),
     transfer_permit_issued_by VARCHAR(150),
     transfer_permit_date DATE,
-    exhumation_permit_no VARCHAR(100),
+    exhumation_permit_number VARCHAR(100),
     exhumation_permit_date DATE,
     
     -- Important Dates
@@ -161,6 +183,12 @@ CREATE TABLE interments (
     remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    created_by INT NULL,
+    updated_by INT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
     
     FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id) ON DELETE RESTRICT,
     FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT, 
@@ -178,10 +206,55 @@ CREATE TABLE reservations (
     remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NULL,
+    updated_by INT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
     FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT, 
     FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE RESTRICT
 );
 
+-- Payments table
+CREATE TABLE payments(
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    reference_number VARCHAR(100) UNIQUE NOT NULL,
+    payment_channel VARCHAR(100) NOT NULL, 
+    amount DECIMAL(10,2) NOT NULL,
+   
+    purpose VARCHAR(100) NOT NULL, 
+    image_link VARCHAR(255) NOT NULL, 
+    
+    -- Audit & Approvals
+    confirmed_office_staff INT NULL,
+    confirmed_ground_staff INT NULL,
+    remarks_payer TEXT,
+    remarks TEXT,
+    
+    -- Standard System Columns
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    
+    FOREIGN KEY (confirmed_office_staff) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (confirmed_ground_staff) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+CREATE TABLE photos(
+    photo_id INT AUTO_INCREMENT PRIMARY KEY,
+    image_link VARCHAR(255) NOT NULL,
+    remarks TEXT NOT NULL,
+        
+    -- Audit & Approvals
+    uploaded_by INT NULL,
+    
+    -- Standard System Columns
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    
+    FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE SET NULL
+); 
 
 -- ==========================================
 -- 4. PERFORMANCE INDEXES
@@ -254,3 +327,20 @@ ORDER BY
     END ASC,
     -- Within the Expired/Expiring groups, this sorts the oldest dates to the very top
     lease_expiration_date ASC;
+
+
+-- SOON I GUESS, COUNT THE ACTIVE IN THE GRAVES, HOW MANY THEY ARE??
+-- SELECT 
+--    g.grave_code,
+--    COUNT(i.interment_id) AS current_occupants
+-- FROM graves g
+-- LEFT JOIN interments i ON g.grave_id = i.grave_id AND i.status = 'Active' AND i.deleted_at IS NULL
+-- WHERE g.grave_id = 15  -- Assuming 15 is the ID of Grave 1A
+-- GROUP BY g.grave_id;
+
+
+-- CHECK IF THERE ARE ACTIVE BODIES IN THIS BLOCKS: IF GREATER THAN ZERO THEN IT HAS BODIES
+-- SELECT COUNT(i.interment_id) 
+-- FROM graves g
+-- JOIN interments i ON g.grave_id = i.grave_id
+-- WHERE g.block_id = 25 AND i.status = 'Active' AND i.deleted_at IS NULL;
