@@ -2,7 +2,7 @@
 -- ====================================================================================
 -- DATABASE SCHEMA: Memoria (Mandaue City Public Cemetery Management System)
 -- SITE: Mandaue City Public Cemetery
--- DESCRIPTION: Core operational database (Excludes financial transactions)
+-- DESCRIPTION: Core operational database [ (Excludes financial transactions) ????]
 -- ====================================================================================
 
 -- DROP DATABASE IF EXISTS memoria_db;
@@ -25,7 +25,11 @@ CREATE TABLE users (
     name VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL DEFAULT NULL
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    verified_by INT NULL,
+    updated_by INT NULL,
+    FOREIGN KEY (verified_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- INSERT INTO `users` (`user_id`, `username`, `role`, `status`, `email`, `phone_number`, `password_hash`, `name`, `created_at`, `updated_at`) VALUES (NULL, 'staff', 'Staff', 'Unverified', 'staff@gmail.com', '+639210985470', '$2y$10$jePgdcFYDoDy6etwAZHim.eWRiX6cEJdF2A6K0JtIi6nJ7AOQ7q4a', 'Admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -39,7 +43,12 @@ CREATE TABLE settings (
     setting_value TEXT,
     description VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by INT NULL,
+    created_by INT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- Initial Settings Setup or Sample
