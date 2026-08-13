@@ -43,6 +43,16 @@ ratelimit - must be fixed i guess....
 # LimitRequestBody 10485760
 ????
 
+Blocks & Graves = The physical map. (They never expire).
+
+Deceased & Contacts = The biological people. (They never expire).
+
+Interments = The 5-year event linking the Person to the Grave. (This is the ONLY thing that expires).
+LEASES WILL expire
 
 RECOMMENDATIONS / SOON FUTURE I GUESS:
 - Add photo/scan documents and attach it to the file or something...
+
+
+JS/ FRONTEND:
+ACCOUNT.HTML - ROLE: Administrator, Office Staff, Grounds Staff CHANGE TO HERE PLEASE

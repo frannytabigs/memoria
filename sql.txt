@@ -17,7 +17,7 @@
 CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT, 
     username VARCHAR(50) UNIQUE NOT NULL,
-    role ENUM('Administrator', 'Staff') NOT NULL DEFAULT 'Staff',
+    role ENUM('Administrator', 'Office Staff', 'Grounds Staff') NOT NULL DEFAULT 'Grounds Staff',
     status ENUM('Verified', 'Unverified') NOT NULL DEFAULT 'Unverified',
     email VARCHAR(255) UNIQUE NOT NULL,
     phone_number VARCHAR(20) UNIQUE NOT NULL,

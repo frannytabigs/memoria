@@ -218,7 +218,7 @@ class ImageManager {
 
         // 6. Prevent overwriting: If a file with this name exists, append a unique ID
         if (file_exists($destination)) {
-            $newName = $cleanName . '_' . uniqid() . '.' . $trueExt;
+            $newName = $cleanName . '_has_same_file_name_lol' . uniqid() . '.' . $trueExt;
             $destination = $this->uploadDir . $newName;
         }
 
