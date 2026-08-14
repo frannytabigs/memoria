@@ -68,21 +68,18 @@ if ($method === 'GET') {
         // Data Formatting & Scrubbing (Standardizing the JSON)
         // -----------------------------------------------------
         if ($isAuthorizedStaff && !empty($block['owner_name'])) {
-            // Group the flat owner columns into a clean nested object
             $block['owner_details'] = [
                 'name'               => $block['owner_name'],
                 'address'            => $block['owner_address'],
                 'barangay'           => $block['owner_barangay'],
                 'phone_number'       => $block['owner_phone'],
                 'email'              => $block['owner_email'],
-                'block_owner_remarks' => $block['owner_remarks']
+                'block_owner_remarks'=> $block['owner_remarks']
             ];
         }
 
-        // Always delete the messy flat columns from the root JSON object
         unset($block['owner_name'], $block['owner_address'], $block['owner_barangay'], $block['owner_phone'], $block['owner_email'], $block['owner_remarks']);
 
-        // Scrub remarks if unauthorized
         if (!$isAuthorizedStaff) {
             unset($block['block_remarks']);
         }
@@ -96,7 +93,8 @@ if ($method === 'GET') {
                 c.name AS contact_name, c.address AS contact_address, 
                 c.barangay AS contact_barangay, c.phone_number AS contact_phone, c.email_address AS contact_email, c.remarks AS contact_remarks,
                 r.reservation_id, r.expiration_date AS reservation_expiration, r.remarks AS reservation_remarks,
-                rc.name AS reserver_name, rc.phone_number AS reserver_phone
+                rc.name AS reserver_name, rc.phone_number AS reserver_phone,
+                rd.name AS reserved_deceased_name -- FIXED: Actually selecting the name here!
             FROM graves g
             LEFT JOIN interments i ON g.grave_id = i.grave_id AND i.status IN ('Active', 'Expired') AND i.deleted_at IS NULL
             LEFT JOIN deceased d ON i.deceased_id = d.deceased_id
@@ -126,13 +124,12 @@ if ($method === 'GET') {
                 if ($isAuthorizedStaff) {
                     $gravesMap[$gId]['grave_remarks'] = $row['grave_remarks'];
                     $gravesMap[$gId]['occupants'] = [];
-                    // $gravesMap[$gId]['reservation'] = null; // Default to null if no active reservation
+                    $gravesMap[$gId]['reservations'] = []; // FIXED: Initialized as an array
                 }
             }
             
             // Occupants list (Appends multiple bodies for Bone Chambers)
             if ($isAuthorizedStaff && !empty($row['interment_id'])) {
-                // Prevent duplicate bodies if a join multiplies the rows
                 $bodyExists = false;
                 foreach ($gravesMap[$gId]['occupants'] as $occ) {
                     if ($occ['interment_id'] === $row['interment_id']) $bodyExists = true;
@@ -147,33 +144,40 @@ if ($method === 'GET') {
                         'lease_expiration_date' => $row['lease_expiration_date'],
                         'deceased_remarks'      => $row['deceased_remarks'],
                         'contact_details'       => [
-                            'name'                   => $row['contact_name'],
-                            'address'                => $row['contact_address'],
-                            'barangay'               => $row['contact_barangay'],
-                            'phone_number'           => $row['contact_phone'],
-                            'email'                  => $row['contact_email'],
+                            'name'                     => $row['contact_name'],
+                            'address'                  => $row['contact_address'],
+                            'barangay'                 => $row['contact_barangay'],
+                            'phone_number'             => $row['contact_phone'],
+                            'email'                    => $row['contact_email'],
                             'deceased_contact_remarks' => $row['contact_remarks']
                         ]
                     ];
                 }
             }
 
-            // Reservation details (Only attaches if a reservation exists)
-            if ($isAuthorizedStaff && !empty($row['reservation_id']) && $gravesMap[$gId]['reservation'] === null) {
-                $gravesMap[$gId]['reservation'] = [
-                    'reservation_id'  => $row['reservation_id'],
-                    'reserver_name'   => $row['reserver_name'],
-                    'reserver_phone'  => $row['reserver_phone'],
-                    'expiration_date' => $row['reservation_expiration'],
-                    'reservation_remarks' => $row['reservation_remarks'],
-                    'reserved_for_deceased' => $row['reserved_deceased_name']
-                ];
+            // Reservations list (Appends multiple reservations for Bone Chambers)
+            if ($isAuthorizedStaff && !empty($row['reservation_id'])) {
+                $resExists = false;
+                foreach ($gravesMap[$gId]['reservations'] as $res) {
+                    if ($res['reservation_id'] === $row['reservation_id']) $resExists = true;
+                }
+
+                if (!$resExists) {
+                    $gravesMap[$gId]['reservations'][] = [
+                        'reservation_id'        => $row['reservation_id'],
+                        'reserver_name'         => $row['reserver_name'],
+                        'reserver_phone'        => $row['reserver_phone'],
+                        'expiration_date'       => $row['reservation_expiration'],
+                        'reservation_remarks'   => $row['reservation_remarks'],
+                        'reserved_for_deceased' => $row['reserved_deceased_name']
+                    ];
+                }
             }
         }
 
         $block['graves'] = array_values($gravesMap);
         Response::success("Block retrieved successfully", $block);
-    } 
+    }
     
    // SCENARIO B: Fetching all blocks (Grouped by Floor)
     $floorFilter = $_GET['floor_level'] ?? 1; // Defaults to 1 to limit resources
