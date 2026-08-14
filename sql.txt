@@ -108,7 +108,8 @@ CREATE TABLE deceased (
 CREATE TABLE blocks (
     block_id INT AUTO_INCREMENT PRIMARY KEY,
     block_name VARCHAR(100) UNIQUE NOT NULL, 
-    block_type ENUM('Niche Wall', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned'),
+    block_type ENUM('Niche Wall', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned', 'Mausoleum', 'Mass Grave'),
+    floor_level INT DEFAULT 1,
     total_rows INT,    
     total_columns INT, 
     grid_config JSON, -- Stores JSON defining row/col formats (alpha/numeric) and grid origin (top-left, bottom-left) for frontend rendering
@@ -134,7 +135,7 @@ CREATE TABLE graves (
     grave_code VARCHAR(50) UNIQUE, 
     row_num INT,         
     col_num INT,         
-    floor_level INT,     
+    -- floor_level INT,     REMOVED??
     status ENUM('Vacant', 'Occupied', 'Reserved', 'Pending Exhumation', 'Under Maintenance') DEFAULT 'Vacant', -- ENUM ('Merged') Removed for the future???
     -- merged_with_id INT,          REMOVED, FOR THE FUTURE I GUESS?? Self-referencing ID if walls are knocked down to combine graves
     -- FOR THE FUTURE??? coordinates JSON,            -- If stand alone or unmapped or something

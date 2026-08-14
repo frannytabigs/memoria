@@ -56,3 +56,7 @@ RECOMMENDATIONS / SOON FUTURE I GUESS:
 
 JS/ FRONTEND:
 ACCOUNT.HTML - ROLE: Administrator, Office Staff, Grounds Staff CHANGE TO HERE PLEASE
+
+Blocks:
+display in the map: api/blocks - returns all blocks
+when clicked api/blocks/[id] - shows all the graves
