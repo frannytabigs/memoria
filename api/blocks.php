@@ -103,6 +103,7 @@ if ($method === 'GET') {
             LEFT JOIN contacts c ON i.contact_id = c.contact_id
             LEFT JOIN reservations r ON g.grave_id = r.grave_id AND r.status = 'Active' AND r.deleted_at IS NULL
             LEFT JOIN contacts rc ON r.contact_id = rc.contact_id
+            LEFT JOIN deceased rd ON r.deceased_id = rd.deceased_id
             WHERE g.block_id = :id AND g.deleted_at IS NULL
             ORDER BY g.row_num ASC, g.col_num ASC
         ");
@@ -125,7 +126,7 @@ if ($method === 'GET') {
                 if ($isAuthorizedStaff) {
                     $gravesMap[$gId]['remarks'] = $row['grave_remarks'];
                     $gravesMap[$gId]['occupants'] = [];
-                    $gravesMap[$gId]['reservation'] = null; // Default to null if no active reservation
+                    // $gravesMap[$gId]['reservation'] = null; // Default to null if no active reservation
                 }
             }
             
@@ -163,7 +164,8 @@ if ($method === 'GET') {
                     'reserver_name'   => $row['reserver_name'],
                     'reserver_phone'  => $row['reserver_phone'],
                     'expiration_date' => $row['reservation_expiration'],
-                    'remarks'         => $row['reservation_remarks']
+                    'remarks'         => $row['reservation_remarks'],
+                    'reserved_for_deceased' => $row['reserved_deceased_name']
                 ];
             }
         }
