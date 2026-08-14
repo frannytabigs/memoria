@@ -113,7 +113,7 @@ CREATE TABLE blocks (
     total_rows INT,    
     total_columns INT, 
     grid_config JSON, -- Stores JSON defining row/col formats (alpha/numeric) and grid origin (top-left, bottom-left) for frontend rendering
-    max_capacity INT,
+    -- max_capacity INT, REMOVED
     area_sqm DECIMAL(10,2),
     owner_contact_id INT,        -- Links to contacts if a family owns a private mausoleum
     coordinates JSON,            -- For mapping visuals

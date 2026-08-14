@@ -30,17 +30,12 @@ function handleRateLimit($limit = 30, $period = 60) {
         file_put_contents($file, json_encode($data));
         
         require_once 'logs.php';
-        require_once 'checkuser.php';
+        //require_once 'checkuser.php';
 
         // FIX: Subtract Now from Blocked_Until to get a positive integer
         $remaining = $data['blocked_until'] - $now;
 
-        $userData = checkuser(false);
-        if ($userData) {
-            systemLog($userData['name'] . " (" . $userData['username'] . ") exceeded rate limit. $limit requests in $period seconds only please. $remaining seconds remaining.", $userData['user_id']); 
-        } else {
-            systemLog("Rate limit exceeded for IP: $userIp. $limit requests in $period seconds only please. $remaining seconds remaining.", "Not logged in user");
-        }
+        systemLog("Rate limit exceeded for IP: $userIp. $limit requests in $period seconds only please. $remaining seconds remaining.", "Rate Limit");
         
         Response::error("My apologies, please slow down, you are exhausting the system resources. Please try again later in " . $remaining . " seconds.", 429);
     }
