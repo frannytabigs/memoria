@@ -39,6 +39,12 @@ if ($isPublicEndpoint) {
     $userData = checkuser(); 
 }
 
+// --- HYBRID INPUT PARSER ---
+$formData = $_POST ?? [];
+$jsonStream = file_get_contents("php://input");
+$jsonData = json_decode($jsonStream, true) ?: []; 
+$rawData = array_merge($jsonData, $formData);
+
 // ==========================================
 // 1. GET: RETRIEVE RESOURCES
 // ==========================================
@@ -170,11 +176,11 @@ if ($method === 'POST') {
         Response::error("Forbidden: You are already logged in.", 403);
     }
 
-    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-    $name = isset($_POST['name']) ? trim($_POST['name']) : '';
-    $phone_number = isset($_POST['phone_number']) ? trim($_POST['phone_number']) : '';
-    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $email = isset($rawData['email']) ? trim($rawData['email']) : '';
+    $username = isset($rawData['username']) ? trim($rawData['username']) : '';
+    $name = isset($rawData['name']) ? trim($rawData['name']) : '';
+    $phone_number = isset($rawData['phone_number']) ? trim($rawData['phone_number']) : '';
+    $password = isset($rawData['password']) ? $rawData['password'] : '';
         
     // Username
     if (empty($username)) {
@@ -344,7 +350,7 @@ if ($method === 'PUT') {
     $updateFields = [];
     $queryParams = [];
 
-    $rawData = json_decode(file_get_contents("php://input"), true);
+    //$rawData = json_decode(file_get_contents("php://input"), true);
     // SCENARIO A: A user is editing their OWN account
     if ($userData['user_id'] === $targetId) {
         if (isset($rawData['name']) && trim($rawData['name']) !== '') {
