@@ -70,12 +70,12 @@ if ($method === 'GET') {
         if ($isAuthorizedStaff && !empty($block['owner_name'])) {
             // Group the flat owner columns into a clean nested object
             $block['owner_details'] = [
-                'name'         => $block['owner_name'],
-                'address'      => $block['owner_address'],
-                'barangay'     => $block['owner_barangay'],
-                'phone_number' => $block['owner_phone'],
-                'email'        => $block['owner_email'],
-                'remarks'      => $block['owner_remarks']
+                'name'               => $block['owner_name'],
+                'address'            => $block['owner_address'],
+                'barangay'           => $block['owner_barangay'],
+                'phone_number'       => $block['owner_phone'],
+                'email'              => $block['owner_email'],
+                'block_owner_remarks' => $block['owner_remarks']
             ];
         }
 
@@ -92,7 +92,7 @@ if ($method === 'GET') {
             SELECT 
                 g.grave_id, g.grave_code, g.row_num, g.col_num, g.status AS grave_status, g.remarks AS grave_remarks,
                 i.interment_id, i.control_number, i.date_buried, i.lease_expiration_date,
-                d.name AS deceased_name,
+                d.name AS deceased_name, d.remarks as deceased_remarks,
                 c.name AS contact_name, c.address AS contact_address, 
                 c.barangay AS contact_barangay, c.phone_number AS contact_phone, c.email_address AS contact_email, c.remarks AS contact_remarks,
                 r.reservation_id, r.expiration_date AS reservation_expiration, r.remarks AS reservation_remarks,
@@ -124,7 +124,7 @@ if ($method === 'GET') {
                 ];
                 
                 if ($isAuthorizedStaff) {
-                    $gravesMap[$gId]['remarks'] = $row['grave_remarks'];
+                    $gravesMap[$gId]['grave_remarks'] = $row['grave_remarks'];
                     $gravesMap[$gId]['occupants'] = [];
                     // $gravesMap[$gId]['reservation'] = null; // Default to null if no active reservation
                 }
@@ -145,13 +145,14 @@ if ($method === 'GET') {
                         'control_number'        => $row['control_number'],
                         'date_buried'           => $row['date_buried'],
                         'lease_expiration_date' => $row['lease_expiration_date'],
+                        'deceased_remarks'      => $row['deceased_remarks'],
                         'contact_details'       => [
-                            'name'         => $row['contact_name'],
-                            'address'      => $row['contact_address'],
-                            'barangay'     => $row['contact_barangay'],
-                            'phone_number' => $row['contact_phone'],
-                            'email'        => $row['contact_email'],
-                            'remarks'      => $row['contact_remarks']
+                            'name'                   => $row['contact_name'],
+                            'address'                => $row['contact_address'],
+                            'barangay'               => $row['contact_barangay'],
+                            'phone_number'           => $row['contact_phone'],
+                            'email'                  => $row['contact_email'],
+                            'deceased_contact_remarks' => $row['contact_remarks']
                         ]
                     ];
                 }
@@ -164,7 +165,7 @@ if ($method === 'GET') {
                     'reserver_name'   => $row['reserver_name'],
                     'reserver_phone'  => $row['reserver_phone'],
                     'expiration_date' => $row['reservation_expiration'],
-                    'remarks'         => $row['reservation_remarks'],
+                    'reservation_remarks' => $row['reservation_remarks'],
                     'reserved_for_deceased' => $row['reserved_deceased_name']
                 ];
             }
@@ -208,12 +209,12 @@ if ($method === 'GET') {
         
         if ($isAuthorizedStaff && !empty($b['owner_name'])) {
             $b['owner_details'] = [
-                'name'         => $b['owner_name'],
-                'address'      => $b['owner_address'],
-                'barangay'     => $b['owner_barangay'],
-                'phone_number' => $b['owner_phone'],
-                'email'        => $b['owner_email'],
-                'remarks'      => $b['owner_remarks']
+                'name'               => $b['owner_name'],
+                'address'            => $b['owner_address'],
+                'barangay'           => $b['owner_barangay'],
+                'phone_number'       => $b['owner_phone'],
+                'email'              => $b['owner_email'],
+                'block_owner_remarks' => $b['owner_remarks']
             ];
         }
         
