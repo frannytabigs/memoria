@@ -53,13 +53,18 @@ if ($userData) {
     Response::error("Already logged in as " . $userData['username'] . ". Try again, I logged you out", 400);
 }
 
-if (empty($_POST['username']) || empty($_POST['password'])) {
+// --- HYBRID INPUT PARSER ---
+$formData = $_POST ?? [];
+$jsonStream = file_get_contents("php://input");
+$jsonData = json_decode($jsonStream, true) ?: []; 
+$rawData = array_merge($jsonData, $formData);
+
+if (empty($rawData['username']) || empty($rawData['password'])) {
     Response::error("Username and password are required", 400);
 }
 
-
-$username = trim($_POST['username']);
-$password = $_POST['password'];
+$username = trim($rawData['username']);
+$password = $rawData['password'];
 
 try {
 
