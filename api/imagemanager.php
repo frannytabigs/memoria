@@ -32,8 +32,9 @@ class ImageManager {
             }
         }
 
-        // 3. Build the final URL
-        $this->baseUrl = $baseUrlPath ?? $protocol . '://' . $host . dirname($_SERVER['REQUEST_URI']) . '/images/';
+        // 3. Build the final URL (FIXED: Using SCRIPT_NAME instead of REQUEST_URI)
+        $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+        $this->baseUrl = $baseUrlPath ?? $protocol . '://' . $host . $scriptDir . '/images/';
         
         if (!is_dir($this->uploadDir)) {
             mkdir($this->uploadDir, 0755, true);

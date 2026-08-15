@@ -3,6 +3,7 @@
 require_once 'responses.php'; 
 require_once 'config.php';
 require_once 'database.php'; // MUST INCLUDE DATABASE CONNECTION
+require_once 'database_enums.php';
 
 // Manually require the JWT files IN THIS EXACT ORDER
 require_once 'jwt/JWTExceptionWithPayloadInterface.php';
@@ -52,12 +53,12 @@ function checkuser($force_exit = true) {
         $userData = (array) $decoded->data;
 
         // 5. REAL-TIME DATABASE VERIFICATION
-        $stmt = $pdo->prepare("SELECT status, role FROM users WHERE user_id = :id LIMIT 1");
+        $stmt = $pdo->prepare("SELECT status, role FROM users WHERE user_id = :id AND deleted_at is NULL LIMIT 1");
         $stmt->execute([':id' => $userData['user_id']]);
         $dbUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // If user was deleted or unverified by admin, kill the session
-        if (!$dbUser || $dbUser['status'] !== 'Verified') {
+        if (!$dbUser || $dbUser['status'] !== STATUS_VERIFIED) {
             setcookie('auth_token', '', time() - JWT_EXPIRATION, '/'); 
             if ($force_exit) {
                 Response::error("Account is unverified or restricted.", 401);

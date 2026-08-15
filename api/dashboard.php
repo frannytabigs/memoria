@@ -1,9 +1,7 @@
 <?php
 define('ITS_ME_JUSTTOVERIFY', true);
 
-// require_once 'responses.php';
 require_once 'checkuser.php';
-// require_once 'database.php'; // Ensure $pdo is initialized here
 
 // ==========================================
 // --- DASHBOARD VIEW LOGS ENDPOINT ---
@@ -16,29 +14,22 @@ if ($method !== 'GET') {
 }
 
 $userData = checkuser();
+$userRole = $userData['role'] ?? '';
 
-if ($userData['status'] !== 'Verified') {
-    Response::error("Unauthorized access. Your account is still not verified", 403);
+// Validate against allowed roles explicitly for Tier 1
+$allowedRoles = [ROLE_ADMIN, ROLE_OFFICE, ROLE_GROUNDS];
+if (!in_array($userRole, $allowedRoles)) {
+    Response::error("Unauthorized access", 403);
 }
 
-// 1. Verify they have a valid role before doing anything
-$allowedRoles = ['Administrator', 'Office Staff', 'Grounds Staff'];
-if (!in_array($userData['role'], $allowedRoles)) {
-    Response::error("Forbidden. Invalid role.", 403);
-}
-
-// Initialize the response array that we will dynamically build
+// Initialize the response array
 $dashboardData = [];
 
 // ==========================================
 // TIER 1: EVERYONE SEES THIS (Admin, Office, Grounds)
 // ==========================================
 
-// Available (Vacant) Graves
-$stmt = $pdo->query("SELECT COUNT(*) FROM graves WHERE status = 'Vacant' AND deleted_at IS NULL");
-$dashboardData['available_graves'] = (int)$stmt->fetchColumn();
-
-// Grave Status Distribution
+// Grave Status Distribution (Calculates all statuses in one pass)
 $stmt = $pdo->query("
     SELECT 
         category, COUNT(*) AS count
@@ -81,6 +72,8 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 }
 $dashboardData['grave_status_distribution'] = $graveDistribution;
 
+// Re-use the distribution result to get available graves without a second query
+$dashboardData['available_graves'] = $graveDistribution['Vacant'];
 
 // Expiring Leases Count
 $stmt = $pdo->query("
@@ -101,21 +94,21 @@ $stmt = $pdo->query("
     GROUP BY exp_month 
     ORDER BY exp_month ASC 
 ");
-$rawData = $stmt->fetchAll(PDO::FETCH_KEY_PAIR); 
+$rawData = $stmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: []; 
     
 $monthlyExpiration = [];
 $currentYear = date('Y');
     
 for ($m = 1; $m <= 12; $m++) {
     $monthKey = $currentYear . '-' . str_pad($m, 2, "0", STR_PAD_LEFT);
-    $monthlyExpiration[$monthKey] = isset($rawData[$monthKey]) ? (int)$rawData[$monthKey] : 0;
+    $monthlyExpiration[$monthKey] = (int)($rawData[$monthKey] ?? 0);
 }
 $dashboardData['monthly_lease_expiration'] = $monthlyExpiration;
 
 // ==========================================
 // TIER 2: OFFICE STAFF & ADMIN ONLY
 // ==========================================
-if (in_array($userData['role'], ['Administrator', 'Office Staff'])) {
+if (in_array($userRole, [ROLE_ADMIN, ROLE_OFFICE])) {
     
     // Total Interment Records
     $stmt = $pdo->query("SELECT COUNT(*) FROM interments WHERE deleted_at IS NULL");
@@ -140,7 +133,7 @@ if (in_array($userData['role'], ['Administrator', 'Office Staff'])) {
         ORDER BY i.lease_expiration_date ASC 
         LIMIT 5
     ");
-    $dashboardData['expired_leases'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $dashboardData['expired_leases'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
     // Expiring Leases List
     $stmt = $pdo->query("
@@ -161,35 +154,19 @@ if (in_array($userData['role'], ['Administrator', 'Office Staff'])) {
         ORDER BY i.lease_expiration_date ASC 
         LIMIT 5
     ");
-    $dashboardData['expiring_leases_list'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $dashboardData['expiring_leases_list'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
 // ==========================================
 // TIER 3: ADMINISTRATOR ONLY
 // ==========================================
-if ($userData['role'] === 'Administrator') {
+if ($userRole === ROLE_ADMIN) {
     // Unverified Accounts
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE status != :status AND deleted_at IS NULL");
     $stmt->execute(['status' => 'Verified']);
     $dashboardData['unverified_accounts'] = (int)$stmt->fetchColumn();
 }
 
-// ==========================================
-// TIER 4: SIMPLE PAYMENT CONFIRMATION COUNTS
-// ==========================================
-$unconfirmedPayments = [];
-
-$stmt = $pdo->query("SELECT COUNT(*) FROM payments WHERE confirmed_office_staff IS NULL AND deleted_at IS NULL");
-$unconfirmedPayments['office_staff'] = (int)$stmt->fetchColumn();
-
-$stmt = $pdo->query("SELECT COUNT(*) FROM payments WHERE confirmed_ground_staff IS NULL AND deleted_at IS NULL");
-$unconfirmedPayments['grounds_staff'] = (int)$stmt->fetchColumn();
-
-
-// Only attach the payments object to the dashboard if the user's role allows them to see it
-if (!empty($unconfirmedPayments)) {
-    $dashboardData['unconfirmed_payments'] = $unconfirmedPayments;
-}
 // Finally, output the perfectly tailored JSON payload
-Response::success($userData['role'] . " Dashboard data retrieved successfully", $dashboardData);
+Response::success($userRole . " Dashboard data retrieved successfully", $dashboardData);
 ?>

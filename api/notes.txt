@@ -60,3 +60,7 @@ ACCOUNT.HTML - ROLE: Administrator, Office Staff, Grounds Staff CHANGE TO HERE P
 Blocks:
 display in the map: api/blocks - returns all blocks
 when clicked api/blocks/[id] - shows all the graves
+
+If changing database
+users.php - the roles and statuses are in constant
+blocks.php - roles as well

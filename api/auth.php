@@ -19,13 +19,9 @@ use Firebase\JWT\Key;
 
 require_once 'checkuser.php';
 
-
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
 if ($method === 'DELETE') {
-    
-    // require_once 'checkuser.php';
-
     $userData = checkuser(false);
     if ($userData) {
         systemLog($userData['name'] . " (" . $userData['username'] . ") logged out", $userData['user_id']); 
@@ -36,9 +32,8 @@ if ($method === 'DELETE') {
 }
 
 if ($method === 'GET') {
-//    require_once 'checkuser.php';
    $userData = checkuser(); 
-   Response::success("Logged in", ["users" => [$userData]]);
+   Response::success("Logged in", ["user" => $userData]);
 }
 
 
@@ -54,10 +49,10 @@ if ($userData) {
 }
 
 // --- HYBRID INPUT PARSER ---
-$formData = $_POST ?? [];
-$jsonStream = file_get_contents("php://input");
-$jsonData = json_decode($jsonStream, true) ?: []; 
-$rawData = array_merge($jsonData, $formData);
+$rawData = array_merge(
+    json_decode(file_get_contents("php://input"), true) ?: [], 
+    $_POST ?? []
+);
 
 if (empty($rawData['username']) || empty($rawData['password'])) {
     Response::error("Username and password are required", 400);
@@ -68,7 +63,7 @@ $password = $rawData['password'];
 
 try {
 
-    $sql = "SELECT * FROM users WHERE username = :username LIMIT 1";
+    $sql = "SELECT * FROM users WHERE username = :username AND deleted_at is NULL LIMIT 1";
     $stmt = $pdo->prepare($sql);
     $stmt->bindParam(':username', $username, PDO::PARAM_STR);
     $stmt->execute();
@@ -78,7 +73,7 @@ try {
         
         unset($user['password_hash']);
 
-        if ($user['status'] !== 'Verified') {
+        if ($user['status'] !== STATUS_VERIFIED) {
             Response::error("Your account is not verified yet. Please wait for admin verification.", 403);
         }
 
