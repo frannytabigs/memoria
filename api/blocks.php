@@ -349,7 +349,7 @@ if ($method === 'POST') {
         }
 
         // 1. Insert Block
-        $stmt = $pdo->prepare("INSERT INTO blocks (block_name, block_type, floor_level, total_rows, total_columns, grid_config, owner_contact_id, created_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO blocks (block_name, block_type, floor_level, total_rows, total_columns, grid_config, owner_contact_id, created_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             trim($rawData['block_name']), 
             trim($rawData['block_type']), 
