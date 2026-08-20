@@ -188,7 +188,7 @@ if ($method === 'GET') {
         SELECT 
             b.block_id, b.block_name, b.block_type, b.floor_level, 
             b.total_rows, b.total_columns, b.area_sqm, b.remarks AS block_remarks,
-            c.contact_id AS owner_id, c.name AS owner_name, c.phone_number AS owner_phone,
+            c.contact_id AS owner_id, c.name AS owner_name, c.phone_number AS owner_phone, c.remarks AS contact_remarks,
             (SELECT COUNT(*) FROM graves g WHERE g.block_id = b.block_id AND g.deleted_at IS NULL) AS total_actual_graves,
             (SELECT COUNT(*) FROM graves g WHERE g.block_id = b.block_id AND g.status = 'Vacant' AND g.deleted_at IS NULL) AS vacant_graves
         FROM blocks b
@@ -225,7 +225,8 @@ if ($method === 'GET') {
             $cleanBlock['owner'] = [
                 'contact_id'   => $b['owner_id'],
                 'name'         => $b['owner_name'],
-                'phone_number' => $b['owner_phone']
+                'phone_number' => $b['owner_phone'],
+                'remarks' => $b['contact_remarks']
             ];
         }
 
@@ -263,6 +264,7 @@ $resolveContact = function($ownerData, $pdo, $userId) {
     $barangay = trim($ownerData['barangay'] ?? '');
     $phone = trim($ownerData['phone_number'] ?? '');
     $email = trim($ownerData['email_address'] ?? '');
+    $remarks_contact = trim($ownerData['remarks'] ?? '');
 
     if (empty($name)) {
         throw new Exception("Contact name is required when creating a new owner.", 400);
@@ -289,10 +291,10 @@ $resolveContact = function($ownerData, $pdo, $userId) {
 
     // 3. Create New Contact
     $insertStmt = $pdo->prepare("
-        INSERT INTO contacts (name, address, barangay, phone_number, email_address, created_by)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO contacts (name, address, barangay, phone_number, email_address, created_by, remarks)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ");
-    $insertStmt->execute([$name, $address, $barangay, $phone, $email, $userId]);
+    $insertStmt->execute([$name, $address, $barangay, $phone, $email, $userId, $remarks_contact]);
     return $pdo->lastInsertId();
 };
 
@@ -308,6 +310,7 @@ if ($method === 'POST') {
     $rows = (int)$rawData['total_rows'];
     $cols = (int)$rawData['total_columns'];
     $floorLevel = (int)($rawData['floor_level'] ?? 1);
+    $blockRemarks = isset($rawData['remarks']) ? trim($rawData['remarks']) : null;
     
     $gridConfig = $rawData['grid_config'] ?? [
         'row_format' => 'numeric', 
@@ -339,14 +342,15 @@ if ($method === 'POST') {
         }
 
         // 1. Insert Block
-        $stmt = $pdo->prepare("INSERT INTO blocks (block_name, block_type, floor_level, total_rows, total_columns, grid_config, owner_contact_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO blocks (block_name, block_type, floor_level, total_rows, total_columns, grid_config, owner_contact_id, created_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             trim($rawData['block_name']), 
             trim($rawData['block_type']), 
             $floorLevel, $rows, $cols, 
             json_encode($gridConfig),
             $ownerContactId,
-            $userData['user_id']
+            $userData['user_id'],
+            $blockRemarks
         ]);
         
         $blockId = $pdo->lastInsertId();
@@ -401,6 +405,7 @@ if ($method === 'PUT') {
     $newName = trim($rawData['block_name'] ?? $oldBlock['block_name']);
     $newType = trim($rawData['block_type'] ?? $oldBlock['block_type']);
     $newFloor = (int)($rawData['floor_level'] ?? $oldBlock['floor_level']);
+    $newRemarks = array_key_exists('remarks', $rawData) ? trim($rawData['remarks']) : $oldBlock['remarks'];
     
     $oldConfig = json_decode($oldBlock['grid_config'], true) ?: [];
     $newConfig = $rawData['grid_config'] ?? $oldConfig;
@@ -432,6 +437,7 @@ if ($method === 'PUT') {
         if ($newRows !== (int)$oldBlock['total_rows'] || $newCols !== (int)$oldBlock['total_columns']) $changes[] = "Grid size";
         if (json_encode($newConfig) !== json_encode($oldConfig)) $changes[] = "Grid naming config";
         if ($newOwnerId !== $oldBlock['owner_contact_id']) $changes[] = "Owner";
+        if ($newRemarks !== $oldBlock['remarks']) $changes[] = "Remarks";
 
         if (empty($changes)) {
             $pdo->rollBack();
@@ -496,10 +502,10 @@ if ($method === 'PUT') {
         // Update Block Record
         $updateStmt = $pdo->prepare("
             UPDATE blocks 
-            SET block_name = ?, block_type = ?, floor_level = ?, total_rows = ?, total_columns = ?, grid_config = ?, owner_contact_id = ?, updated_by = ?, updated_at = NOW() 
+            SET block_name = ?, block_type = ?, floor_level = ?, total_rows = ?, total_columns = ?, grid_config = ?, owner_contact_id = ?, updated_by = ?, updated_at = NOW(), remarks = ? 
             WHERE block_id = ?
         ");
-        $updateStmt->execute([$newName, $newType, $newFloor, $newRows, $newCols, json_encode($newConfig), $newOwnerId, $userData['user_id'], $resourceId]);
+        $updateStmt->execute([$newName, $newType, $newFloor, $newRows, $newCols, json_encode($newConfig), $newOwnerId, $userData['user_id'], $newRemarks, $resourceId]);
 
         $pdo->commit();
         systemLog($userData['name'] . " updated block ID: " . $resourceId, $userData['user_id']);
