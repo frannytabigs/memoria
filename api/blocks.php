@@ -10,15 +10,16 @@ $userData = checkuser(false);
 // ---------------------------------------------------------
 // 1. GATEKEEPER & PRIVACY CLEARANCE
 // ---------------------------------------------------------
-$role = $userData['role'] ?? null;
+// Used later in the script to show/hide private columns (like remarks)
+$isAuthorizedStaff = (isset($userData['role']) && in_array($userData['role'], [ROLE_ADMIN, ROLE_GROUNDS, ROLE_OFFICE]));
 
-// Define the two types of allowed access
-$isFullAccess = in_array($role, [ROLE_ADMIN, ROLE_OFFICE]);
-$isReadOnly   = ($role === ROLE_GROUNDS && $method === 'GET');
+// Used exclusively to lock down the modification endpoints
+$canModify = (isset($userData['role']) && in_array($userData['role'], [ROLE_ADMIN, ROLE_OFFICE]));
 
-// If the user has NEITHER of these permissions, kick them out
-if (!$isFullAccess && !$isReadOnly) {
-    Response::error("Forbidden. You do not have permission to perform this action.", 403);
+if (in_array($method, ['POST', 'PUT', 'DELETE'])) {
+    if (!$canModify) {
+        Response::error("Forbidden. You do not have permission to modify records.", 403);
+    }
 }
 
 // --- REST-ish ROUTING ---
