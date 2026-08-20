@@ -239,6 +239,63 @@ $rawData = array_merge(
     json_decode(file_get_contents("php://input"), true) ?: [], 
     $_POST ?? []
 );
+
+// ==========================================
+// CONTACT RESOLVER HELPER
+// ==========================================
+// Safely resolves or creates a contact inside an active database transaction.
+$resolveContact = function($ownerData, $pdo, $userId) {
+    if (!is_array($ownerData) || empty($ownerData)) return null;
+
+    // 1. Check by ID if provided
+    if (!empty($ownerData['contact_id'])) {
+        $stmt = $pdo->prepare("SELECT contact_id FROM contacts WHERE contact_id = ? AND deleted_at IS NULL");
+        $stmt->execute([$ownerData['contact_id']]);
+        $id = $stmt->fetchColumn();
+        if (!$id) {
+            throw new Exception("The provided contact_id does not exist or was deleted.", 400);
+        }
+        return $id;
+    }
+
+    $name = trim($ownerData['name'] ?? '');
+    $address = trim($ownerData['address'] ?? '');
+    $barangay = trim($ownerData['barangay'] ?? '');
+    $phone = trim($ownerData['phone_number'] ?? '');
+    $email = trim($ownerData['email_address'] ?? '');
+
+    if (empty($name)) {
+        throw new Exception("Contact name is required when creating a new owner.", 400);
+    }
+
+    // 2. Strict Deduplication Match
+    // IFNULL is used to safely match empty strings with NULL database values
+    $stmt = $pdo->prepare("
+        SELECT contact_id FROM contacts 
+        WHERE name = ? 
+          AND IFNULL(address, '') = ? 
+          AND IFNULL(barangay, '') = ? 
+          AND IFNULL(phone_number, '') = ? 
+          AND IFNULL(email_address, '') = ? 
+          AND deleted_at IS NULL
+        LIMIT 1
+    ");
+    $stmt->execute([$name, $address, $barangay, $phone, $email]);
+    $existingId = $stmt->fetchColumn();
+
+    if ($existingId) {
+        return $existingId;
+    }
+
+    // 3. Create New Contact
+    $insertStmt = $pdo->prepare("
+        INSERT INTO contacts (name, address, barangay, phone_number, email_address, created_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    $insertStmt->execute([$name, $address, $barangay, $phone, $email, $userId]);
+    return $pdo->lastInsertId();
+};
+
 // ==========================================
 // POST: CREATE BLOCK & AUTO-GENERATE GRAVES
 // ==========================================
@@ -262,7 +319,6 @@ if ($method === 'POST') {
         Response::error("Grid dimensions must be between 1 and 100", 400);
     }
 
-    // Helper: Turns 1 into A, 2 into B...
     $toAlpha = function($num) {
         $letter = '';
         while ($num > 0) {
@@ -276,13 +332,20 @@ if ($method === 'POST') {
     try {
         $pdo->beginTransaction();
 
+        // Resolve Contact nested inside the transaction
+        $ownerContactId = null;
+        if (!empty($rawData['owner'])) {
+            $ownerContactId = $resolveContact($rawData['owner'], $pdo, $userData['user_id']);
+        }
+
         // 1. Insert Block
-        $stmt = $pdo->prepare("INSERT INTO blocks (block_name, block_type, floor_level, total_rows, total_columns, grid_config, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO blocks (block_name, block_type, floor_level, total_rows, total_columns, grid_config, owner_contact_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             trim($rawData['block_name']), 
             trim($rawData['block_type']), 
             $floorLevel, $rows, $cols, 
             json_encode($gridConfig),
+            $ownerContactId,
             $userData['user_id']
         ]);
         
@@ -309,6 +372,11 @@ if ($method === 'POST') {
         systemLog($userData['name'] . " created block: " . $rawData['block_name'], $userData['user_id']);
         Response::success("Block and " . ($rows * $cols) . " graves generated successfully", ["block_id" => $blockId], 201);
 
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $code = $e->getCode() ?: 500;
+        if ($code == 400) Response::error($e->getMessage(), 400);
+        Response::error("Database error or missing data.", 500);
     } catch (PDOException $e) {
         $pdo->rollBack();
         if ($e->getCode() == 23000) Response::error("Block name already exists.", 409);
@@ -336,18 +404,7 @@ if ($method === 'PUT') {
     
     $oldConfig = json_decode($oldBlock['grid_config'], true) ?: [];
     $newConfig = $rawData['grid_config'] ?? $oldConfig;
-    
-    // Check for changes to prevent empty requests
-    $changes = [];
-    if ($newName !== $oldBlock['block_name']) $changes[] = "Name";
-    if ($newType !== $oldBlock['block_type']) $changes[] = "Type";
-    if ($newFloor !== (int)$oldBlock['floor_level']) $changes[] = "Floor level";
-    if ($newRows !== (int)$oldBlock['total_rows'] || $newCols !== (int)$oldBlock['total_columns']) $changes[] = "Grid size";
-    if (json_encode($newConfig) !== json_encode($oldConfig)) $changes[] = "Grid naming config";
 
-    if (empty($changes)) Response::error("No changes detected.", 400);
-
-    // Helper: Turns 1 into A, 2 into B...
     $toAlpha = function($num) {
         $letter = '';
         while ($num > 0) {
@@ -360,6 +417,26 @@ if ($method === 'PUT') {
 
     try {
         $pdo->beginTransaction();
+
+        // Resolve new owner first to accurately check for changes
+        $newOwnerId = $oldBlock['owner_contact_id'];
+        if (array_key_exists('owner', $rawData)) {
+            $newOwnerId = empty($rawData['owner']) ? null : $resolveContact($rawData['owner'], $pdo, $userData['user_id']);
+        }
+
+        // Check for changes to prevent empty requests
+        $changes = [];
+        if ($newName !== $oldBlock['block_name']) $changes[] = "Name";
+        if ($newType !== $oldBlock['block_type']) $changes[] = "Type";
+        if ($newFloor !== (int)$oldBlock['floor_level']) $changes[] = "Floor level";
+        if ($newRows !== (int)$oldBlock['total_rows'] || $newCols !== (int)$oldBlock['total_columns']) $changes[] = "Grid size";
+        if (json_encode($newConfig) !== json_encode($oldConfig)) $changes[] = "Grid naming config";
+        if ($newOwnerId !== $oldBlock['owner_contact_id']) $changes[] = "Owner";
+
+        if (empty($changes)) {
+            $pdo->rollBack();
+            Response::error("No changes detected.", 400);
+        }
 
         // SCENARIO 1: Shrinking Grid
         if ($newRows < $oldBlock['total_rows'] || $newCols < $oldBlock['total_columns']) {
@@ -419,15 +496,20 @@ if ($method === 'PUT') {
         // Update Block Record
         $updateStmt = $pdo->prepare("
             UPDATE blocks 
-            SET block_name = ?, block_type = ?, floor_level = ?, total_rows = ?, total_columns = ?, grid_config = ?, updated_by = ?, updated_at = NOW() 
+            SET block_name = ?, block_type = ?, floor_level = ?, total_rows = ?, total_columns = ?, grid_config = ?, owner_contact_id = ?, updated_by = ?, updated_at = NOW() 
             WHERE block_id = ?
         ");
-        $updateStmt->execute([$newName, $newType, $newFloor, $newRows, $newCols, json_encode($newConfig), $userData['user_id'], $resourceId]);
+        $updateStmt->execute([$newName, $newType, $newFloor, $newRows, $newCols, json_encode($newConfig), $newOwnerId, $userData['user_id'], $resourceId]);
 
         $pdo->commit();
         systemLog($userData['name'] . " updated block ID: " . $resourceId, $userData['user_id']);
         Response::success("Block updated successfully.", ["updated_fields" => $changes]);
 
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $code = $e->getCode() ?: 500;
+        if ($code == 400) Response::error($e->getMessage(), 400);
+        Response::error("Database error or missing data.", 500);
     } catch (PDOException $e) {
         $pdo->rollBack();
         if ($e->getCode() == 23000) Response::error("Conflict: Generated grave code already exists.", 409);
