@@ -10,7 +10,7 @@ $userData = checkuser();
 // ---------------------------------------------------------
 // 1. GATEKEEPER & PRIVACY CLEARANCE
 // ---------------------------------------------------------
-$role = $userData['role'] ?? null;
+$role = $userData['role'];
 
 // Define the two types of allowed access
 $isFullAccess = in_array($role, [ROLE_ADMIN, ROLE_OFFICE]);

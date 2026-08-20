@@ -18,7 +18,7 @@ if ($method === 'GET' ) {
     // This will exit with an error if not logged in
     
     // Strict Gatekeeper: Only Verified Admins
-    if (!$userData || $userData['role'] !== 'Administrator' || $userData['status'] !== 'Verified') {
+    if ($userData['role'] !== ROLE_ADMIN) {
         Response::error("Forbidden: Only administrators can view system logs", 403);
     }
     

@@ -7,7 +7,7 @@ require_once 'logs.php';
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
 // Allow checkuser to return null for public users (clients) without throwing an error
-$userData = checkuser(false) ?: []; 
+$userData = checkuser(false); 
 
 // ---------------------------------------------------------
 // 1. ROLE DEFINITIONS & GATEKEEPER

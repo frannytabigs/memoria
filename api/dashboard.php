@@ -14,7 +14,7 @@ if ($method !== 'GET') {
 }
 
 $userData = checkuser();
-$userRole = $userData['role'] ?? '';
+$userRole = $userData['role'];
 
 // Validate against allowed roles explicitly for Tier 1
 $allowedRoles = [ROLE_ADMIN, ROLE_OFFICE, ROLE_GROUNDS];
