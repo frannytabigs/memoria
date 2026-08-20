@@ -38,9 +38,10 @@ if ($method === 'GET') {
                 b.total_rows, b.total_columns, b.area_sqm, b.remarks AS block_remarks,
                 b.grid_config,
                 c.contact_id AS owner_id, c.name AS owner_name, c.address AS owner_address, 
-                c.barangay AS owner_barangay, c.phone_number AS owner_phone, c.email_address AS owner_email
+                c.barangay AS owner_barangay, c.phone_number AS owner_phone, c.email_address AS owner_email,
+                c.deleted_at AS owner_deleted_at
             FROM blocks b
-            LEFT JOIN contacts c ON b.owner_contact_id = c.contact_id AND c.deleted_at IS NULL
+            LEFT JOIN contacts c ON b.owner_contact_id = c.contact_id
             WHERE b.block_id = :id AND b.deleted_at IS NULL LIMIT 1
         ");
         $stmt->execute([':id' => $resourceId]);
@@ -72,7 +73,8 @@ if ($method === 'GET') {
                 'address'      => $blockRaw['owner_address'],
                 'barangay'     => $blockRaw['owner_barangay'],
                 'phone_number' => $blockRaw['owner_phone'],
-                'email'        => $blockRaw['owner_email']
+                'email'        => $blockRaw['owner_email'],
+                'is_archived'  => $blockRaw['owner_deleted_at'] !== null
             ];
         }
 
@@ -95,12 +97,12 @@ if ($method === 'GET') {
                 SELECT
                     i.grave_id, i.interment_id, i.control_number, i.date_buried, 
                     i.lease_expiration_date, i.remarks AS interment_remarks,
-                    d.deceased_id AS i_deceased_id, d.name AS i_deceased_name, d.sex AS i_deceased_sex,
-                    c.contact_id AS i_contact_id, c.name AS i_contact_name, c.phone_number AS i_contact_phone
+                    d.deceased_id AS i_deceased_id, d.name AS i_deceased_name, d.sex AS i_deceased_sex, d.deleted_at AS i_deceased_deleted,
+                    c.contact_id AS i_contact_id, c.name AS i_contact_name, c.phone_number AS i_contact_phone, c.deleted_at AS i_contact_deleted
                 FROM interments i
                 INNER JOIN graves g ON i.grave_id = g.grave_id
-                LEFT JOIN deceased d ON i.deceased_id = d.deceased_id AND d.deleted_at IS NULL
-                LEFT JOIN contacts c ON i.contact_id = c.contact_id AND c.deleted_at IS NULL
+                LEFT JOIN deceased d ON i.deceased_id = d.deceased_id
+                LEFT JOIN contacts c ON i.contact_id = c.contact_id
                 WHERE g.block_id = :id 
                 AND g.deleted_at IS NULL
                 AND i.deleted_at IS NULL
@@ -117,12 +119,14 @@ if ($method === 'GET') {
                     'deceased' => [
                         'deceased_id' => (int)$row['i_deceased_id'],
                         'name'        => $row['i_deceased_name'],
-                        'sex'         => $row['i_deceased_sex']
+                        'sex'         => $row['i_deceased_sex'],
+                        'is_archived' => $row['i_deceased_deleted'] !== null
                     ],
                     'contact' => [
                         'contact_id'   => (int)$row['i_contact_id'],
                         'name'         => $row['i_contact_name'],
-                        'phone_number' => $row['i_contact_phone']
+                        'phone_number' => $row['i_contact_phone'],
+                        'is_archived'  => $row['i_contact_deleted'] !== null
                     ]
                 ];
             }
@@ -130,12 +134,12 @@ if ($method === 'GET') {
             $reservationStmt = $pdo->prepare("
                 SELECT
                     r.grave_id, r.reservation_id, r.expiration_date AS reservation_expiration, r.remarks AS reservation_remarks,
-                    rc.contact_id AS r_contact_id, rc.name AS r_contact_name, rc.phone_number AS r_contact_phone,
-                    rd.deceased_id AS r_deceased_id, rd.name AS r_deceased_name
+                    rc.contact_id AS r_contact_id, rc.name AS r_contact_name, rc.phone_number AS r_contact_phone, rc.deleted_at AS r_contact_deleted,
+                    rd.deceased_id AS r_deceased_id, rd.name AS r_deceased_name, rd.deleted_at AS r_deceased_deleted
                 FROM reservations r
                 INNER JOIN graves g ON r.grave_id = g.grave_id
-                LEFT JOIN contacts rc ON r.contact_id = rc.contact_id AND rc.deleted_at IS NULL
-                LEFT JOIN deceased rd ON r.deceased_id = rd.deceased_id AND rd.deleted_at IS NULL
+                LEFT JOIN contacts rc ON r.contact_id = rc.contact_id
+                LEFT JOIN deceased rd ON r.deceased_id = rd.deceased_id
                 WHERE g.block_id = :id 
                 AND g.deleted_at IS NULL
                 AND r.deleted_at IS NULL
@@ -150,11 +154,13 @@ if ($method === 'GET') {
                     'reserver' => [
                         'contact_id'   => (int)$row['r_contact_id'],
                         'name'         => $row['r_contact_name'],
-                        'phone_number' => $row['r_contact_phone']
+                        'phone_number' => $row['r_contact_phone'],
+                        'is_archived'  => $row['r_contact_deleted'] !== null
                     ],
                     'reserved_for_deceased' => [
                         'deceased_id' => (int)$row['r_deceased_id'],
-                        'name'        => $row['r_deceased_name']
+                        'name'        => $row['r_deceased_name'],
+                        'is_archived' => $row['r_deceased_deleted'] !== null
                     ]
                 ];
             }
@@ -188,11 +194,11 @@ if ($method === 'GET') {
         SELECT 
             b.block_id, b.block_name, b.block_type, b.floor_level, 
             b.total_rows, b.total_columns, b.area_sqm, b.remarks AS block_remarks,
-            c.contact_id AS owner_id, c.name AS owner_name, c.phone_number AS owner_phone, c.remarks AS contact_remarks,
+            c.contact_id AS owner_id, c.name AS owner_name, c.phone_number AS owner_phone, c.remarks AS contact_remarks, c.deleted_at AS owner_deleted_at,
             (SELECT COUNT(*) FROM graves g WHERE g.block_id = b.block_id AND g.deleted_at IS NULL) AS total_actual_graves,
             (SELECT COUNT(*) FROM graves g WHERE g.block_id = b.block_id AND g.status = 'Vacant' AND g.deleted_at IS NULL) AS vacant_graves
         FROM blocks b
-        LEFT JOIN contacts c ON b.owner_contact_id = c.contact_id AND c.deleted_at IS NULL
+        LEFT JOIN contacts c ON b.owner_contact_id = c.contact_id
         WHERE b.deleted_at IS NULL
     ";
 
@@ -226,7 +232,8 @@ if ($method === 'GET') {
                 'contact_id'   => $b['owner_id'],
                 'name'         => $b['owner_name'],
                 'phone_number' => $b['owner_phone'],
-                'remarks' => $b['contact_remarks']
+                'remarks'      => $b['contact_remarks'],
+                'is_archived'  => $b['owner_deleted_at'] !== null
             ];
         }
 
@@ -318,8 +325,8 @@ if ($method === 'POST') {
         'prefix' => strtoupper(substr(trim($rawData['block_name']), 0, 3))
     ];
     
-    if ($rows < 1 || $cols < 1 || $rows > 100 || $cols > 100) {
-        Response::error("Grid dimensions must be between 1 and 100", 400);
+    if ($rows < 1 || $cols < 1 || $rows > 500 || $cols > 500) {
+        Response::error("Grid dimensions must be between 1 and 500", 400);
     }
 
     $toAlpha = function($num) {
