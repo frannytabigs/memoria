@@ -10,12 +10,15 @@ $userData = checkuser(false);
 // ---------------------------------------------------------
 // 1. GATEKEEPER & PRIVACY CLEARANCE
 // ---------------------------------------------------------
-$isAuthorizedStaff = (isset($userData['role']) && in_array($userData['role'], [ROLE_ADMIN, ROLE_GROUNDS, ROLE_OFFICE]));
+$role = $userData['role'] ?? null;
 
-if (in_array($method, ['POST', 'PUT', 'DELETE'])) {
-    if (!$isAuthorizedStaff) {
-        Response::error("Forbidden. You do not have permission to modify blocks.", 403);
-    }
+// Define the two types of allowed access
+$isFullAccess = in_array($role, [ROLE_ADMIN, ROLE_OFFICE]);
+$isReadOnly   = ($role === ROLE_GROUNDS && $method === 'GET');
+
+// If the user has NEITHER of these permissions, kick them out
+if (!$isFullAccess && !$isReadOnly) {
+    Response::error("Forbidden. You do not have permission to perform this action.", 403);
 }
 
 // --- REST-ish ROUTING ---
