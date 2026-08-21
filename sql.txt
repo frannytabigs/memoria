@@ -186,7 +186,7 @@ CREATE TABLE interments (
     clearance_date DATE,         
     lease_expiration_date DATE,  
     
-    status ENUM('Active', 'Expired', 'Exhumed', 'Moved to Family') DEFAULT 'Active',
+    status ENUM('Active', 'Expired', 'Exhumed', 'Moved to Family', 'Pending') DEFAULT 'Active',
     
     -- SIMPLIFIED SMS TRACKING
     sms_status ENUM('Not Sent', 'Warning Sent', 'Expired Notice Sent') DEFAULT 'Not Sent',
