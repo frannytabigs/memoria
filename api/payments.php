@@ -3,11 +3,13 @@ define('ITS_ME_JUSTTOVERIFY', true);
 
 require_once 'checkuser.php';
 require_once 'logs.php';
+require_once 'imagemanager.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
 // Allow checkuser to return null for public users (clients) without throwing an error
 $userData = checkuser(false); 
+$manager = new ImageManager();
 
 // ---------------------------------------------------------
 // 1. ROLE DEFINITIONS & GATEKEEPER
@@ -176,11 +178,36 @@ if ($method === 'POST') {
     $channel = trim($rawData['payment_channel'] ?? '');
     $amount  = trim($rawData['amount'] ?? 0);
     $purpose = trim($rawData['purpose'] ?? '');
-    $image   = trim($rawData['image_link'] ?? '');
+    $uploadedFilename = null;
 
-    if (empty($refNum) || empty($channel) || empty($amount) || empty($purpose) || empty($image)) {
-        Response::error("Reference number, channel, amount, purpose, and image link are required.", 400);
+    if (empty($refNum) || empty($channel) || empty($amount) || empty($purpose)) {
+        Response::error("Reference number, channel, amount, and purpose are required.", 400);
     }
+
+    if (!is_numeric($amount) || (float)$amount <= 0) {
+        Response::error("Amount must be a number greater than zero.", 400);
+    }
+
+    if (!isset($_FILES['image'])) {
+        Response::error('No photo included in the request.', 400);
+    }
+
+    if ($_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+        Response::error('An upload error occurred: ' . $_FILES['image']['error'] . '. Please try again.', 400);
+    }
+    $requestedName = $refNum . "_imagepayments_" . trim($_POST['filename'] ?? '');
+    $result = $manager->uploadImage(
+        $_FILES['image']['tmp_name'], 
+        $_FILES['image']['name'], 
+        $requestedName
+    );
+
+    if (!$result['success']) {
+        Response::error($result['error'], $result['status_code'] ?? 400);
+    }
+
+    $uploadedFilename = $result['filename'];
+    $image = $result['url'];
 
     try {
         $stmt = $pdo->prepare("
@@ -203,8 +230,17 @@ if ($method === 'POST') {
         Response::success("Payment proof submitted successfully. Pending office review.", ["payment_id" => $newId], 201);
 
     } catch (PDOException $e) {
+        if ($uploadedFilename !== null) {
+            $cleanupResult = $manager->deleteImage($uploadedFilename);
+            if (!$cleanupResult['success']) {
+                error_log("Could not clean up payment image {$uploadedFilename}: {$cleanupResult['error']}");
+                systemLog("Could not clean up payment image {$uploadedFilename}: {$cleanupResult['error']}","System");
+            }
+        }
+
         if ($e->getCode() == 23000) Response::error("Conflict: Reference number already exists.", 409);
-        Response::error("Database error while creating payment.", 500);
+        Response::error("Database error while creating payment. " . $e->getMessage(), 500);
+        systemLog("Error for payments: " . $e->getMessage(), "System");
     }
 }
 
