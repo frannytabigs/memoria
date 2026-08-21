@@ -64,3 +64,5 @@ when clicked api/blocks/[id] - shows all the graves
 If changing database
 users.php - the roles and statuses are in constant
 blocks.php - roles as well
+
+Co interments - in the records.html + or we can merge it using IDs

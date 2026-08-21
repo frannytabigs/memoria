@@ -445,14 +445,31 @@ if ($method === 'POST') {
         $deceasedId = $resolveDeceased($rawData['deceased'] ?? [], $pdo, $userData['user_id']);
         $contactId = !empty($rawData['contact']) ? $resolveContact($rawData['contact'], $pdo, $userData['user_id']) : null;
 
-        // 2. Validate Grave Status (Must be Vacant or Reserved by this family)
-        $graveStmt = $pdo->prepare("SELECT status FROM graves WHERE grave_id = ? AND deleted_at IS NULL FOR UPDATE");
+        // 2. Validate Grave Status (Smart Co-Interment Logic)
+        $graveStmt = $pdo->prepare("
+            SELECT g.status, b.block_type 
+            FROM graves g
+            LEFT JOIN blocks b ON g.block_id = b.block_id
+            WHERE g.grave_id = ? AND g.deleted_at IS NULL FOR UPDATE
+        ");
         $graveStmt->execute([$graveId]);
-        $graveStatus = $graveStmt->fetchColumn();
+        $graveInfo = $graveStmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$graveStatus) throw new Exception("Selected grave does not exist.", 404);
-        if ($graveStatus === 'Occupied') throw new Exception("Conflict: The selected grave is already occupied.", 409);
+        if (!$graveInfo) throw new Exception("Selected grave does not exist.", 404);
 
+        // If the grave is already occupied, we check if multiple occupants are allowed
+        if ($graveInfo['status'] === 'Occupied') {
+            
+            $isBoneChamber = in_array($graveInfo['block_type'], ['Bone Chamber', 'Mass Grave', 'Cluster']);
+            $isTransfer = ($assistanceType === 'Transfer' || $assistanceType === 'Other');
+            $isManualCoInterment = filter_var($rawData['is_co_interment'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            // If none of the co-interment conditions are met, block it!
+            if (!$isBoneChamber && (!$isTransfer && !$isManualCoInterment)) {
+                throw new Exception("Conflict: This grave is already occupied by an active interment. To add ashes or transferred bones here, please enable Co-Interment.", 409);
+            }
+        }
+        
         // 3. Insert Interment
         $stmt = $pdo->prepare("
             INSERT INTO interments (
@@ -526,6 +543,133 @@ if ($method === 'DELETE') {
         $pdo->rollBack();
         if ($e->getCode() == 404) Response::error($e->getMessage(), 404);
         Response::error("Database error.", 500);
+    }
+}
+
+// ==========================================
+// PUT: UPDATE INTERMENT (Fix Typos/Edit)
+// ==========================================
+if ($method === 'PUT') {
+    
+    // Only Admins and Office Staff can edit the master ledger
+    if (!$isFullAccess) {
+        Response::error("Forbidden. You do not have permission to edit records.", 403);
+    }
+    
+    if (!is_numeric($resourceId)) {
+        Response::error("Interment ID is required to perform an update.", 400);
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // 1. Verify the record exists and grab its linked IDs
+        $stmtCheck = $pdo->prepare("SELECT deceased_id, contact_id FROM interments WHERE interment_id = ? AND deleted_at IS NULL FOR UPDATE");
+        $stmtCheck->execute([$resourceId]);
+        $currentRecord = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+        if (!$currentRecord) throw new Exception("Interment record not found.", 404);
+
+        // 2. Update the main Interment table
+        $updateInterment = $pdo->prepare("
+            UPDATE interments SET 
+                control_number = COALESCE(?, control_number),
+                assistance_type = COALESCE(?, assistance_type),
+                assistance_other_remarks = COALESCE(?, assistance_other_remarks),
+                burial_permit_number = COALESCE(?, burial_permit_number),
+                burial_permit_date = COALESCE(?, burial_permit_date),
+                transfer_permit_number = COALESCE(?, transfer_permit_number),
+                transfer_permit_issued_by = COALESCE(?, transfer_permit_issued_by),
+                transfer_permit_date = COALESCE(?, transfer_permit_date),
+                exhumation_permit_number = COALESCE(?, exhumation_permit_number),
+                exhumation_permit_date = COALESCE(?, exhumation_permit_date),
+                date_buried = COALESCE(?, date_buried),
+                clearance_date = COALESCE(?, clearance_date),
+                lease_expiration_date = COALESCE(?, lease_expiration_date),
+                status = COALESCE(?, status),
+                remarks = COALESCE(?, remarks),
+                updated_by = ?,
+                updated_at = NOW()
+            WHERE interment_id = ?
+        ");
+        
+        $updateInterment->execute([
+            $rawData['control_number'] ?? null,
+            $rawData['assistance_type'] ?? null,
+            $rawData['assistance_other_remarks'] ?? null,
+            $rawData['burial_permit_number'] ?? null,
+            $rawData['burial_permit_date'] ?? null,
+            $rawData['transfer_permit_number'] ?? null,
+            $rawData['transfer_permit_issued_by'] ?? null,
+            $rawData['transfer_permit_date'] ?? null,
+            $rawData['exhumation_permit_number'] ?? null,
+            $rawData['exhumation_permit_date'] ?? null,
+            $rawData['date_buried'] ?? null,
+            $rawData['clearance_date'] ?? null,
+            $rawData['lease_expiration_date'] ?? null,
+            $rawData['status'] ?? null,
+            $rawData['remarks'] ?? null,
+            $userData['user_id'],
+            $resourceId
+        ]);
+
+        // 3. Update the nested Deceased data (if provided)
+        if (isset($rawData['deceased']) && is_array($rawData['deceased'])) {
+            $dec = $rawData['deceased'];
+            $updateDec = $pdo->prepare("
+                UPDATE deceased SET 
+                    name = COALESCE(?, name),
+                    sex = COALESCE(?, sex),
+                    date_of_birth = COALESCE(?, date_of_birth),
+                    date_of_death = COALESCE(?, date_of_death),
+                    death_certificate = COALESCE(?, death_certificate),
+                    remarks = COALESCE(?, remarks),
+                    updated_by = ?,
+                    updated_at = NOW()
+                WHERE deceased_id = ?
+            ");
+            $updateDec->execute([
+                $dec['name'] ?? null,
+                $dec['sex'] ?? null,
+                $dec['date_of_birth'] ?? null,
+                $dec['date_of_death'] ?? null,
+                $dec['death_certificate'] ?? null,
+                $dec['remarks'] ?? null,
+                $userData['user_id'],
+                $currentRecord['deceased_id']
+            ]);
+        }
+
+        // 4. Update the nested Contact data (if provided)
+        if (isset($rawData['contact']) && is_array($rawData['contact']) && $currentRecord['contact_id']) {
+            $con = $rawData['contact'];
+            $updateCon = $pdo->prepare("
+                UPDATE contacts SET 
+                    name = COALESCE(?, name),
+                    phone_number = COALESCE(?, phone_number),
+                    remarks = COALESCE(?, remarks),
+                    updated_by = ?,
+                    updated_at = NOW()
+                WHERE contact_id = ?
+            ");
+            $updateCon->execute([
+                $con['name'] ?? null,
+                $con['phone_number'] ?? null,
+                $con['remarks'] ?? null,
+                $userData['user_id'],
+                $currentRecord['contact_id']
+            ]);
+        }
+
+        $pdo->commit();
+        systemLog($userData['name'] . " edited interment ID: " . $resourceId, $userData['user_id']);
+        Response::success("Interment record updated successfully.");
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $code = $e->getCode() ?: 500;
+        if (in_array($code, [400, 404, 409])) Response::error($e->getMessage(), $code);
+        Response::error("Database error while updating the record.", 500);
     }
 }
 
