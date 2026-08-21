@@ -37,6 +37,4 @@ try {
     Response::error("Database connection failed", 500);
 }
 
-require_once 'ratelimit.php';
-
 ?>

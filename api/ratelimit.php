@@ -1,49 +1,145 @@
 <?php
 
-require_once 'notallowed.php';
+require_once 'responses.php';
+require_once 'config.php';
+require_once 'logs.php';
+require_once 'jwt/JWTExceptionWithPayloadInterface.php';
+require_once 'jwt/BeforeValidException.php';
+require_once 'jwt/ExpiredException.php';
+require_once 'jwt/SignatureInvalidException.php';
+require_once 'jwt/Key.php';
+require_once 'jwt/JWT.php';
 
-header('Content-Type: application/json');
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
-function handleRateLimit($limit = 30, $period = 60) {
-    $userIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    $hash = md5($userIp);
-    $cacheDir = __DIR__ . '/cache';
-    
-    if (!is_dir($cacheDir)) mkdir($cacheDir, 0777, true);
-    
-    $file = "$cacheDir/rate_$hash.json";
-    $now = time();
-    $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['requests' => [], 'blocked_until' => 0];
+function getRateLimitUser()
+{
+    $token = null;
+    $authHeader = '';
 
-    $data['requests'] = array_filter($data['requests'], fn($ts) => $ts > ($now - $period));
-    $currentUsage = count($data['requests']);
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $authHeader = trim($_SERVER['HTTP_AUTHORIZATION']);
+    } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $authHeader = trim($_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
+    }
 
-    header("X-RateLimit-Limit: $limit");
-    header("X-RateLimit-Remaining: " . max(0, $limit - $currentUsage - 1));
-    header("X-RateLimit-Reset: " . ($now + $period));
+    if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+        $token = $matches[1];
+    } elseif (isset($_COOKIE['auth_token'])) {
+        $token = $_COOKIE['auth_token'];
+    }
 
-    if ($now < $data['blocked_until'] || $currentUsage >= $limit) {
-        if ($data['blocked_until'] <= $now) {
-            $data['blocked_until'] = $now + $period;
+    if (!$token) {
+        return null;
+    }
+
+    try {
+        $decoded = JWT::decode($token, new Key(JWT_SECRET, JWT_ALGO));
+        $userData = (array) ($decoded->data ?? []);
+
+        if (!isset($userData['user_id'], $userData['username'])) {
+            return null;
         }
-        
-        file_put_contents($file, json_encode($data));
-        
-        require_once 'logs.php';
-        //require_once 'checkuser.php';
 
-        // FIX: Subtract Now from Blocked_Until to get a positive integer
-        $remaining = $data['blocked_until'] - $now;
+        return $userData;
+    } catch (Throwable $exception) {
+        return null;
+    }
+}
 
-        systemLog("Rate limit exceeded for IP: $userIp. $limit requests in $period seconds only please. $remaining seconds remaining.", "Rate Limit");
-        
-        Response::error("My apologies, please slow down, you are exhausting the system resources. Please try again later in " . $remaining . " seconds.", 429);
+function handleRateLimit($limit, $period, $bucket = 'default')
+{
+    $userIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN';
+    $route = $_SERVER['SCRIPT_NAME'] ?? 'unknown';
+    $bucketKey = hash('sha256', $userIp . '|' . $method . '|' . $route . '|' . $bucket);
+    $cacheDir = __DIR__ . '/cache';
+
+    if (!is_dir($cacheDir) && !mkdir($cacheDir, 0700, true) && !is_dir($cacheDir)) {
+        Response::error('Rate limiter is unavailable.', 503);
+    }
+
+    $file = $cacheDir . '/rate_' . $bucketKey . '.json';
+    $handle = fopen($file, 'c+');
+
+    if ($handle === false || !flock($handle, LOCK_EX)) {
+        if (is_resource($handle)) {
+            fclose($handle);
+        }
+        Response::error('Rate limiter is unavailable.', 503);
+    }
+
+    $contents = stream_get_contents($handle);
+    $data = json_decode($contents ?: '', true);
+    $now = time();
+
+    if (!is_array($data) || !isset($data['requests']) || !is_array($data['requests'])) {
+        $data = ['requests' => []];
+    }
+
+    $data['requests'] = array_values(array_filter(
+        $data['requests'],
+        static fn($timestamp) => is_int($timestamp) && $timestamp > ($now - $period)
+    ));
+    $currentUsage = count($data['requests']);
+    $resetAt = $currentUsage > 0 ? min($data['requests']) + $period : $now + $period;
+
+    header('X-RateLimit-Limit: ' . $limit);
+    header('X-RateLimit-Remaining: ' . max(0, $limit - $currentUsage - 1));
+    header('X-RateLimit-Reset: ' . $resetAt);
+
+    if ($currentUsage >= $limit) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+
+        $retryAfter = max(1, $resetAt - $now);
+        $rateLimitUser = getRateLimitUser();
+        $userId = $rateLimitUser['user_id'] ?? 'Unauthenticated';
+        $username = $rateLimitUser['username'] ?? 'Unauthenticated';
+
+        systemLog(
+            "Rate limit exceeded for IP: $userIp and username: $username. " .
+            "$limit requests in $period seconds. Retry in $retryAfter seconds.",
+            $userId
+        );
+
+        header('Retry-After: ' . $retryAfter);
+        Response::error("Too many requests. Please try again in $retryAfter seconds.", 429);
     }
 
     $data['requests'][] = $now;
-    file_put_contents($file, json_encode($data));
+    ftruncate($handle, 0);
+    rewind($handle);
+    fwrite($handle, json_encode($data, JSON_THROW_ON_ERROR));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
 }
 
-handleRateLimit(30, 60); // Limit to 30 requests per 60 seconds
+function applyDefaultRateLimit()
+{
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN';
+    $route = basename($_SERVER['SCRIPT_NAME'] ?? 'unknown');
+
+    if ($route === 'auth.php' && $method === 'POST') {
+        handleRateLimit(5, 900, 'login');
+        return;
+    }
+
+    if ($route === 'auth.php') {
+        handleRateLimit(60, 60, 'auth');
+        return;
+    }
+
+    if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        handleRateLimit(30, 60, 'write');
+        return;
+    }
+
+    handleRateLimit(120, 60, 'read');
+}
+
+applyDefaultRateLimit();
 
 ?>

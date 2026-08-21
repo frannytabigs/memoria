@@ -2,16 +2,17 @@
 // require_once 'notallowed.php';
 require_once 'responses.php'; 
 require_once 'config.php';
+require_once 'ratelimit.php';
 require_once 'database.php'; // MUST INCLUDE DATABASE CONNECTION
 require_once 'database_enums.php';
 
 // Manually require the JWT files IN THIS EXACT ORDER
-require_once 'jwt/JWTExceptionWithPayloadInterface.php';
-require_once 'jwt/BeforeValidException.php';
-require_once 'jwt/ExpiredException.php';
-require_once 'jwt/SignatureInvalidException.php';
-require_once 'jwt/Key.php';
-require_once 'jwt/JWT.php';
+// require_once 'jwt/JWTExceptionWithPayloadInterface.php';
+// require_once 'jwt/BeforeValidException.php';
+// require_once 'jwt/ExpiredException.php';
+// require_once 'jwt/SignatureInvalidException.php';
+// require_once 'jwt/Key.php';
+// require_once 'jwt/JWT.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
