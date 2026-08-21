@@ -44,7 +44,7 @@ if ($method === 'GET') {
 
         if (!$contact) Response::error("Contact not found", 404);
         
-        Response::success("Contact retrieved successfully", ["contact" => $contact]);
+        Response::success("Contact retrieved successfully", $contact);
     }
     
     // SCENARIO B: Fetch all records (Paginated & Search-Aware)
@@ -116,9 +116,20 @@ if ($method === 'GET') {
         'total_pages'   => $totalPages
     ];
 
+    if ($records === []){
+        Response::error("No records found matching the search criteria (" . $searchTerm . ")", 404);
+    }
+    if (!empty($searchTerm)){
+        Response::success("Records retrieved successfully", [
+            "search_term" => $searchTerm,
+            "pagination" => $paginationData,
+            "contacts"   => $records
+        ]);
+    }
+
     Response::success("Contacts retrieved successfully", [
-        "contacts"   => $records,
-        "pagination" => $paginationData
+        "pagination" => $paginationData,
+        "contacts"   => $records
     ]);
 }
 

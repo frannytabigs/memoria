@@ -276,7 +276,7 @@ if ($method === 'GET') {
         }
     }
 
-    Response::success("Grave retrieved successfully", ["grave" => $grave]);
+    Response::success("Grave retrieved successfully", $grave);
 }
 
 $rawData = array_merge(

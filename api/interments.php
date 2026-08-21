@@ -397,8 +397,14 @@ if ($method === 'GET') {
     if ($formattedInterments === []){
         Response::error("No records found matching the search criteria (" . $searchTerm . ")", 404);
     }
-    Response::success("Interments retrieved", [
+    if (!empty($searchTerm)){
+        Response::success("Interments retrieved", [
         "search_term" => $searchTerm,
+        "pagination" => $paginationData,
+        "interments" => $formattedInterments
+    ]);
+    }
+    Response::success("Interments retrieved", [
         "pagination" => $paginationData,
         "interments" => $formattedInterments
     ]);

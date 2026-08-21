@@ -44,7 +44,7 @@ if ($method === 'GET') {
 
         if (!$deceased) Response::error("Record not found", 404);
         
-        Response::success("Record retrieved successfully", ["deceased" => $deceased]);
+        Response::success("Record retrieved successfully", $deceased);
     }
     
     // SCENARIO B: Fetch all records (Paginated & Search-Aware)
@@ -115,6 +115,17 @@ if ($method === 'GET') {
         'total_records' => $totalRecords,
         'total_pages'   => $totalPages
     ];
+
+    if ($records === []){
+        Response::error("No records found matching the search criteria (" . $searchTerm . ")", 404);
+    }
+    if (!empty($searchTerm)){
+        Response::success("Records retrieved successfully", [
+            "search_term" => $searchTerm,
+            "pagination" => $paginationData,
+            "deceased"   => $records
+        ]);
+    }
 
     Response::success("Records retrieved successfully", [
         "pagination" => $paginationData,

@@ -105,6 +105,34 @@ for ($m = 1; $m <= 12; $m++) {
 }
 $dashboardData['monthly_lease_expiration'] = $monthlyExpiration;
 
+// Payment Summary
+$paymentWhere = "WHERE deleted_at IS NULL";
+$paymentParams = [];
+if ($userRole === ROLE_GROUNDS) {
+    $paymentWhere .= " AND confirmed_office_staff IS NOT NULL";
+}
+
+$stmt = $pdo->prepare("
+    SELECT
+        COUNT(*) AS total_count,
+        -- COALESCE(SUM(amount), 0) AS total_amount,
+        SUM(CASE WHEN confirmed_office_staff IS NULL THEN 1 ELSE 0 END) AS pending_office,
+        SUM(CASE WHEN confirmed_office_staff IS NOT NULL AND confirmed_ground_staff IS NULL THEN 1 ELSE 0 END) AS pending_grounds,
+        SUM(CASE WHEN confirmed_office_staff IS NOT NULL AND confirmed_ground_staff IS NOT NULL THEN 1 ELSE 0 END) AS completed
+    FROM payments
+    $paymentWhere
+");
+$stmt->execute($paymentParams);
+$paymentSummary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+$dashboardData['payments'] = [
+    'total_count' => (int)($paymentSummary['total_count'] ?? 0),
+    // 'total_amount' => (float)($paymentSummary['total_amount'] ?? 0),
+    'pending_office' => (int)($paymentSummary['pending_office'] ?? 0),
+    'pending_grounds' => (int)($paymentSummary['pending_grounds'] ?? 0),
+    'completed' => (int)($paymentSummary['completed'] ?? 0)
+];
+
 // ==========================================
 // TIER 2: OFFICE STAFF & ADMIN ONLY
 // ==========================================
