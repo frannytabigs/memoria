@@ -187,18 +187,101 @@ if ($method === 'GET') {
         }
 
         $block['graves'] = $gravesMap;
-        Response::success("Block retrieved successfully", ["block" => $block]);
+        Response::success("Block retrieved successfully", $block);
     }
     
     // SCENARIO B: Fetching all blocks overview (Grouped by Floor)
     $floorFilter = $_GET['floor_level'] ?? null; 
+    $searchTerm = trim((string)($_GET['search'] ?? ''));
+    $searchTerm = substr($searchTerm, 0, 100);
     $params = [];
+    $searchWhere = '';
+
+    if ($searchTerm !== '') {
+        $searchLike = '%' . $searchTerm . '%';
+        $searchWhere = "
+            AND (
+                CAST(b.block_id AS CHAR) LIKE ? OR
+                b.block_name LIKE ? OR
+                b.block_type LIKE ? OR
+                CAST(b.floor_level AS CHAR) LIKE ? OR
+                CAST(b.total_rows AS CHAR) LIKE ? OR
+                CAST(b.total_columns AS CHAR) LIKE ? OR
+                CAST(b.area_sqm AS CHAR) LIKE ? OR
+                b.remarks LIKE ? OR
+                c.name LIKE ? OR
+                c.address LIKE ? OR
+                c.barangay LIKE ? OR
+                c.phone_number LIKE ? OR
+                c.email_address LIKE ? OR
+                c.remarks LIKE ? OR
+                EXISTS (
+                    SELECT 1 FROM graves sg
+                    WHERE sg.block_id = b.block_id
+                    AND sg.deleted_at IS NULL
+                    AND (
+                        CAST(sg.grave_id AS CHAR) LIKE ? OR
+                        sg.grave_code LIKE ? OR
+                        CAST(sg.row_num AS CHAR) LIKE ? OR
+                        CAST(sg.col_num AS CHAR) LIKE ? OR
+                        sg.status LIKE ? OR
+                        sg.remarks LIKE ?
+                    )
+                ) OR
+                EXISTS (
+                    SELECT 1
+                    FROM interments si
+                    INNER JOIN graves sig ON si.grave_id = sig.grave_id
+                    LEFT JOIN deceased sid ON si.deceased_id = sid.deceased_id
+                    LEFT JOIN contacts sic ON si.contact_id = sic.contact_id
+                    WHERE sig.block_id = b.block_id
+                    AND sig.deleted_at IS NULL
+                    AND si.deleted_at IS NULL
+                    AND (
+                        CAST(si.interment_id AS CHAR) LIKE ? OR
+                        si.control_number LIKE ? OR
+                        si.status LIKE ? OR
+                        si.remarks LIKE ? OR
+                        sid.name LIKE ? OR
+                        sid.death_certificate LIKE ? OR
+                        sid.last_known_address LIKE ? OR
+                        sic.name LIKE ? OR
+                        sic.phone_number LIKE ? OR
+                        sic.email_address LIKE ?
+                    )
+                ) OR
+                EXISTS (
+                    SELECT 1
+                    FROM reservations sr
+                    INNER JOIN graves srg ON sr.grave_id = srg.grave_id
+                    LEFT JOIN deceased srd ON sr.deceased_id = srd.deceased_id
+                    LEFT JOIN contacts src ON sr.contact_id = src.contact_id
+                    WHERE srg.block_id = b.block_id
+                    AND srg.deleted_at IS NULL
+                    AND sr.deleted_at IS NULL
+                    AND (
+                        CAST(sr.reservation_id AS CHAR) LIKE ? OR
+                        sr.status LIKE ? OR
+                        sr.remarks LIKE ? OR
+                        srd.name LIKE ? OR
+                        src.name LIKE ? OR
+                        src.phone_number LIKE ? OR
+                        src.email_address LIKE ?
+                    )
+                )
+            )
+        ";
+        $params = array_fill(0, 37, $searchLike);
+    }
     
     $sql = "
         SELECT 
-            b.block_id, b.block_name, b.block_type, b.floor_level, 
-            b.total_rows, b.total_columns, b.area_sqm, b.remarks AS block_remarks,
-            c.contact_id AS owner_id, c.name AS owner_name, c.phone_number AS owner_phone, c.remarks AS contact_remarks, c.deleted_at AS owner_deleted_at,
+            b.block_id, b.block_name, b.block_type, b.floor_level,
+            b.total_rows, b.total_columns, b.area_sqm, b.grid_config, b.coordinates,
+            b.remarks AS block_remarks,
+            c.contact_id AS owner_id, c.name AS owner_name, c.address AS owner_address,
+            c.barangay AS owner_barangay, c.phone_number AS owner_phone, c.email_address AS owner_email,
+            c.remarks AS owner_remarks, c.deleted_at AS owner_deleted_at,
             (SELECT COUNT(*) FROM graves g WHERE g.block_id = b.block_id AND g.deleted_at IS NULL) AS total_actual_graves,
             (SELECT COUNT(*) FROM graves g WHERE g.block_id = b.block_id AND g.status = 'Vacant' AND g.deleted_at IS NULL) AS vacant_graves
         FROM blocks b
@@ -208,10 +291,16 @@ if ($method === 'GET') {
 
     if (is_numeric($floorFilter)) {
         $sql .= " AND b.floor_level = ?";
-        $params[] = (int)$floorFilter;
+        array_unshift($params, (int)$floorFilter);
     }
 
+    $sql .= $searchWhere;
+
     $sql .= " ORDER BY b.floor_level ASC, b.block_name ASC";
+
+    if ($searchTerm !== '') {
+        $sql .= " LIMIT 45";
+    }
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -220,9 +309,15 @@ if ($method === 'GET') {
     $groupedFloors = [];
     foreach ($blocks as $b) {
         $cleanBlock = [
-            'block_id'   => $b['block_id'],
-            'block_name' => $b['block_name'],
-            'block_type' => $b['block_type'],
+            'block_id'      => (int)$b['block_id'],
+            'block_name'    => $b['block_name'],
+            'block_type'    => $b['block_type'],
+            'floor_level'   => (int)$b['floor_level'],
+            'area_sqm'      => $b['area_sqm'],
+            'total_rows'    => (int)$b['total_rows'],
+            'total_columns' => (int)$b['total_columns'],
+            'grid_config'   => json_decode($b['grid_config'] ?? '{}', true),
+            'coordinates'   => json_decode($b['coordinates'] ?? '{}', true),
             'capacities' => [
                 'total_graves'  => $b['total_actual_graves'],
                 'vacant_graves' => $b['vacant_graves']
@@ -233,10 +328,13 @@ if ($method === 'GET') {
 
         if ($isAuthorizedStaff && !empty($b['owner_name'])) {
             $cleanBlock['owner'] = [
-                'contact_id'   => $b['owner_id'],
+                'contact_id'   => (int)$b['owner_id'],
                 'name'         => $b['owner_name'],
+                'address'      => $b['owner_address'],
+                'barangay'     => $b['owner_barangay'],
                 'phone_number' => $b['owner_phone'],
-                'remarks'      => $b['contact_remarks'],
+                'email'        => $b['owner_email'],
+                'remarks'      => $b['owner_remarks'],
                 'is_archived'  => $b['owner_deleted_at'] !== null
             ];
         }
@@ -244,7 +342,18 @@ if ($method === 'GET') {
         $groupedFloors[$b['floor_level']][] = $cleanBlock;
     }
 
-    Response::success("Blocks retrieved successfully", ["floors" => $groupedFloors]);
+    if (!empty($searchTerm)){
+        if ($groupedFloors === []){
+            Response::error("Nothing found in the blocks with the search criteria (". $searchTerm . ")",404);
+        }
+        Response::success("Blocks retrieved successfully", [
+            "search_term" => $searchTerm,
+            "floors" => $groupedFloors
+        ]);
+    }
+    Response::success("Blocks retrieved successfully", [
+        "floors" => $groupedFloors
+    ]);
 }
 
 $rawData = array_merge(

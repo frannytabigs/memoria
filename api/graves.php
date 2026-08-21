@@ -23,6 +23,147 @@ $pathInfo = $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
 $resourceId = array_shift($pathParts);
 
+if ($method === 'GET' && empty($resourceId)) {
+    $searchTerm = trim((string)($_GET['search'] ?? ''));
+    $searchTerm = substr($searchTerm, 0, 100);
+
+    if ($searchTerm === '') {
+        Response::error("A ?search= is required when searching graves. Or do graves/[grave_id]", 400);
+    }
+
+    $searchLike = '%' . $searchTerm . '%';
+    $searchParams = array_fill(0, 35, $searchLike);
+
+    $searchSql = "
+        SELECT DISTINCT
+            g.grave_id, g.grave_code, g.row_num, g.col_num,
+            g.status AS grave_status, g.remarks AS grave_remarks, g.block_id,
+            b.block_name
+        FROM graves g
+        INNER JOIN blocks b ON g.block_id = b.block_id
+        LEFT JOIN interments i ON i.grave_id = g.grave_id AND i.deleted_at IS NULL
+        LEFT JOIN deceased d ON i.deceased_id = d.deceased_id
+        LEFT JOIN contacts c ON i.contact_id = c.contact_id
+        LEFT JOIN reservations r ON r.grave_id = g.grave_id AND r.deleted_at IS NULL
+        LEFT JOIN deceased rd ON r.deceased_id = rd.deceased_id
+        LEFT JOIN contacts rc ON r.contact_id = rc.contact_id
+        WHERE g.deleted_at IS NULL
+        AND b.deleted_at IS NULL
+        AND (
+            CAST(g.grave_id AS CHAR) LIKE ? OR
+            g.grave_code LIKE ? OR
+            CAST(g.row_num AS CHAR) LIKE ? OR
+            CAST(g.col_num AS CHAR) LIKE ? OR
+            g.status LIKE ? OR
+            g.remarks LIKE ? OR
+            CAST(g.block_id AS CHAR) LIKE ? OR
+            b.block_name LIKE ? OR
+            b.block_type LIKE ? OR
+            b.remarks LIKE ? OR
+            CAST(i.interment_id AS CHAR) LIKE ? OR
+            i.control_number LIKE ? OR
+            i.status LIKE ? OR
+            i.remarks LIKE ? OR
+            CAST(d.deceased_id AS CHAR) LIKE ? OR
+            d.name LIKE ? OR
+            d.sex LIKE ? OR
+            CAST(d.date_of_birth AS CHAR) LIKE ? OR
+            CAST(d.date_of_death AS CHAR) LIKE ? OR
+            d.death_certificate LIKE ? OR
+            d.last_known_address LIKE ? OR
+            c.name LIKE ? OR
+            c.address LIKE ? OR
+            c.barangay LIKE ? OR
+            c.phone_number LIKE ? OR
+            c.email_address LIKE ? OR
+            c.remarks LIKE ? OR
+            CAST(r.reservation_id AS CHAR) LIKE ? OR
+            r.status LIKE ? OR
+            r.remarks LIKE ? OR
+            CAST(rd.deceased_id AS CHAR) LIKE ? OR
+            rd.name LIKE ? OR
+            rc.name LIKE ? OR
+            rc.phone_number LIKE ? OR
+            rc.email_address LIKE ?
+        )
+        ORDER BY b.block_name ASC, g.row_num ASC, g.col_num ASC
+        LIMIT 45
+    ";
+
+    $searchStmt = $pdo->prepare($searchSql);
+    $searchStmt->execute($searchParams);
+    $searchRows = $searchStmt->fetchAll(PDO::FETCH_ASSOC);
+    $searchGraves = [];
+
+    foreach ($searchRows as $row) {
+        $searchGrave = [
+            'grave_id'   => (int)$row['grave_id'],
+            'block_id'   => (int)$row['block_id'],
+            'block_name' => $row['block_name'],
+            'grave_code' => $row['grave_code'],
+            'status'     => $row['grave_status'],
+            'row_num'    => (int)$row['row_num'],
+            'col_num'    => (int)$row['col_num'],
+            'remarks'    => $isAuthorizedStaff ? $row['grave_remarks'] : null,
+            'interments' => [],
+            'reservations' => []
+        ];
+
+        if ($isAuthorizedStaff) {
+            $intermentStmt = $pdo->prepare("SELECT i.interment_id, i.control_number, i.date_buried, i.lease_expiration_date, i.remarks AS interment_remarks, d.deceased_id, d.name AS deceased_name, d.sex AS deceased_sex, c.contact_id, c.name AS contact_name, c.phone_number AS contact_phone FROM interments i LEFT JOIN deceased d ON i.deceased_id = d.deceased_id AND d.deleted_at IS NULL LEFT JOIN contacts c ON i.contact_id = c.contact_id AND c.deleted_at IS NULL WHERE i.grave_id = ? AND i.deleted_at IS NULL AND i.status IN ('Active', 'Expired')");
+            $intermentStmt->execute([$row['grave_id']]);
+            foreach ($intermentStmt->fetchAll(PDO::FETCH_ASSOC) as $interment) {
+                $searchGrave['interments'][] = [
+                    'interment_id' => (int)$interment['interment_id'],
+                    'control_number' => $interment['control_number'],
+                    'date_buried' => $interment['date_buried'],
+                    'lease_expiration_date' => $interment['lease_expiration_date'],
+                    'remarks' => $interment['interment_remarks'],
+                    'deceased' => [
+                        'deceased_id' => (int)$interment['deceased_id'],
+                        'name' => $interment['deceased_name'],
+                        'sex' => $interment['deceased_sex']
+                    ],
+                    'contact' => [
+                        'contact_id' => (int)$interment['contact_id'],
+                        'name' => $interment['contact_name'],
+                        'phone_number' => $interment['contact_phone']
+                    ]
+                ];
+            }
+
+            $reservationStmt = $pdo->prepare("SELECT r.reservation_id, r.expiration_date AS reservation_expiration, r.remarks AS reservation_remarks, rc.contact_id AS reserver_contact_id, rc.name AS reserver_name, rc.phone_number AS reserver_phone, rd.deceased_id AS reserved_deceased_id, rd.name AS reserved_deceased_name FROM reservations r LEFT JOIN contacts rc ON r.contact_id = rc.contact_id AND rc.deleted_at IS NULL LEFT JOIN deceased rd ON r.deceased_id = rd.deceased_id AND rd.deleted_at IS NULL WHERE r.grave_id = ? AND r.deleted_at IS NULL AND r.status = 'Active'");
+            $reservationStmt->execute([$row['grave_id']]);
+            foreach ($reservationStmt->fetchAll(PDO::FETCH_ASSOC) as $reservation) {
+                $searchGrave['reservations'][] = [
+                    'reservation_id' => (int)$reservation['reservation_id'],
+                    'expiration_date' => $reservation['reservation_expiration'],
+                    'remarks' => $reservation['reservation_remarks'],
+                    'reserver' => [
+                        'contact_id' => (int)$reservation['reserver_contact_id'],
+                        'name' => $reservation['reserver_name'],
+                        'phone_number' => $reservation['reserver_phone']
+                    ],
+                    'reserved_for_deceased' => [
+                        'deceased_id' => (int)$reservation['reserved_deceased_id'],
+                        'name' => $reservation['reserved_deceased_name']
+                    ]
+                ];
+            }
+        }
+
+        $searchGraves[] = $searchGrave;
+    }
+
+    if ($searchGraves === []){
+        Response::error("No graves found in the search criteria (" . $searchTerm . ")", 404);
+    }
+    Response::success("Graves search completed successfully", [
+        'search_term' => $searchTerm,
+        'graves' => $searchGraves
+    ]);
+}
+
 if (empty($resourceId) || !is_numeric($resourceId)) {
     Response::error("Valid Grave ID is required.", 400);
 }

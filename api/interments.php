@@ -113,6 +113,8 @@ if ($method === 'GET') {
     
     // Check for query parameter fallback
     $controlNumberQuery = $_GET['control_number'] ?? null;
+    $searchTerm = trim((string)($_GET['search'] ?? ''));
+    $searchTerm = substr($searchTerm, 0, 100);
     
     // SCENARIO A: Fetch single record by ID OR Control Number
     if (is_numeric($resourceId) || !empty($controlNumberQuery)) {
@@ -122,7 +124,7 @@ if ($method === 'GET') {
                 i.*, 
                 g.grave_code, g.remarks AS grave_remarks, 
                 b.block_name, b.block_id, b.remarks AS block_remarks, b.owner_contact_id,
-                d.name AS deceased_name, d.sex AS deceased_sex, d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted,
+                d.name AS deceased_name, d.sex AS deceased_sex, d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death,
                 c.name AS contact_name, c.phone_number AS contact_phone, c.remarks AS contact_remarks, c.deleted_at AS contact_deleted
             FROM interments i
             LEFT JOIN graves g ON i.grave_id = g.grave_id
@@ -154,7 +156,6 @@ if ($method === 'GET') {
             'interment_id'              => (int)$record['interment_id'],
             'control_number'            => $record['control_number'],
             'assistance_type'           => $record['assistance_type'],
-            'assistance_other_remarks'  => $record['assistance_other_remarks'],
             'burial_permit_number'      => $record['burial_permit_number'],
             'burial_permit_date'        => $record['burial_permit_date'],
             'transfer_permit_number'    => $record['transfer_permit_number'],
@@ -186,6 +187,8 @@ if ($method === 'GET') {
                 'name'        => $record['deceased_name'],
                 'sex'         => $record['deceased_sex'],
                 'remarks'     => $record['deceased_remarks'],
+                'death_certificate' => $record['death_certificate'],
+                'date_of_death'      => $record['date_of_death'],
                 'is_archived' => $record['deceased_deleted'] !== null
             ],
             
@@ -198,20 +201,83 @@ if ($method === 'GET') {
             ]
         ];
 
-        Response::success("Record retrieved", ["interment" => $nestedInterment]);
+        Response::success("Record retrieved", $nestedInterment);
     }
     
    // SCENARIO B: Overview query (Paginated & Error-Proofed)
     
-    // 1. Sanitize Limit (Hard cap at 500 to prevent memory crashes)
+    $searchWhere = '';
+    $searchParams = [];
+
+    if ($searchTerm !== '') {
+        $searchWhere = "
+            AND (
+                CAST(i.interment_id AS CHAR) LIKE ? OR
+                i.control_number LIKE ? OR
+                i.assistance_type LIKE ? OR
+                i.burial_permit_number LIKE ? OR
+                CAST(i.burial_permit_date AS CHAR) LIKE ? OR
+                i.transfer_permit_number LIKE ? OR
+                i.transfer_permit_issued_by LIKE ? OR
+                CAST(i.transfer_permit_date AS CHAR) LIKE ? OR
+                i.exhumation_permit_number LIKE ? OR
+                CAST(i.exhumation_permit_date AS CHAR) LIKE ? OR
+                CAST(i.date_buried AS CHAR) LIKE ? OR
+                CAST(i.clearance_date AS CHAR) LIKE ? OR
+                CAST(i.lease_expiration_date AS CHAR) LIKE ? OR
+                i.status LIKE ? OR
+                i.remarks LIKE ? OR
+                CAST(g.grave_id AS CHAR) LIKE ? OR
+                g.grave_code LIKE ? OR
+                g.status LIKE ? OR
+                g.remarks LIKE ? OR
+                CAST(b.block_id AS CHAR) LIKE ? OR
+                b.block_name LIKE ? OR
+                b.block_type LIKE ? OR
+                b.remarks LIKE ? OR
+                CAST(d.deceased_id AS CHAR) LIKE ? OR
+                d.name LIKE ? OR
+                d.sex LIKE ? OR
+                CAST(d.date_of_birth AS CHAR) LIKE ? OR
+                CAST(d.date_of_death AS CHAR) LIKE ? OR
+                d.death_certificate LIKE ? OR
+                d.last_known_address LIKE ? OR
+                d.remarks LIKE ? OR
+                CAST(c.contact_id AS CHAR) LIKE ? OR
+                c.name LIKE ? OR
+                c.address LIKE ? OR
+                c.barangay LIKE ? OR
+                c.phone_number LIKE ? OR
+                c.email_address LIKE ? OR
+                c.remarks LIKE ?
+            )
+        ";
+        $searchParams = array_fill(0, 38, '%' . $searchTerm . '%');
+    }
+
+    // 1. Sanitize Limit (Hard cap at 500, or 45 for search results)
     $rawLimit = $_GET['limit'] ?? 100;
     $limit = (is_numeric($rawLimit) && (int)$rawLimit > 0) ? (int)$rawLimit : 100;
-    $limit = min($limit, 500); 
+    $limit = min($limit, $searchTerm !== '' ? 45 : 500);
 
     // 2. Count Total Records First
-    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM interments WHERE deleted_at IS NULL");
-    $countStmt->execute();
+    $countSql = "
+        SELECT COUNT(*)
+        FROM interments i
+        LEFT JOIN graves g ON i.grave_id = g.grave_id
+        LEFT JOIN blocks b ON g.block_id = b.block_id
+        LEFT JOIN deceased d ON i.deceased_id = d.deceased_id
+        LEFT JOIN contacts c ON i.contact_id = c.contact_id
+        WHERE i.deleted_at IS NULL
+        $searchWhere
+    ";
+    $countStmt = $pdo->prepare($countSql);
+    $countStmt->execute($searchParams);
     $totalRecords = (int)$countStmt->fetchColumn();
+
+    if ($searchTerm !== '') {
+        $totalRecords = min($totalRecords, 45);
+    }
     
     // 3. Calculate Total Pages Safely (Avoid division by zero)
     $totalPages = $totalRecords > 0 ? (int)ceil($totalRecords / $limit) : 1;
@@ -233,25 +299,36 @@ if ($method === 'GET') {
     // 6. Fetch the Paginated Data
     $sql = "
         SELECT 
-            i.interment_id, i.control_number, i.date_buried, i.lease_expiration_date, i.status, i.remarks AS interment_remarks,
-            g.grave_code, g.remarks AS grave_remarks, g.grave_id, 
-            b.block_name, b.block_id, b.remarks AS block_remarks, 
-            d.name AS deceased_name, d.deceased_id, d.last_known_address, d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted,
-            c.name AS contact_name, c.phone_number AS contact_phone_number, c.email_address AS contact_email_address, c.contact_id, c.remarks AS contact_remarks, c.deleted_at AS contact_deleted
+            i.interment_id, i.control_number, i.assistance_type,
+            i.burial_permit_number, i.burial_permit_date,
+            i.transfer_permit_number, i.transfer_permit_issued_by, i.transfer_permit_date,
+            i.exhumation_permit_number, i.exhumation_permit_date,
+            i.date_buried, i.clearance_date, i.lease_expiration_date, i.status, i.remarks,
+            g.grave_code, g.grave_id, g.remarks AS grave_remarks,
+            b.block_name, b.block_id, b.owner_contact_id, b.remarks AS block_remarks,
+            d.name AS deceased_name, d.deceased_id, d.sex AS deceased_sex,
+            d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death,
+            c.name AS contact_name, c.phone_number AS contact_phone, c.contact_id,
+            c.remarks AS contact_remarks, c.deleted_at AS contact_deleted
         FROM interments i
         LEFT JOIN graves g ON i.grave_id = g.grave_id
         LEFT JOIN blocks b ON g.block_id = b.block_id
         LEFT JOIN deceased d ON i.deceased_id = d.deceased_id
         LEFT JOIN contacts c ON i.contact_id = c.contact_id
         WHERE i.deleted_at IS NULL
+        $searchWhere
         ORDER BY i.created_at DESC
-        LIMIT :limit OFFSET :offset
+        LIMIT ? OFFSET ?
     ";
     
     // Use bindValue so PDO treats these strictly as integers, not strings
     $stmt = $pdo->prepare($sql);
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $bindIndex = 1;
+    foreach ($searchParams as $searchParam) {
+        $stmt->bindValue($bindIndex++, $searchParam, PDO::PARAM_STR);
+    }
+    $stmt->bindValue($bindIndex++, $limit, PDO::PARAM_INT);
+    $stmt->bindValue($bindIndex, $offset, PDO::PARAM_INT);
     $stmt->execute();
     
     $rawInterments = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -262,10 +339,19 @@ if ($method === 'GET') {
         $formattedInterments[] = [
             'interment_id'          => (int)$row['interment_id'],
             'control_number'        => $row['control_number'],
+            'assistance_type'       => $row['assistance_type'],
+            'burial_permit_number'  => $row['burial_permit_number'],
+            'burial_permit_date'    => $row['burial_permit_date'],
+            'transfer_permit_number'    => $row['transfer_permit_number'],
+            'transfer_permit_issued_by' => $row['transfer_permit_issued_by'],
+            'transfer_permit_date'      => $row['transfer_permit_date'],
+            'exhumation_permit_number'  => $row['exhumation_permit_number'],
+            'exhumation_permit_date'    => $row['exhumation_permit_date'],
             'date_buried'           => $row['date_buried'],
+            'clearance_date'        => $row['clearance_date'],
             'lease_expiration_date' => $row['lease_expiration_date'],
             'status'                => $row['status'],
-            'remarks'               => $row['interment_remarks'],
+            'remarks'               => $row['remarks'],
             
             'grave' => [
                 'grave_id'   => (int)$row['grave_id'],
@@ -274,26 +360,28 @@ if ($method === 'GET') {
             ],
             
             'block' => [
-                'block_id'   => (int)$row['block_id'],
-                'block_name' => $row['block_name'],
-                'remarks'    => $row['block_remarks']
+                'block_id'         => (int)$row['block_id'],
+                'block_name'       => $row['block_name'],
+                'owner_contact_id' => $row['owner_contact_id'] ? (int)$row['owner_contact_id'] : null,
+                'remarks'          => $row['block_remarks']
             ],
             
             'deceased' => [
-                'deceased_id'        => (int)$row['deceased_id'],
-                'name'               => $row['deceased_name'],
-                'last_known_address' => $row['last_known_address'],
-                'remarks'            => $row['deceased_remarks'],
-                'is_archived'        => $row['deceased_deleted'] !== null
+                'deceased_id'       => (int)$row['deceased_id'],
+                'name'              => $row['deceased_name'],
+                'sex'               => $row['deceased_sex'],
+                'remarks'           => $row['deceased_remarks'],
+                'death_certificate' => $row['death_certificate'],
+                'date_of_death'     => $row['date_of_death'],
+                'is_archived'       => $row['deceased_deleted'] !== null
             ],
             
             'contact' => [
-                'contact_id'    => (int)$row['contact_id'],
-                'name'          => $row['contact_name'],
-                'phone_number'  => $row['contact_phone_number'],
-                'email_address' => $row['contact_email_address'],
-                'remarks'       => $row['contact_remarks'],
-                'is_archived'   => $row['contact_deleted'] !== null
+                'contact_id'   => (int)$row['contact_id'],
+                'name'         => $row['contact_name'],
+                'phone_number' => $row['contact_phone'],
+                'remarks'      => $row['contact_remarks'],
+                'is_archived'  => $row['contact_deleted'] !== null
             ]
         ];
     }
@@ -305,8 +393,12 @@ if ($method === 'GET') {
         'total_records' => $totalRecords,
         'total_pages'   => $totalPages
     ];
-
+    
+    if ($formattedInterments === []){
+        Response::error("No records found matching the search criteria (" . $searchTerm . ")", 404);
+    }
     Response::success("Interments retrieved", [
+        "search_term" => $searchTerm,
         "pagination" => $paginationData,
         "interments" => $formattedInterments
     ]);

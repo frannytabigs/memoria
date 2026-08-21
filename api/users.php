@@ -38,7 +38,7 @@ if ($method === 'GET') {
     // SCENARIO A: GET /users.php/me (Get own profile)
     if ($resourceId === 'me' || (string)$resourceId === (string)$userData['user_id']) {
         systemLog("{$userData['name']} ({$userData['username']}) retrieved their own profile", $userData['user_id']);
-        Response::success("Profile retrieved", ["users" => [$userData]]);
+        Response::success("Profile retrieved", $userData);
     }
 
     // Admin authorization check for remaining GET routes
@@ -79,7 +79,7 @@ if ($method === 'GET') {
         if ($users) {
             Response::success("Search results retrieved", ["users" => $users, "search_term" => $searchRaw]);
         }
-        Response::error("No users found matching the search criteria", 404);
+        Response::error("No users found matching the search criteria (" . $searchRaw . ")", 404);
     }
 
     // SCENARIO C: GET /users.php/{id} (Get specific user)
@@ -90,7 +90,7 @@ if ($method === 'GET') {
 
         if ($user) {
             systemLog("{$userData['name']} ({$userData['username']}) retrieved profile of user ID {$resourceId}", $userData['user_id']);
-            Response::success("User retrieved successfully", ["users" => [$user]]);
+            Response::success("User retrieved successfully", $user);
         }
         Response::error("User not found", 404);
     }
