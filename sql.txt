@@ -2,7 +2,7 @@
 -- ====================================================================================
 -- DATABASE SCHEMA: Memoria (Mandaue City Public Cemetery Management System)
 -- SITE: Mandaue City Public Cemetery
--- DESCRIPTION: Core operational database [ (Excludes financial transactions) ????]
+-- DESCRIPTION: Core operational database
 -- ====================================================================================
 
 -- DROP DATABASE IF EXISTS memoria_db;
@@ -110,7 +110,7 @@ CREATE TABLE deceased (
 CREATE TABLE blocks (
     block_id INT AUTO_INCREMENT PRIMARY KEY,
     block_name VARCHAR(100) UNIQUE NOT NULL, 
-    block_type ENUM('Niche Wall', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned', 'Mausoleum', 'Mass Grave'),
+    block_type ENUM('Niche', 'Bone Chamber', 'Lawn/Grounds', 'Unmapped Area', 'Private/Owned', 'Mausoleum', 'Mass Grave', 'Cluster', 'Block'),
     floor_level INT DEFAULT 1,
     total_rows INT,    
     total_columns INT, 
@@ -169,7 +169,7 @@ CREATE TABLE interments (
     
     -- Document Checkboxes
     assistance_type ENUM('Burial', 'Transfer', 'Other') NOT NULL DEFAULT 'Burial',
-    assistance_other_remarks VARCHAR(255), 
+    -- assistance_other_remarks VARCHAR(255), 
     
     -- Required Document Tracking
     burial_permit_number VARCHAR(100),
