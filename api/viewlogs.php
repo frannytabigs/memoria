@@ -25,7 +25,7 @@ if ($method === 'GET' ) {
     // Read the logs using the function defined above
     $logs = readLogs();
     
-    Response::success("Logs retrieved successfully", ["logs" => $logs]);
+    Response::success("Logs retrieved successfully", $logs);
 }
 
 Response::error("Method not allowed", 405); // Only GET is allowed here
