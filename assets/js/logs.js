@@ -24,8 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("api/viewlogs");
       const result = await response.json();
 
-      if (result.success && result.data && result.data.logs) {
-        setTimeout(() => renderLogs(result.data.logs), 1000); // This will overwrite the skeletons
+      if (result.success && result.data) {
+        setTimeout(() => renderLogs(result.data), 1000); // This will overwrite the skeletons
       } else {
         setTimeout(() => renderLogs(["No logs available."]), 1000);
       }
