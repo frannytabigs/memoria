@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       contentType.includes("application/json")
     ) {
       window.location.href = "dashboard.html";
+    }
+    if (response.status === 429) {
+      console.warn("Too many request.");
     } else {
       console.warn(
         "Static server detected or API failed. Staying on the page.",

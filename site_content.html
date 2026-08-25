@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="Management system for the Cemetery. Locate plots, monitor leases, and manage notifications."
+    />
+    <meta content="/" property="og:url" />
+    <meta property="og:site_name" content="Memoria" />
+    <meta content="#2f3136" name="theme-color" />
+    <meta name="author" content="Team DND" />
+    <meta property="og:title" content="Memoria | Cemetery Management System" />
+    <meta
+      property="og:description"
+      content="Efficiently manage and locate records within the Cemetery."
+    />
+    <meta
+      property="og:image"
+      content="https://static.wikia.nocookie.net/reborn/images/6/67/Sky_Ring_Battle.PNG/revision/latest?cb=20120422065712"
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="robots" content="index, follow" />
+    <meta name="geo.region" content="PH-CEB" />
+    <meta name="geo.placename" content="Mandaue City" />
+    <title>Records</title>
+
+    <link rel="stylesheet" href="assets/css/root.css" />
+    <link
+      rel="stylesheet"
+      href="api/rootcolors.php"
+      onerror="
+        console.error('Failed to load custom colors. Using default theme.')
+      "
+    />
+    <link rel="stylesheet" href="assets/css/sidebar.css" />
+    <link rel="stylesheet" href="assets/css/site_content.css" />
+
+    <!-- FONT & ICONS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+
+    <script>
+      // Run this instantly before the page paints
+      if (localStorage.getItem("memoria_role") === "Administrator") {
+        document.documentElement.classList.add("role-admin");
+      }
+      if (localStorage.getItem("memoria_role") === "Office Staff") {
+        document.documentElement.classList.add("role-office");
+      }
+      if (localStorage.getItem("memoria_role") === "Grounds Staff") {
+        document.documentElement.classList.add("role-grounds");
+      }
+    </script>
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="sidebarTop">
+        <div class="memoriaLogo" id="logoToggle">
+          <img
+            id="cemetery-logo"
+            src="api/images/cemetery_logo.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MemoriaLogo.png';
+            "
+            alt="Memoria Logo"
+            class="fullLogo"
+          />
+          <img
+            id="cemetery-logo-small"
+            src="api/images/cemetery_logo_small.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MLogo.png';
+            "
+            alt="M Logo"
+            class="collapsedLogo"
+          />
+        </div>
+        <div class="sidebarDateTime" id="dateTimeDisplay"></div>
+      </div>
+
+      <div class="sidebarNav">
+        <div class="sidebarSection">Main</div>
+        <a href="dashboard.html" class="menu"
+          ><i class="fas fa-chart-pie"></i><span>Dashboard</span></a
+        >
+        <a href="records.html" class="menu admin-office-only"
+          ><i class="fas fa-folder-open"></i><span>Records</span></a
+        >
+        <a href="map.html" class="menu admin-office-only"
+          ><i class="fas fa-map"></i><span>Map</span></a
+        >
+
+        <div class="sidebarSection">Management</div>
+        <a href="reserve.html" class="menu"
+          ><i class="fas fa-thumbtack"></i><span>Reserve</span></a
+        >
+        <a href="monitor.html" class="menu admin-office-only"
+          ><i class="fas fa-bell"></i><span>Monitor</span></a
+        >
+        <a href="payments.html" class="menu"
+          ><i class="fa-solid fa-receipt"></i><span>Payments</span></a
+        >
+        <a href="accounts.html" class="menu adminOnly"
+          ><i class="fas fa-user"></i><span>Accounts</span></a
+        >
+        <a href="reports.html" class="menu admin-office-only"
+          ><i class="fas fa-file-alt"></i><span>Reports</span></a
+        >
+
+        <div class="sidebarSection">System</div>
+        <a href="site_content.html" class="menu admin-office-only active"
+          ><i class="fa-solid fa-pen-to-square"></i><span>Site Content</span></a
+        >
+        <a href="logs.html" class="menu adminOnly"
+          ><i class="fas fa-history"></i><span>Logs</span></a
+        >
+        <a href="settings.html" class="menu"
+          ><i class="fas fa-cog"></i><span>Settings</span></a
+        >
+      </div>
+
+      <div class="sidebarFooter">
+        <div class="userCard">
+          <div class="userAvatar">
+            <div class="avatarBox" id="usernameLogo"></div>
+            <div class="statusIndicator"></div>
+          </div>
+          <div class="userDetails">
+            <span class="username" id="usernameLabel"></span>
+            <span class="userRole" id="roleLabel"></span>
+          </div>
+          <button class="logout"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="siteContentWrapper">
+        <form id="siteContentForm" onsubmit="return false;">
+          <div class="formCard">
+            <h3>Header Logos</h3>
+            <div class="logoGrid">
+              <div class="logoField">
+                <label>City Logo</label>
+                <div class="logoPreviewBox">
+                  <img
+                    id="previewCityLogo"
+                    src="assets/images/MandaueLogo.png"
+                    alt="City Logo Preview"
+                  />
+                </div>
+                <input
+                  type="file"
+                  id="uploadCityLogo"
+                  accept="image/*"
+                  onchange="previewImage(this, 'previewCityLogo')"
+                />
+              </div>
+
+              <div class="logoField">
+                <label>Department Logo</label>
+                <div class="logoPreviewBox">
+                  <img
+                    id="previewDeptLogo"
+                    src="assets/images/DGSLogo.png"
+                    alt="Department Logo Preview"
+                  />
+                </div>
+                <input
+                  type="file"
+                  id="uploadDeptLogo"
+                  accept="image/*"
+                  onchange="previewImage(this, 'previewDeptLogo')"
+                />
+              </div>
+
+              <div class="logoField">
+                <label>Memoria Banner Logo</label>
+                <div class="logoPreviewBox">
+                  <img
+                    id="previewMemoriaLogo"
+                    src="assets/images/MemoriaLogo.png"
+                    alt="Memoria Logo Preview"
+                  />
+                </div>
+                <input
+                  type="file"
+                  id="uploadMemoriaLogo"
+                  accept="image/*"
+                  onchange="previewImage(this, 'previewMemoriaLogo')"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="formCard">
+            <h3>Header Titles</h3>
+            <div class="formGroup">
+              <label for="deptTitle">Main Department Title</label>
+              <input
+                type="text"
+                id="deptTitle"
+                value="Department of General Services"
+              />
+            </div>
+            <div class="formGroup">
+              <label for="cemeteryTitle">Cemetery Title</label>
+              <input
+                type="text"
+                id="cemeteryTitle"
+                value="Mandaue City Public Cemetery"
+              />
+            </div>
+          </div>
+
+          <div class="formCard">
+            <h3>Address & Links</h3>
+            <div class="formGroup">
+              <label for="cemeteryAddress">Cemetery Address</label>
+              <textarea id="cemeteryAddress" rows="2">
+Mandaue City Public Cemetery, Omeña St, Guizo, Mandaue City, Cebu, Philippines, 6014</textarea
+              >
+            </div>
+            <div class="formGroup">
+              <label for="officeAddress">Office Address</label>
+              <textarea id="officeAddress" rows="2">
+Department of General Services, Mandaue City Hall Compound, Centro, Mandaue City, Philippines, 6014</textarea
+              >
+            </div>
+            <div class="formGroup">
+              <label for="mapEmbedUrl"
+                >Google Maps Embed iFrame Source URL</label
+              >
+              <input
+                type="text"
+                id="mapEmbedUrl"
+                value="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d693.8860555934123!2d123.94400457004447!3d10.32488936201375!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a999006ffb7753%3A0x1e52e02b25fd79be!2sDepartment%20of%20General%20Services!5e0!3m2!1sen!2sph!4v1786613815863!5m2!1sen!2sph"
+              />
+            </div>
+          </div>
+
+          <div class="formCard">
+            <h3>Contact Information</h3>
+            <div class="formGroup">
+              <label for="contactPhone">Contact Number</label>
+              <input type="text" id="contactPhone" value="+63 912 3456 789" />
+            </div>
+            <div class="formGroup">
+              <label for="contactEmail">Email Address</label>
+              <input type="email" id="contactEmail" value="memoria@gmail.com" />
+            </div>
+          </div>
+
+          <div class="formCard">
+            <h3>Payment Dropdown Settings</h3>
+
+            <div class="formGroup">
+              <div class="cardsHeader">
+                <h4>Payment Channels</h4>
+                <button
+                  type="button"
+                  class="btnAdd"
+                  onclick="addOption('paymentChannelsList')"
+                >
+                  <i class="fas fa-plus"></i> Add Channel
+                </button>
+              </div>
+              <div id="paymentChannelsList" class="optionList">
+                <div class="optionItem">
+                  <input type="text" class="channelInput" value="GCash" />
+                  <button
+                    type="button"
+                    class="btnRemove"
+                    onclick="removeOption(this)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div class="optionItem">
+                  <input type="text" class="channelInput" value="Maya" />
+                  <button
+                    type="button"
+                    class="btnRemove"
+                    onclick="removeOption(this)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div class="optionItem">
+                  <input
+                    type="text"
+                    class="channelInput"
+                    value="Bank Transfer"
+                  />
+                  <button
+                    type="button"
+                    class="btnRemove"
+                    onclick="removeOption(this)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="formGroup" style="margin-top: 24px">
+              <div class="cardsHeader">
+                <h4>Purposes of Payment</h4>
+                <button
+                  type="button"
+                  class="btnAdd"
+                  onclick="addOption('paymentPurposesList')"
+                >
+                  <i class="fas fa-plus"></i> Add Purpose
+                </button>
+              </div>
+              <div id="paymentPurposesList" class="optionList">
+                <div class="optionItem">
+                  <input type="text" class="purposeInput" value="Burial Fee" />
+                  <button
+                    type="button"
+                    class="btnRemove"
+                    onclick="removeOption(this)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div class="optionItem">
+                  <input
+                    type="text"
+                    class="purposeInput"
+                    value="Niche Renewal"
+                  />
+                  <button
+                    type="button"
+                    class="btnRemove"
+                    onclick="removeOption(this)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div class="optionItem">
+                  <input
+                    type="text"
+                    class="purposeInput"
+                    value="Maintenance Fee"
+                  />
+                  <button
+                    type="button"
+                    class="btnRemove"
+                    onclick="removeOption(this)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="formActions">
+            <button type="button" class="btnSave" onclick="saveSiteContent()">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="assets/js/sidebar.js"></script>
+    <script>
+      initAuth(["Office Staff", "Administrator"]);
+    </script>
+    <script src="assets/js/site_content.js"></script>
+  </body>
+</html>

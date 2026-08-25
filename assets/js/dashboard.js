@@ -1,67 +1,51 @@
-document.addEventListener("DOMContentLoaded", () => {
-  //dashboard.html
-  fetch("api/dashboard.php")
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        document.getElementById("unverifiedaccounts").textContent =
-          data.data.unverifiedCount;
-      }
-    })
-    .catch((error) => console.error("Error fetching dashboard data:", error));
+window.graveStatusChart = null;
+window.monthlyExpirationChart = null;
 
-  // AUTO CURRENT YEAR
-  const yearText = document.getElementById("currentYear");
-  if (yearText) {
-    const currentYear = new Date().getFullYear();
-    yearText.textContent = "Year: " + currentYear;
-  }
-
-  // PIE CHART
-  const pieCanvas = document.getElementById("pieChart");
-
+window.initDashboardCharts = function (pieDataValues, barDataValues) {
+  const pieCanvas = document.getElementById("graveStatusChart");
   if (pieCanvas) {
-    new Chart(pieCanvas, {
+    const ctxPie = pieCanvas.getContext("2d");
+    window.graveStatusChart = new Chart(ctxPie, {
       type: "pie",
       data: {
-        labels: ["Available", "Expiring", "Occupied"],
+        labels: ["Vacant", "Occupied", "Expiring", "Expired", "Reserved"],
         datasets: [
           {
-            data: [30, 60, 10],
-            backgroundColor: ["#a8c29a", "#3366cc", "#ef4444"],
-            borderWidth: 0,
+            data: pieDataValues,
+            backgroundColor: [
+              "#10B981",
+              "#3B82F6",
+              "#F59E0B",
+              "#EF4444",
+              "#8B5CF6",
+            ],
+            borderWidth: 1,
+            hoverOffset: 15,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-
+        layout: { padding: 20 },
         plugins: {
           legend: {
             position: "bottom",
-            align: "center",
-            labels: {
-              usePointStyle: true,
-              pointStyle: "circle",
-              padding: 15,
-              boxWidth: 10,
-              boxHeight: 10,
-              font: {
-                size: 13,
-              },
-            },
+            labels: { padding: 16, usePointStyle: true, pointStyle: "circle" },
           },
         },
       },
     });
   }
 
-  // BAR GRAPH
-  const barCanvas = document.getElementById("barGraph");
-
+  const barCanvas = document.getElementById("monthlyExpirationChart");
   if (barCanvas) {
-    new Chart(barCanvas, {
+    const ctxBar = barCanvas.getContext("2d");
+    const barGradient = ctxBar.createLinearGradient(0, 0, 0, 320);
+    barGradient.addColorStop(0, "#6366F1");
+    barGradient.addColorStop(1, "#A5B4FC");
+
+    window.monthlyExpirationChart = new Chart(ctxBar, {
       type: "bar",
       data: {
         labels: [
@@ -80,68 +64,104 @@ document.addEventListener("DOMContentLoaded", () => {
         ],
         datasets: [
           {
-            data: [12, 18, 35, 16, 22, 30, 25, 17, 40, 28, 33, 45],
-            backgroundColor: "#ef4444",
-            borderRadius: 5,
-            barPercentage: 0.8,
-            categoryPercentage: 0.9,
+            label: "Expirations",
+            data: barDataValues,
+            backgroundColor: barGradient,
+            borderRadius: 6,
+            borderSkipped: false,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-
-        plugins: {
-          legend: {
-            display: false,
-          },
-        },
-
+        plugins: { legend: { display: false } },
         scales: {
-          x: {
-            grid: {
-              display: false,
-            },
-            ticks: {
-              color: "#64748b",
-            },
-          },
+          x: { grid: { display: false }, ticks: { font: { size: 12 } } },
           y: {
+            grid: { color: "#F3F4F6" },
             beginAtZero: true,
-            grid: {
-              color: "#e2e8f0",
-            },
-            ticks: {
-              stepSize: 5,
-              color: "#64748b",
-            },
+            ticks: { stepSize: 5 },
           },
         },
       },
     });
   }
+};
 
-  // NOTIFICATION
-  const tableBody = document.querySelector("table tbody");
-  if (tableBody) {
-    tableBody.addEventListener("click", (e) => {
-      const cell = e.target.closest(".contactNum");
-      if (!cell) return;
-
-      const isNotified = cell.getAttribute("data-notified") === "true";
-      const phoneNumber = cell.querySelector(".phoneLink").textContent;
-
-      if (!isNotified) {
-        if (confirm(`Send expiration notice to ${phoneNumber}?`)) {
-          cell.setAttribute("data-notified", "true");
-          alert("Notification Sent Successfully!");
-        }
-      } else {
-        if (confirm("Reset notification status for this contact?")) {
-          cell.setAttribute("data-notified", "false");
-        }
-      }
-    });
+// Helper function to hide the entire .statCard parent element
+function hideStatCard(cardId) {
+  const element = document.getElementById(cardId);
+  if (element) {
+    const statCard = element.closest(".statCard");
+    if (statCard) {
+      statCard.style.display = "none"; // or statCard.remove();
+    }
   }
+}
+
+async function loadDashboardData() {
+  try {
+    const response = await fetch("api/dashboard");
+    const result = await response.json();
+
+    if (response.ok) {
+      const data = result.data;
+
+      const statCards = [
+        { id: "stat-total-interments", key: "total_interment_records" },
+        { id: "stat-available-graves", key: "available_graves" },
+        { id: "stat-expiring-leases", key: "expiring_leases_count" },
+        { id: "stat-unverified-accounts", key: "unverified_accounts" },
+        { id: "stat-pending-clearances", key: "payments" },
+      ];
+
+      statCards.forEach(({ id, key }) => {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        const value = data[key];
+
+        if (value !== undefined && value !== null) {
+          if (
+            key === "payments" &&
+            value.pending_office !== undefined &&
+            value.pending_grounds !== undefined
+          ) {
+            const totalPendingTasks =
+              value.pending_office + value.pending_grounds;
+            element.textContent = totalPendingTasks;
+          } else if (key !== "payments") {
+            element.textContent = value;
+          } else {
+            hideStatCard(id);
+          }
+        } else {
+          hideStatCard(id);
+        }
+      });
+
+      const dist = data.grave_status_distribution || {};
+      const pieData = [
+        dist["Vacant"] || 0,
+        dist["Occupied"] || 0,
+        dist["Expiring"] || 0,
+        dist["Expired"] || 0,
+        dist["Reserved"] || 0,
+      ];
+
+      const monthlyExp = data.monthly_lease_expiration || {};
+      const barData = Object.values(monthlyExp);
+
+      window.initDashboardCharts(pieData, barData);
+    } else {
+      console.error("Dashboard API Error:", result.message);
+    }
+  } catch (error) {
+    console.error("Failed to load dashboard data:", error);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadDashboardData();
 });

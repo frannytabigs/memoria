@@ -28,7 +28,7 @@ form.addEventListener("submit", function (e) {
             title: "Signup Successful",
             message: `Hello ${data.data?.first_name ?? "User"}! Your account has been created. Please wait for admin verfication to log in to your account.`,
             actionText: "Proceed to login",
-            actionLink: "index.html",
+            actionLink: "login.html",
             allowOutsideClick: false,
           });
         } else {

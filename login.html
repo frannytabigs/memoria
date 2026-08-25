@@ -25,7 +25,7 @@
     <meta name="robots" content="index, follow" />
     <meta name="geo.region" content="PH-CEB" />
     <meta name="geo.placename" content="Mandaue City" />
-    <title>Forgot Password</title>
+    <title>Log In</title>
 
     <link rel="stylesheet" href="assets/css/root.css" />
     <link
@@ -36,6 +36,7 @@
       "
     />
     <link rel="stylesheet" href="assets/css/auth.css" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -87,6 +88,7 @@
       <section>
         <div class="banner">
           <img
+            id="cemetery-logo"
             src="api/images/cemetery_logo.png"
             onerror="
               this.onerror = null;
@@ -101,51 +103,18 @@
         </div>
       </section>
 
-      <!-- SIGNUP FORM -->
+      <!-- LOGIN FORM -->
       <section>
         <div class="inputWrapper">
-          <div class="inputHeader">
-            <h2>Account Recovery</h2>
-            <p>Verify your details to reset your password.</p>
-          </div>
+          <h2 class="inputHeader">Log in to Memoria</h2>
 
-          <form action="#" id="resetform">
-            <div class="inputBox">
-              <input
-                type="text"
-                placeholder="Fullname"
-                name="name"
-                id="name"
-                required
-              />
-            </div>
-
+          <form action="#" id="loginform">
             <div class="inputBox">
               <input
                 type="text"
                 placeholder="Username"
                 name="username"
                 id="username"
-                required
-              />
-            </div>
-
-            <div class="inputBox">
-              <input
-                type="email"
-                placeholder="Email Address"
-                name="email"
-                id="email"
-                required
-              />
-            </div>
-
-            <div class="inputBox">
-              <input
-                type="tel"
-                placeholder="Phone Number"
-                name="phone_number"
-                id="phone_number"
                 required
               />
             </div>
@@ -200,21 +169,29 @@
               </button>
             </div>
 
-            <button type="submit" class="resetBtn" id="resetBtn">
-              Reset Password
+            <button type="submit" class="loginBtn" id="loginbutton">
+              Log In
             </button>
           </form>
 
-          <!-- RETURN TO LOGIN PAGE -->
-          <div class="loginLink">Back to <a href="index.html">Log In</a></div>
+          <div class="forgotPassword">
+            <a href="forgot_password.html">Forgot Password?</a>
+          </div>
+
+          <a href="signup.html" class="singupBtn loginPage">Sign up</a>
+
+          <!-- FOOTER NOTE -->
+          <div class="footer">
+            <p>System access is restricted to authorized personnel only.</p>
+            <a href="#">Contact Your Administrator</a>
+          </div>
         </div>
       </section>
     </div>
 
-    <script src="assets/js/modal.js"></script>
     <script src="assets/js/alert.js"></script>
     <script src="assets/js/loggedinalready.js"></script>
-    <script src="assets/js/forgot_password.js"></script>
+    <script src="assets/js/login.js"></script>
     <script src="assets/js/togglepassword.js"></script>
   </body>
 </html>

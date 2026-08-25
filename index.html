@@ -25,7 +25,7 @@
     <meta name="robots" content="index, follow" />
     <meta name="geo.region" content="PH-CEB" />
     <meta name="geo.placename" content="Mandaue City" />
-    <title>Log In</title>
+    <title>Memoria</title>
 
     <link rel="stylesheet" href="assets/css/root.css" />
     <link
@@ -35,16 +35,22 @@
         console.error('Failed to load custom colors. Using default theme.')
       "
     />
-    <link rel="stylesheet" href="assets/css/auth.css" />
+    <link rel="stylesheet" href="assets/css/website.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
       rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
   </head>
   <body>
-    <!-- HEADER -->
     <header>
-      <div class="container">
+      <div class="headerContainer">
         <div class="logoSection">
           <img
             src="api/images/logo1.png"
@@ -71,119 +77,698 @@
             <h2 id="cemetery_address">Mandaue City</h2>
           </div>
         </div>
+
+        <nav>
+          <a href="#home" class="navLink active">Home</a>
+          <a href="#search" class="navLink" id="navSearchView"
+            >Find a Loved One</a
+          >
+          <a href="#map" class="navLink" id="navMapView">Cemetery Map</a>
+          <a href="#payment" class="navLink" id="navPaymentView">Payments</a>
+        </nav>
       </div>
     </header>
 
-    <!-- MAIN CONTENT -->
-    <div class="main">
-      <!-- HERO SECTION -->
-      <section>
-        <div class="banner">
-          <img
-            id="cemetery-logo"
-            src="api/images/cemetery_logo.png"
-            onerror="
-              this.onerror = null;
-              this.src = 'assets/images/MemoriaLogo.png';
-              console.error('Failed to load dynamic logo. Using default logo.');
-            "
-            alt="Memoria Logo"
-          />
-          <p class="cemeteryName" id="cemetery_name">
-            Mandaue City Public Cemetery
-          </p>
+    <main>
+      <!-- View 1: Home -->
+      <section class="mView active" id="homeView">
+        <div class="memoriaBanner">
+          <div class="memoriaOverlay"></div>
+          <div class="memoriaContent">
+            <h2>
+              Welcome to
+              <img
+                id="cemetery-logo"
+                src="api/images/cemetery_logo.png"
+                onerror="
+                  this.onerror = null;
+                  this.src = 'assets/images/MemoriaLogo.png';
+                  console.error(
+                    'Failed to load dynamic logo. Using default logo.',
+                  );
+                "
+                alt="Memoria Logo"
+                class="fullLogo"
+              />
+            </h2>
+            <p>
+              Official Website for
+              <a id="cemetery_name">Mandaue City Public Cemetery </a> Records
+              and Services.
+            </p>
+            <div class="memoriaButtons">
+              <button class="findLovedOneBtn">Find Loved One</button>
+              <button class="cemeteryMapBtn">Cemetery Map</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="container">
+          <div class="dashboardGrid">
+            <div class="cemetery_content" id="cemetery_content">
+              <h3 class="sectionTitle">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                Public Services & Digital Utilities
+              </h3>
+              <p class="sectionDesc">
+                Access cemetery services, locate deceased loved ones, and submit
+                payment records easily.
+              </p>
+
+              <div class="cardGrid">
+                <div class="card">
+                  <div class="cardIcon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <h4>Search</h4>
+                  <p>
+                    Locate records of deceased loved ones registered in Mandaue
+                    Public Cemetery.
+                  </p>
+                </div>
+
+                <div class="card">
+                  <div class="cardIcon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 20l-5 3V6l5-3m0 17l6-3m-6 3V3m6 17l5 3V6l-5-3m0 17V3"
+                      ></path>
+                    </svg>
+                  </div>
+                  <h4>Cemetery Map</h4>
+                  <p>View cemetery layouts, blocks, and plot allocations.</p>
+                </div>
+
+                <div class="card">
+                  <div class="cardIcon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <h4>Payments</h4>
+                  <p>
+                    Submit payment verification details and receipts online.
+                  </p>
+                </div>
+
+                <div class="card">
+                  <div class="cardIcon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <h4>Burial Requirements</h4>
+                  <p>
+                    Check client processes and required burial documentation.
+                  </p>
+                </div>
+              </div>
+
+              <section class="cemeterySection" id="burialRequirements">
+                <h3 class="sectionTitle">Request for Burial Space</h3>
+                <p class="subtitle">
+                  <strong>Who May Avail:</strong> Mandaue City Residents |
+                  <strong>Classification:</strong> Simple (G2C)
+                </p>
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Checklist of Requirements</th>
+                      <th>Where to Secure</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>1. Death Certificate (1 copy)</td>
+                      <td>City Health Office</td>
+                    </tr>
+                    <tr>
+                      <td>2. Barangay Certification (1 copy)</td>
+                      <td>Barangay concerned</td>
+                    </tr>
+                    <tr>
+                      <td>3. Exhumation and Reburial Permit (1 copy)</td>
+                      <td>City Health Office</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <h4>Client Steps &amp; Process:</h4>
+                <ol class="stepsList">
+                  <li>
+                    <strong>Submit Request:</strong> Submit letter request to
+                    the receiving clerk.
+                    <span class="metaInfo"
+                      >(Fee: None | Processing Time: 5 mins | Person
+                      Responsible: Section Head)</span
+                    >
+                  </li>
+                  <li>
+                    <strong>Verification:</strong> Office verifies logbook for
+                    burial space availability and verifies with cemetery
+                    in-charge.
+                    <span class="metaInfo"
+                      >(Fee: None | Processing Time: 20 mins)</span
+                    >
+                  </li>
+                  <li>
+                    <strong>Certification Issuance:</strong> Office issues
+                    Certification and forwards to Section Head.
+                    <span class="metaInfo"
+                      >(Fee: None | Processing Time: 8 hours)</span
+                    >
+                  </li>
+                  <li>
+                    <strong>Receive Certification:</strong> Receive (1) original
+                    copy of the Certification; office retains file copy.
+                    <span class="metaInfo"
+                      >(Fee: None | Processing Time: 5 mins)</span
+                    >
+                  </li>
+                </ol>
+
+                <div class="summaryBox">
+                  <strong>Total Fees:</strong> NONE |
+                  <strong>Total Processing Time:</strong> 1 Day, 30 Minutes
+                </div>
+
+                <h4>Plot Lease Renewal Requirements:</h4>
+                <ul class="infoList">
+                  <li>Original Certificate of Plot Allocation / Deed</li>
+                  <li>Government-issued ID of Deed Holder</li>
+                  <li>
+                    Latest Official Receipt of Annual Lease/Maintenance Fee
+                  </li>
+                </ul>
+
+                <h4>Visitor &amp; Cleaning Guidelines:</h4>
+                <ul class="infoList">
+                  <li>Grounds open daily from 6:00 AM to 6:00 PM</li>
+                  <li>Clean as you go (CLAYGO) policy strictly enforced</li>
+                  <li>No loud sound systems or alcoholic beverages allowed</li>
+                </ul>
+              </section>
+            </div>
+
+            <aside class="sidebar">
+              <div class="sidebarBox">
+                <div>
+                  <h3>Details</h3>
+
+                  <div class="officeHoursTrigger statusTrigger">
+                    <svg
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 16 14"></polyline>
+                    </svg>
+                    <a id="cemetery_office_hours" class="modalStatusText"
+                      >8:00 - 5:00</a
+                    >
+                  </div>
+
+                  <div class="address">
+                    <svg
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                      ></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <div>
+                      <small>Cemetery Location</small>
+                      <a id="cemetery_address"
+                        >Mandaue City Public Cemetery, Omeña St, Guizo, Mandaue
+                        City, Cebu, Philippines, 6014
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="address">
+                    <svg
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                      ></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <div>
+                      <small>Office Location</small>
+                      <a id="cemtery_office_location">
+                        Department of General Services, Mandaue City Hall
+                        Compound, Centro, Mandaue City, Philippines, 6014
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="mapContainer" id="cemetery_google_map">
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d693.8860555934123!2d123.94400457004447!3d10.32488936201375!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a999006ffb7753%3A0x1e52e02b25fd79be!2sDepartment%20of%20General%20Services!5e0!3m2!1sen!2sph!4v1786613815863!5m2!1sen!2sph"
+                      allowfullscreen=""
+                      loading="lazy"
+                      referrerpolicy="strict-origin-when-cross-origin"
+                    ></iframe>
+                  </div>
+
+                  <hr />
+
+                  <div>
+                    <h3>Contact Info</h3>
+
+                    <div class="contactInfo">
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                        ></path>
+                      </svg>
+                      <a id="cemetery_phone_number">+63 912 3456 789</a>
+                    </div>
+
+                    <div class="contactInfo">
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                        ></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
+                      <a id="cemetery_email">memoria@gmail.com</a>
+                    </div>
+
+                    <!-- <div class="contactInfo">
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+                        ></path>
+                      </svg>
+                      <span>Mandaue City Public Cemetery Administration</span>
+                    </div> -->
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
       </section>
 
-      <!-- LOGIN FORM -->
-      <section>
-        <div class="inputWrapper">
-          <h2 class="inputHeader">Log in to Memoria</h2>
+      <!-- View 2: Search -->
+      <section class="mView" id="searchView">
+        <div class="container">
+          <div class="textCenter mb-8">
+            <h2>Find a Loved One</h2>
+            <p>Search official Mandaue City Public Cemetery records.</p>
+          </div>
 
-          <form action="#" id="loginform">
-            <div class="inputBox">
-              <input
-                type="text"
-                placeholder="Username"
-                name="username"
-                id="username"
-                required
-              />
-            </div>
-
-            <div class="inputBox passwordBox">
-              <input
-                type="password"
-                placeholder="Password"
-                name="password"
-                id="password"
-                required
-              />
-              <button
-                type="button"
-                class="togglePassword"
-                id="togglePassword"
-                aria-label="Toggle password visibility"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
+          <form class="formContainer">
+            <div class="inputGroup">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="eye-open"
-                >
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
                   stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="eye-closed"
-                  style="display: none"
-                >
-                  <path
-                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
-                  ></path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </button>
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+              <input type="text" placeholder="Enter Deceased Name" required />
             </div>
-
-            <button type="submit" class="loginBtn" id="loginbutton">
-              Log In
-            </button>
+            <button class="searchBtn" type="submit">Search Records</button>
           </form>
 
-          <div class="forgotPassword">
-            <a href="forgot_password.html">Forgot Password?</a>
+          <div class="recordsCardGrid"></div>
+        </div>
+      </section>
+
+      <!-- View 3: Map -->
+      <section class="mView" id="mapView">
+        <div class="mapSectionWrapper">
+          <div class="mapTitleHeader">
+            <h2><a id="cemetery_name1">Mandaue City Public Cemetery</a> Map</h2>
+            <p>Overhead map view for plot and block identification.</p>
           </div>
 
-          <a href="signup.html" class="singupBtn loginPage">Sign up</a>
-
-          <!-- FOOTER NOTE -->
-          <div class="footer">
-            <p>System access is restricted to authorized personnel only.</p>
-            <a href="#">Contact Administrator</a>
+          <div class="mapCanvasCard" id="mapCardsoon">
+            <div class="placeholderContent">
+              <svg
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+                />
+              </svg>
+              <h3>Public Cemetery Map</h3>
+              <p>Cemetery map feature under development.</p>
+            </div>
           </div>
         </div>
       </section>
+
+      <!-- View 4: Payment -->
+      <section id="paymentView" class="mView">
+        <div class="container">
+          <div class="textCenter mb-8">
+            <h2>Submit Payment Information</h2>
+            <p>
+              Provide your transaction and contact details below for
+              verification.
+            </p>
+          </div>
+
+          <div class="paymentCard">
+            <form id="paymentForm">
+              <div class="formGrid">
+                <div class="inputField">
+                  <label for="payName">Full Name</label>
+                  <input type="text" id="payName" name="name" required />
+                </div>
+
+                <div class="inputField">
+                  <label for="payDeceasedName">Name of Deceased</label>
+                  <input
+                    type="text"
+                    id="payDeceasedName"
+                    name="deceased_name"
+                    required
+                  />
+                </div>
+
+                <div class="inputField">
+                  <label for="payContact">Contact Number</label>
+                  <input type="tel" id="payContact" name="contact" required />
+                </div>
+
+                <div class="inputField">
+                  <label for="payEmail">Email Address</label>
+                  <input type="email" id="payEmail" name="email" required />
+                </div>
+
+                <div class="inputField">
+                  <label for="payChannel">Payment Channel</label>
+                  <div class="selectWrapper">
+                    <select id="payChannel" name="channel" required>
+                      <option value="" disabled selected>
+                        Select payment method
+                      </option>
+                      <option value="GCash">GCash</option>
+                      <option value="Maya">Maya</option>
+                      <option value="Bank Transfer">Maribank</option>
+                      <option value="Others">Others</option>
+                    </select>
+                    <svg
+                      class="selectIcon"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div class="inputField">
+                  <label for="payReference">Reference Number</label>
+                  <input
+                    type="text"
+                    id="payReference"
+                    name="reference"
+                    required
+                  />
+                </div>
+
+                <div class="inputField">
+                  <label for="payAmount">Amount Paid (PHP)</label>
+                  <input
+                    type="number"
+                    id="payAmount"
+                    name="amount"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div class="inputField fullWidth">
+                  <label for="payPurpose">Purpose of Payment</label>
+                  <div class="selectWrapper">
+                    <select
+                      id="payPurpose"
+                      name="purpose"
+                      onchange="toggleOtherPurpose(this)"
+                      required
+                    >
+                      <option value="" disabled selected>
+                        Select payment purpose
+                      </option>
+                      <option value="Purpose 1">Purpose 1</option>
+                      <option value="Purpose 2">Purpose 2</option>
+                      <option value="Purpose 3">Purpose 3</option>
+                      <option value="Others">Others</option>
+                    </select>
+                    <svg
+                      class="selectIcon"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div
+                  class="inputField fullWidth hidden"
+                  id="otherPurposeWrapper"
+                >
+                  <label for="payOtherPurpose">Specify Other Purpose</label>
+                  <input
+                    type="text"
+                    id="payOtherPurpose"
+                    name="other_purpose"
+                    placeholder="Please specify payment reason"
+                  />
+                </div>
+
+                <div class="inputField fullWidth">
+                  <label for="payImage">Proof of Payment (Image)</label>
+                  <input
+                    type="file"
+                    id="payImage"
+                    name="image"
+                    accept="image/*"
+                    required
+                  />
+                </div>
+
+                <div class="inputField fullWidth">
+                  <label for="payRemarks">Remarks</label>
+                  <textarea
+                    id="payRemarks"
+                    name="remarks"
+                    rows="3"
+                    placeholder="Additional details..."
+                  ></textarea>
+                </div>
+              </div>
+
+              <button type="submit" class="submitPayBtn">
+                Submit Payment Record
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- <div id="hoursModal" class="">
+      <div class="modalCard">
+        <div class="modalHeader">
+          <h3>Office Hours</h3>
+          <button
+            type="button"
+            class="modalCloseBtn"
+            onclick="closeHoursModal()"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="modalBody">
+          <div class="modalStatusRow">
+            <div class="statusIconWrapper">
+              <svg
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div>
+              <span class="statusLabel">Current Status</span>
+              <div class="modalStatusText closed">Closed now</div>
+            </div>
+          </div>
+
+          <div class="hoursList">
+            <div class="hoursItem" id="day_1">
+              <span class="dayLabel">Monday</span
+              ><span class="timeLabel">8:00 AM - 5:00 PM</span>
+            </div>
+            <div class="hoursItem" id="day_2">
+              <span class="dayLabel">Tuesday</span
+              ><span class="timeLabel">8:00 AM - 5:00 PM</span>
+            </div>
+            <div class="hoursItem" id="day_3">
+              <span class="dayLabel">Wednesday</span
+              ><span class="timeLabel">8:00 AM - 5:00 PM</span>
+            </div>
+            <div class="hoursItem" id="day_4">
+              <span class="dayLabel">Thursday</span
+              ><span class="timeLabel">8:00 AM - 5:00 PM</span>
+            </div>
+            <div class="hoursItem" id="day_5">
+              <span class="dayLabel">Friday</span
+              ><span class="timeLabel">8:00 AM - 5:00 PM</span>
+            </div>
+            <div class="hoursItem" id="day_6">
+              <span class="dayLabel">Saturday</span
+              ><span class="timeLabel">8:00 AM - 5:00 PM</span>
+            </div>
+            <div class="hoursItem closedDay" id="day_0">
+              <span class="dayLabel">Sunday</span
+              ><span class="timeLabel">CLOSED</span>
+            </div>
+          </div>
+
+          <div class="holidayNote">
+            <p>
+              <strong>Note:</strong> On regular and special holidays,
+              administrative offices will be closed, but cemetery grounds remain
+              open to visitors.
+            </p>
+          </div>
+        </div
+      </div>
+    </div> -->
+
+    <div class="modalOverlay" id="recordModal">
+      <div class="modalContainer">
+        <button class="modalClose" id="closeModalBtn">&times;</button>
+
+        <div class="modalHeader">
+          <span class="modalSubtitle">Deceased Record</span>
+          <h3 id="modalName">Name</h3>
+        </div>
+
+        <div class="modalBody">
+          <div class="modalGrid">
+            <div class="infoTile">
+              <span class="tileLabel">Date of Birth</span>
+              <strong class="tileValue" id="modalBorn">--</strong>
+            </div>
+
+            <div class="infoTile">
+              <span class="tileLabel">Date of Death</span>
+              <strong class="tileValue" id="modalDied">--</strong>
+            </div>
+          </div>
+
+          <div class="infoTile">
+            <span class="tileLabel">Location</span>
+            <strong class="tileValue" id="modalLocation">--</strong>
+          </div>
+
+          <div class="infoTile">
+            <span class="tileLabel">Block Type</span>
+            <strong class="tileValue" id="modalGraveType">--</strong>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <script src="assets/js/alert.js"></script>
-    <script src="assets/js/loggedinalready.js"></script>
-    <script src="assets/js/login.js"></script>
-    <script src="assets/js/togglepassword.js"></script>
+    <footer>
+      <div class="footerContainer">
+        <p>
+          &copy; 2026 <a id="heading_one1">Department of General Services</a> -
+          <a id="cemetery_address2">Mandaue City</a>
+        </p>
+        <p>
+          Memoria -
+          <a id="cemetery_name2">Mandaue City Public Cemetery</a> Website
+        </p>
+      </div>
+    </footer>
+
+    <script src="assets/js/website.js"></script>
   </body>
 </html>

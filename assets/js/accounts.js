@@ -325,7 +325,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <td class="roleCell">
           <span class="viewMode">${displayRole}</span>
           <select class="editMode roleSelect">
-            <option value="Staff" ${roleLower === "staff" ? "selected" : ""}>Staff</option>
+            <option value="Office Staff" ${roleLower === "office staff" ? "selected" : ""}>Office Staff</option>
+            <option value="Grounds Staff" ${roleLower === "grounds staff" ? "selected" : ""}>Grounds Staff</option>
             <option value="Administrator" ${roleLower === "administrator" ? "selected" : ""}>Administrator</option>
           </select>
         </td>

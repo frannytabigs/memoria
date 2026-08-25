@@ -1,0 +1,167 @@
+body {
+  .sidebar.collapsed ~ .main,
+  &:has(.sidebar.collapsed) .main {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+  }
+}
+
+.main {
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  min-width: 0;
+  transition:
+    margin-left 0.3s ease,
+    width 0.3s ease;
+  box-sizing: border-box;
+}
+
+.paymentsContainer {
+  padding: 1.5rem;
+  font-family: "Inter", sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+
+  .paymentsHeader {
+    margin-bottom: 1.5rem;
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1a202c;
+      margin: 0 0 0.5rem 0;
+    }
+
+    p {
+      color: #718096;
+      margin: 0;
+      font-size: 0.875rem;
+    }
+  }
+
+  .tableCard {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 10px;
+      margin: 0 12px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 10px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #94a3b8;
+      }
+    }
+  }
+
+  .paymentsTable {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.875rem;
+
+    th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-weight: 600;
+      padding: 0.875rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.875rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background-color: #f8fafc;
+    }
+  }
+
+  .statusBadge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+
+    &.statusRed {
+      background-color: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+    }
+
+    &.statusOrange {
+      background-color: #ffedd5;
+      color: #ea580c;
+      border: 1px solid #fed7aa;
+    }
+
+    &.statusGreen {
+      background-color: #dcfce7;
+      color: #16a34a;
+      border: 1px solid #86efac;
+    }
+  }
+
+  .btnView {
+    color: #2563eb;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: underline;
+
+    &:hover {
+      color: #1d4ed8;
+    }
+  }
+
+  .btnAction {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #1d4ed8;
+    }
+  }
+
+  .actionText {
+    font-size: 0.75rem;
+    font-weight: 500;
+
+    &.textComplete {
+      color: #16a34a;
+    }
+  }
+}

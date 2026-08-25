@@ -134,58 +134,6 @@ $dashboardData['payments'] = [
 ];
 
 // ==========================================
-// TIER 2: OFFICE STAFF & ADMIN ONLY
-// ==========================================
-if (in_array($userRole, [ROLE_ADMIN, ROLE_OFFICE])) {
-    
-    // Total Interment Records
-    $stmt = $pdo->query("SELECT COUNT(*) FROM interments WHERE deleted_at IS NULL");
-    $dashboardData['total_interment_records'] = (int)$stmt->fetchColumn();
-
-    // Expired Leases List
-    $stmt = $pdo->query("
-        SELECT 
-            d.name AS deceased_name, 
-            g.grave_code, 
-            i.lease_expiration_date, 
-            c.name AS contact_name, 
-            c.phone_number, 
-            i.remarks 
-        FROM interments i
-        JOIN graves g ON i.grave_id = g.grave_id
-        JOIN deceased d ON i.deceased_id = d.deceased_id
-        LEFT JOIN contacts c ON i.contact_id = c.contact_id 
-        WHERE i.status = 'Active' 
-        AND i.lease_expiration_date <= CURDATE() 
-        AND i.deleted_at IS NULL 
-        ORDER BY i.lease_expiration_date ASC 
-        LIMIT 5
-    ");
-    $dashboardData['expired_leases'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-    // Expiring Leases List
-    $stmt = $pdo->query("
-        SELECT 
-            d.name AS deceased_name, 
-            g.grave_code, 
-            i.lease_expiration_date, 
-            c.name AS contact_name, 
-            c.phone_number, 
-            i.remarks 
-        FROM interments i
-        JOIN graves g ON i.grave_id = g.grave_id
-        JOIN deceased d ON i.deceased_id = d.deceased_id
-        LEFT JOIN contacts c ON i.contact_id = c.contact_id 
-        WHERE i.status = 'Active' 
-        AND i.lease_expiration_date BETWEEN DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-        AND i.deleted_at IS NULL 
-        ORDER BY i.lease_expiration_date ASC 
-        LIMIT 5
-    ");
-    $dashboardData['expiring_leases_list'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
-
-// ==========================================
 // TIER 3: ADMINISTRATOR ONLY
 // ==========================================
 if ($userRole === ROLE_ADMIN) {

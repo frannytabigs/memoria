@@ -25,7 +25,7 @@
     <meta name="robots" content="index, follow" />
     <meta name="geo.region" content="PH-CEB" />
     <meta name="geo.placename" content="Mandaue City" />
-    <title>Dashboard</title>
+    <title>Records</title>
 
     <link rel="stylesheet" href="assets/css/root.css" />
     <link
@@ -36,8 +36,9 @@
       "
     />
     <link rel="stylesheet" href="assets/css/sidebar.css" />
-    <link rel="stylesheet" href="assets/css/dashboard.css" />
+    <link rel="stylesheet" href="assets/css/payments.css" />
 
+    <!-- FONT & ICONS -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -50,7 +51,6 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       // Run this instantly before the page paints
       if (localStorage.getItem("memoria_role") === "Administrator") {
@@ -74,30 +74,27 @@
             onerror="
               this.onerror = null;
               this.src = 'assets/images/MemoriaLogo.png';
-              console.error('Failed to load dynamic logo. Using default logo.');
             "
             alt="Memoria Logo"
             class="fullLogo"
           />
           <img
-            alt="M Logo"
-            class="collapsedLogo"
             id="cemetery-logo-small"
             src="api/images/cemetery_logo_small.png"
             onerror="
               this.onerror = null;
               this.src = 'assets/images/MLogo.png';
-              console.error('Failed to load dynamic logo. Using default logo.');
             "
+            alt="M Logo"
+            class="collapsedLogo"
           />
         </div>
-
         <div class="sidebarDateTime" id="dateTimeDisplay"></div>
       </div>
 
       <div class="sidebarNav">
         <div class="sidebarSection">Main</div>
-        <a href="dashboard.html" class="menu active"
+        <a href="dashboard.html" class="menu"
           ><i class="fas fa-chart-pie"></i><span>Dashboard</span></a
         >
         <a href="records.html" class="menu admin-office-only"
@@ -114,7 +111,7 @@
         <a href="monitor.html" class="menu admin-office-only"
           ><i class="fas fa-bell"></i><span>Monitor</span></a
         >
-        <a href="payments.html" class="menu"
+        <a href="payments.html" class="menu active"
           ><i class="fa-solid fa-receipt"></i><span>Payments</span></a
         >
         <a href="accounts.html" class="menu adminOnly"
@@ -142,113 +139,122 @@
             <div class="avatarBox" id="usernameLogo"></div>
             <div class="statusIndicator"></div>
           </div>
-
           <div class="userDetails">
             <span class="username" id="usernameLabel"></span>
             <span class="userRole" id="roleLabel"></span>
           </div>
-
-          <button class="logout">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
+          <button class="logout"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </div>
     </div>
 
-    <main class="main">
-      <section class="statsGrid">
-        <div class="statCard accentPrimary">
-          <div class="statTop">
-            <span class="statTitle">Total Interments</span>
-            <div class="iconBadge"><i class="fas fa-monument"></i></div>
-          </div>
-          <div class="statBottom">
-            <!-- Added ID here -->
-            <h2 class="statValue" id="stat-total-interments">--</h2>
-          </div>
+    <div class="main">
+      <div class="paymentsContainer">
+        <div class="tableCard">
+          <table class="paymentsTable">
+            <thead>
+              <tr>
+                <th>Full Name</th>
+                <th>Name of Deceased</th>
+                <th>Contact Number</th>
+                <th>Email Address</th>
+                <th>Payment Channel</th>
+                <th>Reference Number</th>
+                <th>Amount Paid (PHP)</th>
+                <th>Purpose of Payment</th>
+                <th>Proof of Payment</th>
+                <th>Remarks</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTableBody">
+              <tr>
+                <td>Abc Def</td>
+                <td>Abc Def</td>
+                <td>09123456789</td>
+                <td>Abc@example.com</td>
+                <td>GCash</td>
+                <td>REF12345678</td>
+                <td>₱ 5,000.00</td>
+                <td>Purpose 1</td>
+                <td>
+                  <button class="btnView">
+                    <i class="fas fa-image"></i> View Image
+                  </button>
+                </td>
+                <td>-</td>
+                <td class="colStatus">
+                  <span class="statusBadge statusRed"
+                    >Pending Admin Verification</span
+                  >
+                </td>
+                <td class="colAction">
+                  <button class="btnAction" data-step="1">
+                    Confirm & Forward
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>Abc Def</td>
+                <td>Abc Def</td>
+                <td>09987654321</td>
+                <td>Abc@example.com</td>
+                <td>Bank Transfer</td>
+                <td>REF87654321</td>
+                <td>₱ 12,000.00</td>
+                <td>Purpose 2</td>
+                <td>
+                  <button class="btnView">
+                    <i class="fas fa-image"></i> View Image
+                  </button>
+                </td>
+                <td>-</td>
+                <td class="colStatus">
+                  <span class="statusBadge statusOrange"
+                    >Pending Grounds Verification</span
+                  >
+                </td>
+                <td class="colAction">
+                  <button class="btnAction" data-step="2">
+                    Awaiting Grounds
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>Abc Def</td>
+                <td>Abc Def</td>
+                <td>09112223334</td>
+                <td>Abc@example.com</td>
+                <td>PayMaya</td>
+                <td>REF45678912</td>
+                <td>₱ 2,500.00</td>
+                <td>Purpose 3</td>
+                <td>
+                  <button class="btnView">
+                    <i class="fas fa-image"></i> View Image
+                  </button>
+                </td>
+                <td>-</td>
+                <td class="colStatus">
+                  <span class="statusBadge statusGreen">Completed</span>
+                </td>
+                <td class="colAction">
+                  <span class="actionText textComplete"
+                    ><i class="fas fa-check-circle"></i> Verified</span
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
 
-        <div class="statCard accentSuccess">
-          <div class="statTop">
-            <span class="statTitle">Available Graves</span>
-            <div class="iconBadge"><i class="fas fa-border-all"></i></div>
-          </div>
-          <div class="statBottom">
-            <!-- Added ID here -->
-            <h2 class="statValue" id="stat-available-graves">--</h2>
-          </div>
-        </div>
-
-        <div class="statCard accentWarning">
-          <div class="statTop">
-            <span class="statTitle">Expiring Leases</span>
-            <div class="iconBadge"><i class="fas fa-clock"></i></div>
-          </div>
-          <div class="statBottom">
-            <h2 class="statValue" id="stat-expiring-leases">--</h2>
-            <span class="badge badgeWarning">Next 30 Days</span>
-          </div>
-        </div>
-
-        <div class="statCard accentDanger">
-          <div class="statTop">
-            <span class="statTitle">Unverified Accounts</span>
-            <div class="iconBadge"><i class="fas fa-user-shield"></i></div>
-          </div>
-          <div class="statBottom">
-            <h2 class="statValue" id="stat-unverified-accounts">--</h2>
-            <span class="badge badgeDanger">Action Req.</span>
-          </div>
-        </div>
-
-        <div class="statCard accentPrimary">
-          <div class="statTop">
-            <span class="statTitle">Pending Clearances</span>
-            <div class="iconBadge"><i class="fas fa-file-signature"></i></div>
-          </div>
-          <div class="statBottom">
-            <h2 class="statValue" id="stat-pending-clearances">--</h2>
-            <span class="badge badgeWarning">Action Req.</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="chartsGrid">
-        <div class="pieChartCard">
-          <div class="chartHeader">
-            <div>
-              <h3>Grave Status Distribution</h3>
-              <span class="chartSubtext"
-                >Real-time allotment status breakdown</span
-              >
-            </div>
-          </div>
-          <div class="chartWrapper">
-            <canvas id="graveStatusChart"></canvas>
-          </div>
-        </div>
-
-        <div class="barChartCard">
-          <div class="chartHeader">
-            <div>
-              <h3>Monthly Lease Expiration</h3>
-              <span class="chartSubtext"
-                >Scheduled expirations for the next 12 months</span
-              >
-            </div>
-          </div>
-          <div class="chartWrapper">
-            <canvas id="monthlyExpirationChart"></canvas>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <script src="assets/js/alert.js"></script>
     <script src="assets/js/sidebar.js"></script>
     <script>
       initAuth();
     </script>
-    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/payments.js"></script>
   </body>
 </html>

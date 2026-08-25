@@ -35,76 +35,101 @@
         console.error('Failed to load custom colors. Using default theme.')
       "
     />
-    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/sidebar.css" />
     <link rel="stylesheet" href="assets/css/reserve.css" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
       rel="stylesheet"
     />
+
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
+
     <script>
       // Run this instantly before the page paints
       if (localStorage.getItem("memoria_role") === "Administrator") {
-        document.documentElement.classList.add("is-admin");
+        document.documentElement.classList.add("role-admin");
+      }
+      if (localStorage.getItem("memoria_role") === "Office Staff") {
+        document.documentElement.classList.add("role-office");
+      }
+      if (localStorage.getItem("memoria_role") === "Grounds Staff") {
+        document.documentElement.classList.add("role-grounds");
       }
     </script>
   </head>
   <body>
     <div class="sidebar">
       <div class="sidebarTop">
-        <div class="memoriaLogo">
+        <div class="memoriaLogo" id="logoToggle">
           <img
             id="cemetery-logo"
             src="api/images/cemetery_logo.png"
             onerror="
               this.onerror = null;
               this.src = 'assets/images/MemoriaLogo.png';
-              console.error('Failed to load dynamic logo. Using default logo.');
             "
             alt="Memoria Logo"
+            class="fullLogo"
+          />
+          <img
+            id="cemetery-logo-small"
+            src="api/images/cemetery_logo_small.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MLogo.png';
+            "
+            alt="M Logo"
+            class="collapsedLogo"
           />
         </div>
-
         <div class="sidebarDateTime" id="dateTimeDisplay"></div>
       </div>
 
       <div class="sidebarNav">
         <div class="sidebarSection">Main</div>
-        <a href="dashboard.html">
-          <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
-        </a>
-        <a href="records.html">
-          <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
-        </a>
-        <a href="map.html">
-          <div class="menu"><i class="fas fa-map"></i>Map</div>
-        </a>
+        <a href="dashboard.html" class="menu"
+          ><i class="fas fa-chart-pie"></i><span>Dashboard</span></a
+        >
+        <a href="records.html" class="menu admin-office-only"
+          ><i class="fas fa-folder-open"></i><span>Records</span></a
+        >
+        <a href="map.html" class="menu admin-office-only"
+          ><i class="fas fa-map"></i><span>Map</span></a
+        >
 
         <div class="sidebarSection">Management</div>
-        <a href="reserve.html">
-          <div class="menu active"><i class="fas fa-thumbtack"></i>Reserve</div>
-        </a>
-        <a href="monitor.html">
-          <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
-        </a>
-        <a href="accounts.html" class="adminOnly">
-          <div class="menu"><i class="fas fa-user"></i>Accounts</div>
-        </a>
-        <a href="reports.html">
-          <div class="menu"><i class="fas fa-file-alt"></i>Reports</div>
-        </a>
+        <a href="reserve.html" class="menu active"
+          ><i class="fas fa-thumbtack"></i><span>Reserve</span></a
+        >
+        <a href="monitor.html" class="menu admin-office-only"
+          ><i class="fas fa-bell"></i><span>Monitor</span></a
+        >
+        <a href="payments.html" class="menu"
+          ><i class="fa-solid fa-receipt"></i><span>Payments</span></a
+        >
+        <a href="accounts.html" class="menu adminOnly"
+          ><i class="fas fa-user"></i><span>Accounts</span></a
+        >
+        <a href="reports.html" class="menu admin-office-only"
+          ><i class="fas fa-file-alt"></i><span>Reports</span></a
+        >
 
         <div class="sidebarSection">System</div>
-        <a href="logs.html" class="adminOnly">
-          <div class="menu"><i class="fas fa-history"></i>Logs</div>
-        </a>
-        <a href="settings.html">
-          <div class="menu"><i class="fas fa-cog"></i>Settings</div>
-        </a>
+        <a href="site_content.html" class="menu admin-office-only"
+          ><i class="fa-solid fa-pen-to-square"></i><span>Site Content</span></a
+        >
+        <a href="logs.html" class="menu adminOnly"
+          ><i class="fas fa-history"></i><span>Logs</span></a
+        >
+        <a href="settings.html" class="menu"
+          ><i class="fas fa-cog"></i><span>Settings</span></a
+        >
       </div>
 
       <div class="sidebarFooter">
@@ -113,15 +138,11 @@
             <div class="avatarBox" id="usernameLogo"></div>
             <div class="statusIndicator"></div>
           </div>
-
           <div class="userDetails">
             <span class="username" id="usernameLabel"></span>
             <span class="userRole" id="roleLabel"></span>
           </div>
-
-          <button class="logout">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
+          <button class="logout"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </div>
     </div>
@@ -143,47 +164,54 @@
             </thead>
 
             <tbody id="reservation">
-              <tr>
+              <tr
+                data-deceased="Abcde F. Ghijk"
+                data-block="AA1"
+                data-expiration="2026-01-01"
+                data-contact-person="Lmnop Q. Rstuv"
+                data-contact-no="+63 912 345 6789"
+                data-remarks="-"
+              >
                 <td>Abcde F. Ghijk</td>
                 <td>AA1</td>
                 <td>January 01, 2026</td>
                 <td>Lmnop Q. Rstuv</td>
-                <td class="statusNotified">
-                  <div class="contactStatus statusNotified">
-                    +63 912 345 6789
-                  </div>
-                </td>
+                <td>+63 912 345 6789</td>
                 <td>-</td>
                 <td class="actions">
                   <button class="addBtn" title="Create Burial Clearance">
                     <i class="fas fa-plus"></i>
                   </button>
-                  <button class="editBtn" title="Edit Reservation">
+                  <button
+                    class="editBtn"
+                    title="Edit Reservation / Burial Clearance"
+                  >
                     <i class="fas fa-edit"></i>
                   </button>
                 </td>
               </tr>
-
-              <tr>
-                <td>Abcde F. Ghijk</td>
-                <td>AA1</td>
-                <td>January 01, 2026</td>
-                <td>Lmnop Q. Rstuv</td>
-                <td>
-                  <div class="contactStatus statusPending">
-                    <span>+63 912 345 6789</span>
-                    <i
-                      class="fas fa-bell notifyIcon"
-                      title="Send Notification Alert"
-                    ></i>
-                  </div>
-                </td>
-                <td>-</td>
+              <tr
+                data-deceased="John Doe"
+                data-block="BB2"
+                data-expiration="2026-05-12"
+                data-contact-person="Jane Doe"
+                data-contact-no="+63 998 765 4321"
+                data-remarks="Pending Fee"
+              >
+                <td>John Doe</td>
+                <td>BB2</td>
+                <td>May 12, 2026</td>
+                <td>Jane Doe</td>
+                <td>+63 998 765 4321</td>
+                <td>Pending Fee</td>
                 <td class="actions">
                   <button class="addBtn" title="Create Burial Clearance">
                     <i class="fas fa-plus"></i>
                   </button>
-                  <button class="editBtn" title="Edit Reservation">
+                  <button
+                    class="editBtn"
+                    title="Edit Reservation / Burial Clearance"
+                  >
                     <i class="fas fa-edit"></i>
                   </button>
                 </td>
@@ -352,11 +380,11 @@
             <div class="col">
               <label>Burial Type:</label>
               <select id="burialBlock">
-                <option>Niche Wall</option>
-                <option>Bone Chamber</option>
-                <option>Lawn / Grounds</option>
-                <option>Unmapped Area</option>
-                <option>Private / Owned</option>
+                <option value="Niche Wall">Niche Wall</option>
+                <option value="Bone Chamber">Bone Chamber</option>
+                <option value="Lawn / Grounds">Lawn / Grounds</option>
+                <option value="Unmapped Area">Unmapped Area</option>
+                <option value="Private / Owned">Private / Owned</option>
               </select>
             </div>
 
@@ -369,12 +397,7 @@
           <div class="row">
             <div class="col">
               <label>Date of Interment:</label>
-              <input
-                type="date"
-                id="dateInterment"
-                onchange="autoCalculateExpirationDate()"
-                required
-              />
+              <input type="date" id="dateInterment" required />
             </div>
 
             <div class="col">
@@ -397,18 +420,10 @@
           </div>
 
           <div class="paperFormActions">
-            <button
-              type="button"
-              class="btnPaperCancel"
-              onclick="closeSeamlessModal('deceased')"
-            >
+            <button type="button" class="btnPaperCancel" id="btnCancel">
               Cancel
             </button>
-            <button
-              type="button"
-              class="btnPaperSave"
-              onclick="submitBurialClearanceForm()"
-            >
+            <button type="button" class="btnPaperSave" id="btnSave">
               Save
             </button>
           </div>
@@ -417,7 +432,10 @@
     </div>
 
     <script src="assets/js/alert.js"></script>
-    <script src="assets/js/main.js"></script>
+    <script src="assets/js/sidebar.js"></script>
     <script src="assets/js/reserve.js"></script>
+    <script>
+      initAuth();
+    </script>
   </body>
 </html>

@@ -1,4 +1,3 @@
-// TIME & DATE
 function updateSidebarTime() {
   const now = new Date();
   const dateOptions = { month: "long", day: "numeric", year: "numeric" };
@@ -6,7 +5,6 @@ function updateSidebarTime() {
   const timeString = now.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
   });
 
   const displayElement = document.getElementById("dateTimeDisplay");
@@ -14,24 +12,27 @@ function updateSidebarTime() {
     displayElement.textContent = `${dateString} | ${timeString}`;
   }
 }
-updateSidebarTime();
-setInterval(updateSidebarTime, 1000);
 
-// SIDEBAR ACTIVE
-document.querySelectorAll(".menu").forEach((menu) => {
-  menu.addEventListener("click", () => {
-    document.querySelectorAll(".menu").forEach((item) => {
-      item.classList.remove("active");
+document.addEventListener("DOMContentLoaded", () => {
+  updateSidebarTime();
+  setInterval(updateSidebarTime, 1000);
+
+  const logoToggle = document.getElementById("logoToggle");
+  const sidebar = document.querySelector(".sidebar");
+
+  if (logoToggle && sidebar) {
+    logoToggle.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed");
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+      }, 300);
     });
-
-    menu.classList.add("active");
-  });
+  }
 });
 
 // =============================
 // LOGOUT (Clean Independent Modal)
 // =============================
-
 const logoutBtn = document.querySelector(".logout");
 
 // Ensure styles are injected only once
@@ -190,26 +191,70 @@ if (logoutBtn) {
     }
   });
 }
+//LOG OUT ---^
 
-function adminOnly() {
+/**
+ * Initializes User Auth, sets up the UI, and restricts access based on roles.
+ * @param {Array} allowedRoles - Array of roles allowed on this page.
+ *                               Leave empty [] to allow ANY logged-in user.
+ *                               Example: ['Administrator', 'Office Staff']
+ */
+function initAuth(allowedRoles = []) {
   const cachedRole = localStorage.getItem("memoria_role");
   const cachedUsername = localStorage.getItem("memoria_username");
 
-  // Instantly load cached text labels (The menus are already handled by the <head> script)
-  if (cachedUsername) {
-    document.getElementById("usernameLabel").textContent = cachedUsername;
-    document.getElementById("usernameLogo").textContent = cachedUsername
-      .toUpperCase()
-      .substring(0, 2);
-    document.getElementById("roleLabel").textContent = cachedRole;
+  // 1. INSTANT CACHE CHECK (Zero Flicker Kick)
+  // If this page requires specific roles, and the cached role isn't one of them, kick them.
+  if (
+    allowedRoles.length > 0 &&
+    cachedRole &&
+    !allowedRoles.includes(cachedRole)
+  ) {
+    window.location.href = "dashboard.html";
+    return; // Stop execution immediately
   }
 
-  // Background Verification
+  // Helper function to update the DOM and assign role-based CSS classes
+  function updateUI(username, role) {
+    const userLabel = document.getElementById("usernameLabel");
+    const userLogo = document.getElementById("usernameLogo");
+    const roleLabel = document.getElementById("roleLabel");
+
+    if (userLabel) userLabel.textContent = username;
+    if (userLogo) userLogo.textContent = username.toUpperCase().substring(0, 2);
+    if (roleLabel) roleLabel.textContent = role;
+
+    // Remove any existing role classes to prevent stale data
+    document.documentElement.classList.remove(
+      "role-admin",
+      "role-office",
+      "role-grounds",
+    );
+
+    // Add the specific role class to the <html> tag for CSS targeting
+    if (role === "Administrator") {
+      document.documentElement.classList.add("role-admin");
+    } else if (role === "Office Staff") {
+      document.documentElement.classList.add("role-office");
+    } else if (role === "Grounds Staff") {
+      document.documentElement.classList.add("role-grounds");
+    }
+  }
+
+  // 2. INSTANT UI UPDATE (From Cache)
+  if (cachedUsername && cachedRole) {
+    updateUI(cachedUsername, cachedRole);
+  }
+
+  // 3. SINGLE BACKGROUND VERIFICATION
   fetch("api/auth.php")
     .then(function (response) {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("STATIC_SERVER");
+      }
+      if (response.status === 429) {
+        throw new Error("RATE_LIMITED");
       }
       if (!response.ok) {
         throw new Error("AUTH_FAILED");
@@ -219,115 +264,59 @@ function adminOnly() {
     .then(function (responseData) {
       const user = responseData.data.user;
 
-      // Update cache
-      localStorage.setItem("memoria_role", user.role);
-      localStorage.setItem("memoria_username", user.username);
-
-      // Securely update UI based on true server response
-      if (user.role === "Administrator") {
-        document.documentElement.classList.add("is-admin");
-      } else {
-        document.documentElement.classList.remove("is-admin");
+      // Double check role requirement against the TRUE server response
+      if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        // They shouldn't be here (either lied in cache or roles changed)
+        window.location.href = "dashboard.html";
+        return;
       }
 
-      document.getElementById("usernameLabel").textContent = user.username;
-      document.getElementById("usernameLogo").textContent = user.username
-        .toUpperCase()
-        .substring(0, 2);
-      document.getElementById("roleLabel").textContent = user.role;
+      // Update cache and UI securely with fresh data
+      localStorage.setItem("memoria_role", user.role);
+      localStorage.setItem("memoria_username", user.username);
+      updateUI(user.username, user.role);
     })
     .catch(function (error) {
       console.error("Auth check failed:", error.message);
 
+      if (error.message === "RATE_LIMITED") {
+        console.warn("WAIT A MINUTE, TOO MANY REQUESTS");
+        if (typeof showAlertTOP === "function")
+          showAlertTOP("Too many requests. Please try again later.", "warning");
+        return;
+      }
+
       if (error.message === "AUTH_FAILED") {
-        // Clear cache and redirect on true failure
+        // True failure (Not logged in)
         localStorage.removeItem("memoria_role");
         localStorage.removeItem("memoria_username");
-        document.documentElement.classList.remove("is-admin");
-        window.location.href = "index.html";
+
+        // Strip roles on logout
+        document.documentElement.classList.remove(
+          "role-admin",
+          "role-office",
+          "role-grounds",
+        );
+        window.location.href = "login.html";
       } else {
-        // DEV MODE FALLBACK (LIVE SERVER)
+        // DEV MODE FALLBACK (STATIC_SERVER / LIVE SERVER)
         console.warn("Running locally without backend. Bypassing login kick.");
-        console.error(
-          "Looks like you are running this page without the backend server???? THIS WILL BE BUGGY WTF NO GOODBYE",
-        );
-        localStorage.setItem("memoria_role", "Administrator");
-        localStorage.setItem(
-          "memoria_username",
-          "BUGGY_DevModeOKAYYYY??/LIVESERVER?????????WTF",
-        );
-        document.documentElement.classList.add("is-admin");
-        document.getElementById("usernameLabel").textContent =
-          "BUGGY_DevModeOKAYYYY??/LIVESERVER?????????WTF";
-        document.getElementById("usernameLogo").textContent = "BU";
-        document.getElementById("roleLabel").textContent = "Administrator";
-        showAlertTOP(
-          "Running in Dev Mode: Auth checks are bypassed!",
-          "warning",
-          5000,
-        );
-        showAlertTOP(
-          "Looks like you are running this page without the backend server???? THIS WILL BE BUGGY WTF NO GOODBYE",
-          "warning",
-          5000,
-        );
-        showAlertTOP(
-          "If you want to test admin features, consider setting up the backend server or be prepared for a buggy experience. use XAMPP??? LOL",
-          "warning",
-          7000,
-        );
+
+        const devUsername = "DevMode_Admin";
+        const devRole = "Administrator"; // Change this locally to test different roles
+
+        localStorage.setItem("memoria_role", devRole);
+        localStorage.setItem("memoria_username", devUsername);
+
+        updateUI(devUsername, devRole);
+
+        if (typeof showAlertTOP === "function") {
+          showAlertTOP(
+            "Running in Dev Mode: Auth checks are bypassed!",
+            "warning",
+            5000,
+          );
+        }
       }
     });
 }
-
-adminOnly();
-
-// SIDEBAR ACTIVE (Auto-detects current page)
-document.addEventListener("DOMContentLoaded", () => {
-  const currentPath =
-    window.location.pathname.split("/").pop() || "dashboard.html";
-
-  document.querySelectorAll(".sidebarNav a").forEach((link) => {
-    const menuDiv = link.querySelector(".menu");
-    const linkHref = link.getAttribute("href");
-
-    // Check if the link's href matches the current URL
-    if (linkHref === currentPath) {
-      menuDiv.classList.add("active");
-    } else {
-      menuDiv.classList.remove("active");
-    }
-  });
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-  // Run a background check every 60 seconds (60000ms)
-  const SESSION_CHECK_INTERVAL = 60000;
-
-  setInterval(async () => {
-    try {
-      // Pinging auth.php triggers usercheck.php
-      const response = await fetch("api/auth.php");
-
-      // If the API responds with 401 Unauthorized, they were unverified or deleted
-      if (response.status === 401 || response.status === 403) {
-        console.warn("Session revoked by administrator. Logging out...");
-
-        // Optional: Show an alert before redirecting
-        if (typeof showAlert === "function") {
-          showAlert(
-            "Your account status was changed. Logging out...",
-            "warning",
-          );
-        }
-
-        setTimeout(() => {
-          // Change "index.html" to whatever your login page is named
-          window.location.href = "index.html";
-        }, 1500);
-      }
-    } catch (error) {
-      console.error("Background session check failed", error);
-    }
-  }, SESSION_CHECK_INTERVAL);
-});

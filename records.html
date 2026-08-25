@@ -35,38 +35,58 @@
         console.error('Failed to load custom colors. Using default theme.')
       "
     />
-    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/sidebar.css" />
     <link rel="stylesheet" href="assets/css/records.css" />
 
     <!-- FONT & ICONS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
       rel="stylesheet"
     />
+
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
+
     <script>
       // Run this instantly before the page paints
       if (localStorage.getItem("memoria_role") === "Administrator") {
-        document.documentElement.classList.add("is-admin");
+        document.documentElement.classList.add("role-admin");
+      }
+      if (localStorage.getItem("memoria_role") === "Office Staff") {
+        document.documentElement.classList.add("role-office");
+      }
+      if (localStorage.getItem("memoria_role") === "Grounds Staff") {
+        document.documentElement.classList.add("role-grounds");
       }
     </script>
   </head>
   <body>
     <div class="sidebar">
       <div class="sidebarTop">
-        <div class="memoriaLogo">
+        <div class="memoriaLogo" id="logoToggle">
           <img
             id="cemetery-logo"
             src="api/images/cemetery_logo.png"
             onerror="
               this.onerror = null;
               this.src = 'assets/images/MemoriaLogo.png';
-              console.error('Failed to load dynamic logo. Using default logo.');
             "
             alt="Memoria Logo"
+            class="fullLogo"
+          />
+          <img
+            id="cemetery-logo-small"
+            src="api/images/cemetery_logo_small.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MLogo.png';
+            "
+            alt="M Logo"
+            class="collapsedLogo"
           />
         </div>
         <div class="sidebarDateTime" id="dateTimeDisplay"></div>
@@ -74,39 +94,43 @@
 
       <div class="sidebarNav">
         <div class="sidebarSection">Main</div>
-        <a href="dashboard.html">
-          <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
-        </a>
-        <a href="records.html">
-          <div class="menu active">
-            <i class="fas fa-folder-open"></i>Records
-          </div>
-        </a>
-        <a href="map.html">
-          <div class="menu"><i class="fas fa-map"></i>Map</div>
-        </a>
+        <a href="dashboard.html" class="menu"
+          ><i class="fas fa-chart-pie"></i><span>Dashboard</span></a
+        >
+        <a href="records.html" class="menu admin-office-only active"
+          ><i class="fas fa-folder-open"></i><span>Records</span></a
+        >
+        <a href="map.html" class="menu admin-office-only"
+          ><i class="fas fa-map"></i><span>Map</span></a
+        >
 
         <div class="sidebarSection">Management</div>
-        <a href="reserve.html">
-          <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
-        </a>
-        <a href="monitor.html">
-          <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
-        </a>
-        <a href="accounts.html" class="adminOnly">
-          <div class="menu"><i class="fas fa-user"></i>Accounts</div>
-        </a>
-        <a href="reports.html">
-          <div class="menu"><i class="fas fa-file-alt"></i>Reports</div>
-        </a>
+        <a href="reserve.html" class="menu"
+          ><i class="fas fa-thumbtack"></i><span>Reserve</span></a
+        >
+        <a href="monitor.html" class="menu admin-office-only"
+          ><i class="fas fa-bell"></i><span>Monitor</span></a
+        >
+        <a href="payments.html" class="menu"
+          ><i class="fa-solid fa-receipt"></i><span>Payments</span></a
+        >
+        <a href="accounts.html" class="menu adminOnly"
+          ><i class="fas fa-user"></i><span>Accounts</span></a
+        >
+        <a href="reports.html" class="menu admin-office-only"
+          ><i class="fas fa-file-alt"></i><span>Reports</span></a
+        >
 
         <div class="sidebarSection">System</div>
-        <a href="logs.html" class="adminOnly">
-          <div class="menu"><i class="fas fa-history"></i>Logs</div>
-        </a>
-        <a href="settings.html">
-          <div class="menu"><i class="fas fa-cog"></i>Settings</div>
-        </a>
+        <a href="site_content.html" class="menu admin-office-only"
+          ><i class="fa-solid fa-pen-to-square"></i><span>Site Content</span></a
+        >
+        <a href="logs.html" class="menu adminOnly"
+          ><i class="fas fa-history"></i><span>Logs</span></a
+        >
+        <a href="settings.html" class="menu"
+          ><i class="fas fa-cog"></i><span>Settings</span></a
+        >
       </div>
 
       <div class="sidebarFooter">
@@ -119,27 +143,28 @@
             <span class="username" id="usernameLabel"></span>
             <span class="userRole" id="roleLabel"></span>
           </div>
-          <button class="logout">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
+          <button class="logout"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </div>
     </div>
 
     <div class="main">
       <div class="tableControls">
-        <div class="subNav">
-          <button class="subNavItem active" onclick="showTab('block', event)">
-            Block
-          </button>
-          <button class="subNavItem" onclick="showTab('burial', event)">
-            Burial
-          </button>
-        </div>
-
         <div class="searchBar">
           <i class="fa-solid fa-magnifying-glass" id="searchBtn"></i>
           <input type="text" id="recordSearch" placeholder="Search..." />
+        </div>
+
+        <div class="paginationControls">
+          <button class="paginationBtn" id="prevPageBtn" disabled>
+            <i class="fas fa-chevron-left"></i> Previous
+          </button>
+          <div class="paginationNumbers" id="paginationNumbers">
+            <button class="pageNumber active">1</button>
+          </div>
+          <button class="paginationBtn" id="nextPageBtn" disabled>
+            Next <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
 
         <button
@@ -152,26 +177,7 @@
       </div>
 
       <div class="tableContainer">
-        <div class="tableWrapper active" id="blockRecords">
-          <table>
-            <thead>
-              <tr>
-                <th>Block Name</th>
-                <th>Type</th>
-                <th>Capacity</th>
-                <th>Area Sq. M.</th>
-                <th>Remarks</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-
-            <tbody id="blockTableBody"></tbody>
-          </table>
-
-          <p class="noData" id="blockNoData">No Records Found</p>
-        </div>
-
-        <div class="tableWrapper" id="burialRecords">
+        <div class="tableWrapper active" id="burialRecords">
           <table>
             <thead>
               <tr>
@@ -199,135 +205,8 @@
       </div>
     </div>
 
-    <div id="blockModalOverlay" class="modalOverlay">
-      <form id="blockForm" onsubmit="event.preventDefault()">
-        <div class="paperForm">
-          <div class="formTitle">BLOCK</div>
-
-          <div class="sectionTitle">BLOCK PROPERTIES</div>
-          <div class="row">
-            <div class="col">
-              <label class="required">Block Name:</label>
-              <input type="text" id="blockName" required />
-            </div>
-            <div class="col">
-              <label class="required">Block Type:</label>
-              <select
-                id="blockType"
-                onchange="toggleOwnerFieldsDisplay()"
-                required
-              >
-                <option value="" disabled selected>Select type...</option>
-                <option value="Niche Wall">Niche Wall</option>
-                <option value="Bone Chamber">Bone Chamber</option>
-                <option value="Lawn / Grounds">Lawn / Grounds</option>
-                <option value="Unmapped Area">Unmapped Area</option>
-                <option value="Private / Owned">Private / Owned</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col">
-              <label>Max Capacity:</label>
-              <input type="number" id="blockCapacity" />
-            </div>
-            <div class="col">
-              <label>Area Square Meter (sqm):</label>
-              <input type="text" id="blockArea" />
-            </div>
-          </div>
-
-          <div id="ownerSectionContainer" class="conditionalOwnerSection">
-            <div class="sectionTitle">OWNER CONTACT INFORMATION</div>
-            <div class="row">
-              <div class="col" style="flex: 1.2">
-                <label class="required">Full Contact Name:</label>
-                <input type="text" id="ownerName" required />
-              </div>
-              <div class="col">
-                <label class="required">Contact Number:</label>
-                <input type="text" id="ownerPhone" required />
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col" style="flex: 1.2">
-                <label class="required">Address (Purok/Zone/Street):</label>
-                <input type="text" id="ownerPurok" required />
-              </div>
-              <div class="col">
-                <label class="required">Barangay:</label>
-                <select id="ownerBarangay" required>
-                  <option value="" disabled selected>Select Barangay...</option>
-                  <option value="Alang-alang">Alang-alang</option>
-                  <option value="Bakilid">Bakilid</option>
-                  <option value="Banilad">Banilad</option>
-                  <option value="Basak">Basak</option>
-                  <option value="Cabancalan">Cabancalan</option>
-                  <option value="Cambaro">Cambaro</option>
-                  <option value="Canduman">Canduman</option>
-                  <option value="Casuntingan">Casuntingan</option>
-                  <option value="Casili">Casili</option>
-                  <option value="Centro">Centro</option>
-                  <option value="Cubacub">Cubacub</option>
-                  <option value="Guizo">Guizo</option>
-                  <option value="Ibabao-Estancia">Ibabao-Estancia</option>
-                  <option value="Jagobiao">Jagobiao</option>
-                  <option value="Labogon">Labogon</option>
-                  <option value="Looc">Looc</option>
-                  <option value="Maguikay">Maguikay</option>
-                  <option value="Mantuyong">Mantuyong</option>
-                  <option value="Opao">Opao</option>
-                  <option value="Pakna-an">Pakna-an</option>
-                  <option value="Pagsabungan">Pagsabungan</option>
-                  <option value="Subangdaku">Subangdaku</option>
-                  <option value="Tabok">Tabok</option>
-                  <option value="Tingub">Tingub</option>
-                  <option value="Tipolo">Tipolo</option>
-                  <option value="Umapad">Umapad</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col">
-                <label class="required">Email Address:</label>
-                <input type="email" id="ownerEmail" required />
-              </div>
-            </div>
-          </div>
-
-          <div class="sectionTitle">ADDITIONAL DETAILS</div>
-          <div class="row">
-            <div class="col">
-              <label>Remarks:</label>
-              <input type="text" id="blockRemarks" />
-            </div>
-          </div>
-
-          <div class="paperFormActions">
-            <button
-              type="button"
-              class="btnPaperCancel"
-              onclick="closeSeamlessModal('block')"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btnPaperSave"
-              onclick="submitBlockRegistrationForm()"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-
     <div class="modalOverlay" id="burialModalOverlay">
-      <form id="burialClearanceForm" onsubmit="event.preventDefault()">
+      <form id="burialClearanceForm">
         <div class="paperForm">
           <div class="formTitle">BURIAL CLEARANCE</div>
 
@@ -338,14 +217,19 @@
             </div>
             <div class="col" style="flex: 0.3">
               <label>Control No.</label>
-              <input type="text" id="controlNo" placeholder="Auto-generated" />
+              <input
+                type="text"
+                id="controlNo"
+                placeholder="Auto-generated"
+                readonly
+              />
             </div>
           </div>
 
           <div class="sectionTitle">REQUESTING PARTY (Contact Details)</div>
           <div class="row">
             <div class="col" style="flex: 1.2">
-              <label>That I (Full Name):</label>
+              <label class="required">That I (Full Name):</label>
               <input type="text" id="reqName" required />
             </div>
             <div class="col">
@@ -389,7 +273,7 @@
           <div class="row">
             <div class="col">
               <label>Phone Number:</label>
-              <input type="text" id="reqPhone" placeholder="09XX-XXX-XXXX" />
+              <input type="text" id="reqPhone" />
             </div>
             <div class="col">
               <label>Seeking assistance in the form of:</label>
@@ -406,7 +290,7 @@
           <div class="sectionTitle">DECEASED INFORMATION</div>
           <div class="row">
             <div class="col" style="flex: 1.2">
-              <label>Name of Deceased:</label>
+              <label class="required">Name of Deceased:</label>
               <input
                 type="text"
                 id="deceasedName"
@@ -503,49 +387,22 @@
             <button
               type="button"
               class="btnPaperCancel"
-              onclick="closeSeamlessModal('deceased')"
+              onclick="closeSeamlessModal()"
             >
               Cancel
             </button>
-            <button
-              type="button"
-              class="btnPaperSave"
-              onclick="submitBurialClearanceForm()"
-            >
-              Save
-            </button>
+            <button type="submit" class="btnPaperSave">Save</button>
           </div>
         </div>
       </form>
     </div>
 
-    <div id="ownerDetailsModalOverlay" class="modalOverlay">
-      <div class="paperForm" style="max-width: 540px">
-        <div class="formTitle" style="font-size: 18px; margin-bottom: 20px">
-          OWNER INFORMATION PROFILE
-        </div>
-
-        <div id="ownerDetailsContent" class="ownerDetailsDisplay"></div>
-
-        <div class="paperFormActions">
-          <button
-            type="button"
-            class="btnPaperCancel"
-            onclick="
-              document.getElementById(
-                'ownerDetailsModalOverlay',
-              ).style.display = 'none'
-            "
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- SCRIPTS -->
     <script src="assets/js/alert.js"></script>
-    <script src="assets/js/main.js"></script>
     <script src="assets/js/records.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    <script>
+      initAuth(["Administrator", "Office Staff"]);
+    </script>
   </body>
 </html>

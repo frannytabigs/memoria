@@ -7,24 +7,6 @@
       name="description"
       content="Management system for the Cemetery. Locate plots, monitor leases, and manage notifications."
     />
-    <meta content="/" property="og:url" />
-    <meta property="og:site_name" content="Memoria" />
-    <meta content="#2f3136" name="theme-color" />
-    <meta name="author" content="Team DND" />
-    <meta property="og:title" content="Memoria | Cemetery Management System" />
-    <meta
-      property="og:description"
-      content="Efficiently manage and locate records within the Cemetery."
-    />
-    <meta
-      property="og:image"
-      content="https://static.wikia.nocookie.net/reborn/images/6/67/Sky_Ring_Battle.PNG/revision/latest?cb=20120422065712"
-    />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="robots" content="index, follow" />
-    <meta name="geo.region" content="PH-CEB" />
-    <meta name="geo.placename" content="Mandaue City" />
     <title>Logs</title>
 
     <link rel="stylesheet" href="assets/css/root.css" />
@@ -35,7 +17,7 @@
         console.error('Failed to load custom colors. Using default theme.')
       "
     />
-    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/sidebar.css" />
     <link rel="stylesheet" href="assets/css/logs.css" />
 
     <link
@@ -44,67 +26,89 @@
     />
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
+
     <script>
       // Run this instantly before the page paints
       if (localStorage.getItem("memoria_role") === "Administrator") {
-        document.documentElement.classList.add("is-admin");
+        document.documentElement.classList.add("role-admin");
+      }
+      if (localStorage.getItem("memoria_role") === "Office Staff") {
+        document.documentElement.classList.add("role-office");
+      }
+      if (localStorage.getItem("memoria_role") === "Grounds Staff") {
+        document.documentElement.classList.add("role-grounds");
       }
     </script>
   </head>
   <body>
     <div class="sidebar">
       <div class="sidebarTop">
-        <div class="memoriaLogo">
+        <div class="memoriaLogo" id="logoToggle">
           <img
             id="cemetery-logo"
             src="api/images/cemetery_logo.png"
             onerror="
               this.onerror = null;
               this.src = 'assets/images/MemoriaLogo.png';
-              console.error('Failed to load dynamic logo. Using default logo.');
             "
             alt="Memoria Logo"
+            class="fullLogo"
+          />
+          <img
+            id="cemetery-logo-small"
+            src="api/images/cemetery_logo_small.png"
+            onerror="
+              this.onerror = null;
+              this.src = 'assets/images/MLogo.png';
+            "
+            alt="M Logo"
+            class="collapsedLogo"
           />
         </div>
-
         <div class="sidebarDateTime" id="dateTimeDisplay"></div>
       </div>
 
       <div class="sidebarNav">
         <div class="sidebarSection">Main</div>
-        <a href="dashboard.html">
-          <div class="menu"><i class="fas fa-chart-pie"></i>Dashboard</div>
-        </a>
-        <a href="records.html">
-          <div class="menu"><i class="fas fa-folder-open"></i>Records</div>
-        </a>
-        <a href="map.html">
-          <div class="menu"><i class="fas fa-map"></i>Map</div>
-        </a>
+        <a href="dashboard.html" class="menu"
+          ><i class="fas fa-chart-pie"></i><span>Dashboard</span></a
+        >
+        <a href="records.html" class="menu admin-office-only"
+          ><i class="fas fa-folder-open"></i><span>Records</span></a
+        >
+        <a href="map.html" class="menu admin-office-only"
+          ><i class="fas fa-map"></i><span>Map</span></a
+        >
 
         <div class="sidebarSection">Management</div>
-        <a href="reserve.html">
-          <div class="menu"><i class="fas fa-thumbtack"></i>Reserve</div>
-        </a>
-        <a href="monitor.html">
-          <div class="menu"><i class="fas fa-bell"></i>Monitor</div>
-        </a>
-        <a href="accounts.html" class="adminOnly">
-          <div class="menu"><i class="fas fa-user"></i>Accounts</div>
-        </a>
-        <a href="reports.html">
-          <div class="menu"><i class="fas fa-file-alt"></i>Reports</div>
-        </a>
+        <a href="reserve.html" class="menu"
+          ><i class="fas fa-thumbtack"></i><span>Reserve</span></a
+        >
+        <a href="monitor.html" class="menu admin-office-only"
+          ><i class="fas fa-bell"></i><span>Monitor</span></a
+        >
+        <a href="payments.html" class="menu"
+          ><i class="fa-solid fa-receipt"></i><span>Payments</span></a
+        >
+        <a href="accounts.html" class="menu adminOnly"
+          ><i class="fas fa-user"></i><span>Accounts</span></a
+        >
+        <a href="reports.html" class="menu admin-office-only"
+          ><i class="fas fa-file-alt"></i><span>Reports</span></a
+        >
 
         <div class="sidebarSection">System</div>
-        <a href="logs.html" class="adminOnly">
-          <div class="menu active"><i class="fas fa-history"></i>Logs</div>
-        </a>
-        <a href="settings.html">
-          <div class="menu"><i class="fas fa-cog"></i>Settings</div>
-        </a>
+        <a href="site_content.html" class="menu"
+          ><i class="fa-solid fa-pen-to-square"></i><span>Site Content</span></a
+        >
+        <a href="logs.html" class="menu active adminOnly"
+          ><i class="fas fa-history"></i><span>Logs</span></a
+        >
+        <a href="settings.html" class="menu"
+          ><i class="fas fa-cog"></i><span>Settings</span></a
+        >
       </div>
 
       <div class="sidebarFooter">
@@ -113,106 +117,68 @@
             <div class="avatarBox" id="usernameLogo"></div>
             <div class="statusIndicator"></div>
           </div>
-
           <div class="userDetails">
             <span class="username" id="usernameLabel"></span>
             <span class="userRole" id="roleLabel"></span>
           </div>
-
-          <button class="logout">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
+          <button class="logout"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </div>
     </div>
 
     <div class="main">
-      <div class="logs-container">
-        <div class="logs-header">
-          <h2 class="logs-title">System Activity Logs</h2>
+      <div class="tableToolbar">
+        <div class="searchBox">
+          <i class="fas fa-search"></i>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search logs or user IDs..."
+          />
+        </div>
+        <div class="filterGroup">
+          <div class="customSelect">
+            <select id="filterSelect" class="filterSelect">
+              <option value="">All Event Types</option>
+              <option value="auth">Authentication</option>
+              <option value="system">System</option>
+              <option value="user">User Actions</option>
+            </select>
+            <i class="fas fa-chevron-down selectIcon"></i>
+          </div>
+          <input type="date" id="datePicker" class="datePicker" />
+        </div>
+      </div>
 
-          <div class="search-wrapper">
-            <svg
-              class="search-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+      <div class="tableCard">
+        <table class="logsTable">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>User ID</th>
+              <th>Event Type</th>
+              <th>Activity Description</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <!-- Logs injected via JS -->
+          </tbody>
+        </table>
 
-            <input
-              type="text"
-              class="search-input"
-              placeholder="Search logs or user IDs..."
-            />
-
-            <svg
-              class="clear-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+        <div class="tablePagination">
+          <span id="paginationText">Showing 0 to 0 of 0 logs</span>
+          <div class="paginationBtns" id="paginationBtns">
+            <!-- Pagination injected via JS -->
           </div>
         </div>
-
-        <ul class="log-list" id="logList">
-          <!-- <li class="log-item">
-            <span class="log-time">2026-05-19 06:27:02</span>
-            <span class="log-action"
-              ><span class="log-highlight">test (admin)</span> retrieved user
-              list (Page 1)</span
-            >
-            <span class="log-user">User ID: 1</span>
-          </li>
-
-          <li class="log-item">
-            <span class="log-time">2026-05-19 06:25:51</span>
-            <span class="log-action"
-              ><span class="log-highlight">test (admin)</span> retrieved user
-              list (Page 1)</span
-            >
-            <span class="log-user">User ID: 1</span>
-          </li>
-
-          <li class="log-item">
-            <span class="log-time">2026-05-19 06:25:47</span>
-            <span class="log-action"
-              ><span class="log-highlight">test (admin)</span> retrieved user
-              list (Page 1)</span
-            >
-            <span class="log-user">User ID: 1</span>
-          </li>
-
-          <li class="log-item">
-            <span class="log-time">2026-05-19 06:12:33</span>
-            <span class="log-action"
-              ><span class="log-highlight">test (admin)</span> retrieved user
-              list (Page 1)</span
-            >
-            <span class="log-user">User ID: 1</span>
-          </li> -->
-        </ul>
       </div>
     </div>
 
+    <script src="assets/js/sidebar.js"></script>
+    <script>
+      initAuth(["Administrator"]);
+    </script>
     <script src="assets/js/alert.js"></script>
-    <script src="assets/js/admin_only.js"></script>
     <script src="assets/js/logs.js"></script>
-    <script src="assets/js/main.js"></script>
   </body>
 </html>

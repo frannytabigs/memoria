@@ -22,9 +22,11 @@ form.addEventListener("submit", function (e) {
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
+          //console.log("Login successful:", data);
+          //console.log("User data:", data.data.users[0]);
           showAlertTOP(
             "Login successful! Hello " +
-              data.data.name +
+              data.data.users[0].name +
               "! Redirecting to dashboard...",
             "success",
           );

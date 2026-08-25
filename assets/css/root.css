@@ -1,6 +1,6 @@
-/* DEFAULTS */
+/* DEFAULTS
 :root {
-  --mainColor: #0f172a; /* Dark Knight */
+  --mainColor: #0f172a; /* Dark Knight 
 
   --sidebarText: #cbd5e1;
 
@@ -10,4 +10,9 @@
   --sidebar-border: #1e293b;
   --sidebar-accent: #3b82f6;
   --sidebarText-muted: #94a3b8;
+} */
+
+:root {
+  --mainColor: #0f172a;
+  --backgroundImage: url(../images//MandaueBackground.jpg);
 }
