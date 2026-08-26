@@ -184,7 +184,7 @@ if (logoutBtn) {
       localStorage.removeItem("memoria_username");
 
       setTimeout(() => {
-        window.location.href = "index.html";
+        window.location.href = "login.html";
       }, 150);
     } catch (err) {
       console.error("Logout failed:", err);

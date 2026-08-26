@@ -22,9 +22,11 @@ if (in_array($method, ['POST', 'PUT'], true) && !$canModify) {
     Response::error("Forbidden. Only Office Staff and Admins can process new reservations.", 403);
 }
 
-$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+// --- REST ROUTING: PARSE THE URI ---
+// Check our custom .htaccess parameter first, then fallback to standard PATH_INFO
+$pathInfo = $_GET['path_info'] ?? $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
-$resourceId = array_shift($pathParts); 
+$resourceId = array_shift($pathParts);
 
 $rawData = array_merge(
     json_decode(file_get_contents("php://input"), true) ?: [], 

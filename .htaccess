@@ -49,7 +49,7 @@
     # Route simple /api/<name> requests AND /api/<name>/<extra> to /api/<name>.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^api/([a-zA-Z0-9_-]+)(/.*)?$ api/$1.php$2 [L]
+    RewriteRule ^api/([a-zA-Z0-9_-]+)(/.*)?$ api/$1.php?path_info=$2 [QSA,L]
 
     # Block any other API paths (like subfolders or weird extensions)
     RewriteRule ^api/ - [R=404,L]

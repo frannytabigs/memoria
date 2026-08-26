@@ -7,10 +7,12 @@ require_once 'checkuser.php';
 
 $userData = checkuser(false);
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
-// --- REST-ish ROUTING & DATA HANDLING ---
-$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+
+// --- REST ROUTING: PARSE THE URI ---
+// Check our custom .htaccess parameter first, then fallback to standard PATH_INFO
+$pathInfo = $_GET['path_info'] ?? $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
-$resourceId = array_shift($pathParts); // Grabs the ID from the URL if present
+$resourceId = array_shift($pathParts);
 
 if (!$userData) {
     try {

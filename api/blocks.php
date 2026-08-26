@@ -22,10 +22,11 @@ if (in_array($method, ['POST', 'PUT', 'DELETE'])) {
     }
 }
 
-// --- REST-ish ROUTING ---
-$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+// --- REST ROUTING: PARSE THE URI ---
+// Check our custom .htaccess parameter first, then fallback to standard PATH_INFO
+$pathInfo = $_GET['path_info'] ?? $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
-$resourceId = array_shift($pathParts); 
+$resourceId = array_shift($pathParts);
 
 // ==========================================
 // GET: RETRIEVE BLOCKS (STRICT RELATIONAL JSON)

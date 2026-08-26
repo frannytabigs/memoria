@@ -22,9 +22,11 @@ if ($method !== 'GET' && $method !== 'PUT') {
     Response::error("Method not allowed. Use reserve.php for intake, or GET/PUT here for staging.", 405);
 }
 
-$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+// --- REST ROUTING: PARSE THE URI ---
+// Check our custom .htaccess parameter first, then fallback to standard PATH_INFO
+$pathInfo = $_GET['path_info'] ?? $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
-$resourceId = array_shift($pathParts); 
+$resourceId = array_shift($pathParts);
 
 $rawData = array_merge(
     json_decode(file_get_contents("php://input"), true) ?: [], 

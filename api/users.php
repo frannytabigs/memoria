@@ -22,9 +22,10 @@ function formatPhNumber($number) {
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
 // --- REST ROUTING: PARSE THE URI ---
-$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+// Check our custom .htaccess parameter first, then fallback to standard PATH_INFO
+$pathInfo = $_GET['path_info'] ?? $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
-$resourceId = array_shift($pathParts); 
+$resourceId = array_shift($pathParts);
 
 // --- AUTHENTICATION GATEKEEPER ---
 $isPublicEndpoint = ($method === 'POST' && ($resourceId === null || $resourceId === 'forgot-password'));

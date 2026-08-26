@@ -21,10 +21,11 @@ if (!$isFullAccess && !$isReadOnly) {
     Response::error("Forbidden. You do not have permission to perform this action.", 403);
 }
 
-// --- REST-ish ROUTING ---
-$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+// --- REST ROUTING: PARSE THE URI ---
+// Check our custom .htaccess parameter first, then fallback to standard PATH_INFO
+$pathInfo = $_GET['path_info'] ?? $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
-$resourceId = array_shift($pathParts); 
+$resourceId = array_shift($pathParts);
 
 $rawData = array_merge(
     json_decode(file_get_contents("php://input"), true) ?: [], 

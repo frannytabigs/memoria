@@ -8,6 +8,7 @@ header("Content-type: text/css; charset: UTF-8");
 $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'main_color' LIMIT 1");
 $stmt->execute();
 $mainColor = $stmt->fetchColumn();
+// $mainColor = "pink";
 $hasColor = !empty($mainColor);
 
 // --- Background image ---
