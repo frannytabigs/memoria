@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (response.status === 429) {
       console.warn("Too many request.");
     } else {
+      if (response.status === 401) return;
       console.warn(
         "Static server detected or API failed. Staying on the page.",
       );
