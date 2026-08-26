@@ -66,6 +66,9 @@
     # Allow all necessary frontend assets to load securely
     RewriteRule ^assets/.*\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|json)$ - [L]
 
+    # Allow a root favicon if it exists (Optional, but highly recommended)
+    RewriteRule ^favicon\.ico$ - [L]
+    
     # ==========================================
     # 5. BLOCK EVERYTHING ELSE
     # ==========================================
