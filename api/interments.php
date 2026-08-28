@@ -518,15 +518,36 @@ if ($method === 'POST') {
         systemLog($userData['name'] . " created interment: " . $controlNumber, $userData['user_id']);
         Response::success("Interment processed and grave occupied.", ["interment_id" => $newId], 201);
 
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        
+        // Handle specific PDO error codes
+        if ($e->getCode() == 23000) {
+            Response::error("Conflict: Control number already exists.", 409);
+        }
+        
+        // Check for date/time format errors in PDO exceptions
+        $message = $e->getMessage();
+        if (
+            stripos($message, 'Incorrect datetime value') !== false ||
+            stripos($message, 'Invalid date') !== false
+        ) {
+            Response::error("Invalid date/time format. Please use YYYY-MM-DD HH:MM:SS format.", 400);
+        }
+        
+        Response::error("Database error while creating interment: " . $e->getMessage(), 500);
+        
     } catch (Exception $e) {
         $pdo->rollBack();
         $code = $e->getCode() ?: 500;
-        if ($code == 400 || $code == 404 || $code == 409) Response::error($e->getMessage(), $code);
-        Response::error("Database error or missing data.", 500);
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        if ($e->getCode() == 23000) Response::error("Conflict: Control number already exists.", 409);
-        Response::error("Database error while creating interment.", 500);
+        
+        // Handle specific HTTP error codes
+        if (in_array($code, [400, 404, 409])) {
+            Response::error($e->getMessage(), $code);
+        }
+        
+        // Default error
+        Response::error("Database error or missing data: " . $e->getMessage(), 500);
     }
 }
 
@@ -561,7 +582,7 @@ if ($method === 'DELETE') {
     } catch (Exception $e) {
         $pdo->rollBack();
         if ($e->getCode() == 404) Response::error($e->getMessage(), 404);
-        Response::error("Database error.", 500);
+        Response::error("Im sorry, there is a database error :(( . " . $e->getMessage(), 500);
     }
 }
 
@@ -701,8 +722,26 @@ if ($method === 'PUT') {
     } catch (Exception $e) {
         $pdo->rollBack();
         $code = $e->getCode() ?: 500;
-        if (in_array($code, [400, 404, 409])) Response::error($e->getMessage(), $code);
-        Response::error("Database error while updating the record.", 500);
+        $message = $e->getMessage();
+    
+        // Check for invalid date/time format errors
+        if (
+            stripos($message, 'Incorrect datetime value') !== false ||
+            stripos($message, 'Invalid date') !== false ||
+            stripos($message, 'DATETIME') !== false ||
+            stripos($message, 'TIMESTAMP') !== false ||
+            stripos($message, 'Date') !== false
+        ) {
+            Response::error("Invalid date/time format. Please use YYYY-MM-DD HH:MM:SS format.", 400);
+        }
+        
+        // Handle specific HTTP error codes
+        if (in_array($code, [400, 404, 409])) {
+            Response::error($message, $code);
+        }
+        
+        // Default database error
+        Response::error("Database error while updating the record. " . $message, 500);
     }
 }
 
