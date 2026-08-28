@@ -49,6 +49,11 @@ function decryptCredential($encryptedString) {
  */
 function sendSmsViaTextBee($phoneNumber, $message, $include_cemetery_name = true) {
     global $pdo; 
+
+    $phoneNumber = formatPhNumber($phoneNumber);
+    if (!$phoneNumber){
+        return ['success' => false, 'error' => 'Invalid Philippines phone number'];
+    }
     
     try {
         // 1. Fetch and DECRYPT the TextBee API Key
