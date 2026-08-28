@@ -208,26 +208,26 @@ CREATE TABLE interments (
 );
 
 -- RESERVATIONS: Holds a grave slot before a burial occurs.
-CREATE TABLE reservations (
-    reservation_id INT AUTO_INCREMENT PRIMARY KEY,
-    grave_id INT NOT NULL,    
-    contact_id INT, 
-    deceased_id INT,
-    reservation_date DATE,
-    expiration_date DATE, 
-    status ENUM('Active', 'Fulfilled', 'Cancelled') DEFAULT 'Active',
-    remarks TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by INT NULL,
-    updated_by INT NULL,
-    deleted_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
-    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
-    FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT, 
-    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE RESTRICT,
-    FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id) ON DELETE RESTRICT
-);
+-- CREATE TABLE reservations (
+--    reservation_id INT AUTO_INCREMENT PRIMARY KEY,
+--    grave_id INT NOT NULL,    
+--    contact_id INT, 
+--    deceased_id INT,
+--    reservation_date DATE,
+--    expiration_date DATE, 
+--   status ENUM('Active', 'Fulfilled', 'Cancelled') DEFAULT 'Active',
+--    remarks TEXT,
+--    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--    created_by INT NULL,
+--    updated_by INT NULL,
+--    deleted_at TIMESTAMP NULL DEFAULT NULL,
+--    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+--    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
+--   FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT, 
+--    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE RESTRICT,
+--    FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id) ON DELETE RESTRICT
+--);
 
 -- Payments table
 CREATE TABLE payments(
