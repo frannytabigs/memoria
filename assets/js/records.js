@@ -1512,18 +1512,34 @@ document.addEventListener("DOMContentLoaded", () => {
     addBtn.title = "View only";
   }
 
-  // Reuse the existing phone formatter from the original page.
+  // Phone formatter handling both 09XX and +63 formats
   const phoneInput = field("reqPhone");
   if (phoneInput) {
     phoneInput.addEventListener("input", (event) => {
-      let value = event.target.value.replace(/\D/g, "");
-      if (value.length > 11) value = value.substring(0, 11);
+      // 1. Keep digits and the plus sign (escaped as \+ for maximum safety)
+      let value = event.target.value.replace(/[^\d\+]/g, "");
+      value = value.replace(/(?!^)\+/g, ""); // Strip any '+' that isn't the first character
+
       let formatted = "";
-      if (value.length > 0) {
+
+      // 2. If they start with a '+', instantly switch to international format
+      if (value.startsWith("+")) {
+        // Format: +63 928 124 8905 (Max length: 13 characters)
+        if (value.length > 13) value = value.substring(0, 13);
+
+        formatted = value.substring(0, 3);
+        if (value.length > 3) formatted += " " + value.substring(3, 6);
+        if (value.length > 6) formatted += " " + value.substring(6, 9);
+        if (value.length > 9) formatted += " " + value.substring(9, 13);
+      } else {
+        // Format: 0928 589 3458 (Max length: 11 characters)
+        if (value.length > 11) value = value.substring(0, 11);
+
         formatted = value.substring(0, 4);
         if (value.length > 4) formatted += " " + value.substring(4, 7);
         if (value.length > 7) formatted += " " + value.substring(7, 11);
       }
+
       event.target.value = formatted;
     });
   }

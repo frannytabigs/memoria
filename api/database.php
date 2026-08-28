@@ -37,7 +37,7 @@ try {
     Response::error("Database connection failed", 500);
 }
 
-function formatPhNumber($number) {
+function formatPhNumber($number,$strict=true) {
     $clean = preg_replace('/[^0-9]/', '', $number);
     if (strlen($clean) == 11 && substr($clean, 0, 2) == '09') {
         $clean = '63' . substr($clean, 1);
@@ -47,6 +47,7 @@ function formatPhNumber($number) {
     if (substr($clean, 0, 3) == '639' && strlen($clean) == 12) {
         return '+' . $clean;
     }
+    if (!$strict) return $number;
     return false;
 }
 

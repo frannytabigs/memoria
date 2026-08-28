@@ -52,10 +52,20 @@ $resolveContact = function($ownerData, $pdo, $userId) {
 
     $address = trim($ownerData['address'] ?? '');
     $barangay = trim($ownerData['barangay'] ?? '');
-    $phone = trim($ownerData['phone_number'] ?? '');
     $email = trim($ownerData['email_address'] ?? '');
     $remarks = trim($ownerData['remarks'] ?? '');
+    
+    // --- FIX: Format & Validate early, and THROW an exception on failure ---
+    $phone = trim($ownerData['phone_number'] ?? '');
+    if (!empty($phone)) {
+        $phone = formatPhNumber($phone);
+        if (!$phone) {
+            // This triggers the catch() block in your POST method to rollback the DB
+            throw new Exception("Invalid Philippines phone number format.", 400); 
+        }
+    }
 
+    // Now query the DB using the properly formatted phone number
     $stmt = $pdo->prepare("
         SELECT contact_id FROM contacts 
         WHERE name = ? AND IFNULL(address, '') = ? AND IFNULL(barangay, '') = ? 
@@ -65,8 +75,6 @@ $resolveContact = function($ownerData, $pdo, $userId) {
     $existingId = $stmt->fetchColumn();
 
     if ($existingId) return $existingId;
-
-    $phone = formatPhNumber($phone) ?? '';
 
     $insertStmt = $pdo->prepare("INSERT INTO contacts (name, address, barangay, phone_number, email_address, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)");
     $insertStmt->execute([$name, $address, $barangay, $phone, $email, $remarks, $userId]);
@@ -654,6 +662,16 @@ if ($method === 'PUT') {
         // 4. Update the nested Contact data (if provided)
         if (isset($rawData['contact']) && is_array($rawData['contact']) && $currentRecord['contact_id']) {
             $con = $rawData['contact'];
+            
+            // --- FIX: Only validate if a phone number was actually passed in the PUT payload ---
+            $phone = null;
+            if (isset($con['phone_number']) && trim($con['phone_number']) !== '') {
+                $phone = formatPhNumber(trim($con['phone_number']));
+                if (!$phone) {
+                    throw new Exception("Invalid Philippines phone number format.", 400);
+                }
+            }
+            
             $updateCon = $pdo->prepare("
                 UPDATE contacts SET 
                     name = COALESCE(?, name),
@@ -667,7 +685,7 @@ if ($method === 'PUT') {
             ");
             $updateCon->execute([
                 $con['name'] ?? null,
-                formatPhNumber($con['phone_number']) ?? null,
+                $phone, // Will be null if omitted, so COALESCE keeps the old DB value
                 $con['address'] ?? null,
                 $con['barangay'] ?? null,
                 $con['remarks'] ?? null,
