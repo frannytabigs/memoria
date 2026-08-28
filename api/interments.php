@@ -480,12 +480,12 @@ if ($method === 'POST') {
         // If the grave is already occupied, we check if multiple occupants are allowed
         if ($graveInfo['status'] === 'Occupied') {
             
-            $isBoneChamber = in_array($graveInfo['block_type'], ['Bone Chamber', 'Mass Grave', 'Cluster']);
-            $isTransfer = ($assistanceType === 'Transfer' || $assistanceType === 'Other');
+            //$isBoneChamber = in_array($graveInfo['block_type'], ['Bone Chamber', 'Mass Grave', 'Cluster', 'Unmapped Area', 'Lawn']);
+            //$isTransfer = ($assistanceType === 'Transfer' || $assistanceType === 'Other');
             $isManualCoInterment = filter_var($rawData['is_co_interment'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
             // If none of the co-interment conditions are met, block it!
-            if (!$isBoneChamber && (!$isTransfer && !$isManualCoInterment)) {
+            if (!$isManualCoInterment) {
                 throw new Exception("Conflict: This grave is already occupied by an active interment. To add ashes or transferred bones here, please enable Co-Interment.", 409);
             }
         }

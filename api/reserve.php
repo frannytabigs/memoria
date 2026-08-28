@@ -133,8 +133,17 @@ $resolveContact = function($ownerData, $pdo, $userId) {
 
     $address = trim($ownerData['address'] ?? '');
     $barangay = trim($ownerData['barangay'] ?? '');
-    $phone = trim($ownerData['phone_number'] ?? '');
     $email = trim($ownerData['email_address'] ?? '');
+    
+    // --- FIX: Format & Validate early, and THROW an exception on failure ---
+    $phone = trim($ownerData['phone_number'] ?? '');
+    if (!empty($phone)) {
+        $phone = formatPhNumber($phone);
+        if (!$phone) {
+            // This triggers the catch() block in your POST method to rollback the DB
+            throw new Exception("Invalid Philippines phone number format.", 400); 
+        }
+    }
 
     $stmt = $pdo->prepare("SELECT contact_id FROM contacts WHERE name = ? AND IFNULL(phone_number, '') = ? AND deleted_at IS NULL LIMIT 1");
     $stmt->execute([$name, $phone]);
@@ -240,10 +249,9 @@ if ($method === 'GET') {
             'total_pages'   => $totalPages,
             'breakdown'     => ['expired_count' => $countExpired, 'expiring_count' => $countExpiring, 'vacant_count' => $countVacant]
         ],
+            "vacant"   => $vacantData,
             "expired"  => $expiredData,
-            "expiring" => $expiringData,
-            "vacant"   => $vacantData
-        
+            "expiring" => $expiringData
     ]);
 }
 
@@ -393,11 +401,28 @@ if ($method === 'PUT') {
 
         $contactData = $rawData['contact'] ?? [];
         if (is_array($contactData) && $pending['contact_id']) {
+            
+            // Validate and format the phone number
+            $phone = $contactData['phone_number'] ?? null;
+            if ($phone !== null && trim($phone) !== '') {
+                $phone = formatPhNumber(trim($phone));
+                if (!$phone) {
+                    throw new Exception("Invalid Philippines phone number format.", 400);
+                }
+            } else {
+                $phone = null; // Normalize empty strings to null
+            }
+
             $contactStmt = $pdo->prepare("UPDATE contacts SET name = COALESCE(NULLIF(?, ''), name), address = ?, barangay = ?, phone_number = ?, email_address = ?, updated_by = ? WHERE contact_id = ? AND deleted_at IS NULL");
+            
             $contactStmt->execute([
-                trim($contactData['name'] ?? ''), $contactData['address'] ?? null, $contactData['barangay'] ?? null,
-                $contactData['phone_number'] ?? null, $contactData['email_address'] ?? null,
-                $userData['user_id'], $pending['contact_id']
+                trim($contactData['name'] ?? ''), 
+                $contactData['address'] ?? null, 
+                $contactData['barangay'] ?? null,
+                $phone, // <-- USE THE FORMATTED VARIABLE HERE
+                $contactData['email_address'] ?? null,
+                $userData['user_id'], 
+                $pending['contact_id']
             ]);
         }
 

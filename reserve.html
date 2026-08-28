@@ -431,6 +431,120 @@
       </form>
     </div>
 
+    <div class="modalOverlay" id="smsModalOverlay" style="display: none">
+      <form id="smsForm" class="paperForm" onsubmit="event.preventDefault()">
+        <div style="text-align: center; margin-bottom: 20px">
+          <div
+            style="
+              font-size: 24px;
+              font-weight: 700;
+              color: #0f172a;
+              letter-spacing: 0.5px;
+            "
+          >
+            📩 SMS Notification Center
+          </div>
+
+          <div style="color: #64748b; font-size: 13px; margin-top: 6px">
+            Compose and send a notification directly to the recipient.
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label> 📞 Recipient </label>
+
+            <input
+              type="text"
+              id="smsPhone"
+              readonly
+              style="
+                background: #f8fafc;
+                font-weight: 600;
+                color: #334155;
+                border: 1px solid #e2e8f0;
+              "
+            />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top: 18px">
+          <div class="col">
+            <label> ✉️ Message </label>
+
+            <textarea
+              id="smsMessage"
+              rows="6"
+              placeholder="Type your notification message here..."
+              style="
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                font-family: inherit;
+                resize: vertical;
+                line-height: 1.5;
+              "
+            ></textarea>
+
+            <small style="display: block; margin-top: 6px; color: #64748b">
+              Keep your message clear and concise for better delivery.
+            </small>
+          </div>
+        </div>
+
+        <div
+          class="row"
+          style="
+            align-items: center;
+            gap: 10px;
+            margin-top: 18px;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+          "
+        >
+          <input
+            type="checkbox"
+            id="smsIncludeCemeteryName"
+            checked
+            style="width: auto; cursor: pointer; transform: scale(1.1)"
+          />
+
+          <label
+            for="smsIncludeCemeteryName"
+            style="
+              margin: 0;
+              cursor: pointer;
+              user-select: none;
+              font-weight: 500;
+            "
+          >
+            🏛️ Include cemetery name in the message
+          </label>
+        </div>
+
+        <div
+          class="paperFormActions"
+          style="
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+          "
+        >
+          <button type="button" class="btnPaperCancel" id="btnSmsCancel">
+            ✖ Cancel
+          </button>
+
+          <button type="submit" class="btnPaperSave" id="btnSmsSend">
+            🚀 Send SMS
+          </button>
+        </div>
+      </form>
+    </div>
+
     <script src="assets/js/alert.js"></script>
     <script src="assets/js/sidebar.js"></script>
     <script src="assets/js/reserve.js"></script>
