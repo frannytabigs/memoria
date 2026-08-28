@@ -734,9 +734,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const pendingRequest = fetchPending();
 
     try {
+      // Force the skeleton loader to display for at least 600ms.
+      // We run both API fetches and the timer at the same time!
       const [catalog, pending] = await Promise.all([
         fetchCatalog(),
         pendingRequest,
+        new Promise((resolve) => setTimeout(resolve, 600)), // <--- Added delay here
       ]);
 
       pagination = catalog.pagination || null;

@@ -190,6 +190,41 @@ document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement("style");
     style.id = "recordsInjectedStyles";
     style.textContent = `
+      /* Enable horizontal scrolling for the container */
+      .tableContainer {
+        overflow-x: auto;
+        max-width: 100%;
+      }
+      .tableContainer table {
+        width: 100%;
+        /* Removed min-width: max-content so columns can actually wrap vertically */
+      }
+      
+      .tableContainer th, .tableContainer td {
+        padding: 12px 16px;
+        /* Align to top so when a row expands vertically, everything looks neat */
+        vertical-align: top; 
+      }
+      
+      /* Default all columns to stay on one line (great for Dates, Phone Numbers, IDs) */
+      .tableContainer td {
+        white-space: nowrap;
+      }
+
+      /* Let text-heavy columns wrap and take up space down below */
+      .tableContainer td:nth-child(2), /* Deceased Name */
+      .tableContainer td:nth-child(5), /* Deceased Address */
+      .tableContainer td:nth-child(9), /* Contact Name */
+      .tableContainer td:nth-child(11),
+      .tableContainer td:nth-child(7), /* Contact Address */
+      .tableContainer td:nth-child(12)  /* Remarks */ {
+        white-space: normal; /* Allow text to wrap */
+        min-width: 180px;    /* Keep a comfortable base width */
+        max-width: 480px;    /* Force it to wrap at this point instead of stretching forever */
+        line-height: 1.5;    /* Give multi-line text breathing room */
+        word-wrap: break-word; /* Ensure super long unbroken strings don't ruin the table */
+      }
+
       .recordsMeta {
         display: flex;
         align-items: center;
@@ -222,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
         padding: 0 2px;
       }
       .cellMuted { color: #cbd5e1; }
-      .blockCell { display: flex; align-items: center; gap: 8px; }
+      .blockCell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .graveChip {
         border: 1px solid #cbd5e1;
         background: #f8fafc;
@@ -265,15 +300,33 @@ document.addEventListener("DOMContentLoaded", () => {
       .actions .mergeBtn { background: #ede9fe; color: #6d28d9; }
       .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
       tbody tr.clickableRow { cursor: pointer; }
-      .stateCell { text-align: center; padding: 34px 16px !important; color: #94a3b8; }
+      
+      /* Empty State Animation */
+      .stateCell { 
+        text-align: center; 
+        padding: 40px 16px !important; 
+        color: #94a3b8; 
+        animation: emptyDataPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes emptyDataPop {
+        0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+
+      /* Skeleton Loader */
       .skeletonBox {
         display: block;
-        height: 11px;
+        height: 14px;
+        width: 100%;
+        min-width: 60px;
         border-radius: 4px;
-        background: linear-gradient(90deg, #eef2f7 25%, #e2e8f0 37%, #eef2f7 63%);
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
         background-size: 400% 100%;
-        animation: recordsShimmer 1.3s ease-in-out infinite;
+        animation: recordsShimmer 1.4s ease-in-out infinite;
       }
+      td:nth-child(even) .skeletonBox { width: 70%; }
+      td:nth-child(3n) .skeletonBox { width: 85%; }
+
       @keyframes recordsShimmer {
         0% { background-position: 100% 50%; }
         100% { background-position: 0 50%; }
@@ -587,7 +640,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchTerm) params.set("search", searchTerm);
 
     try {
-      const result = await apiGet(`api/interments?${params.toString()}`);
+      // Force the skeleton loader to display for at least 600ms (0.6 seconds).
+      // We run the API fetch and the timer at the same time.
+      const [result] = await Promise.all([
+        apiGet(`api/interments?${params.toString()}`),
+        new Promise((resolve) => setTimeout(resolve, 600)),
+      ]);
+
       if (token !== loadToken) return;
 
       if (!result.success) {
