@@ -66,6 +66,8 @@ $resolveContact = function($ownerData, $pdo, $userId) {
 
     if ($existingId) return $existingId;
 
+    $phone = formatPhNumber($phone) ?? '';
+
     $insertStmt = $pdo->prepare("INSERT INTO contacts (name, address, barangay, phone_number, email_address, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)");
     $insertStmt->execute([$name, $address, $barangay, $phone, $email, $remarks, $userId]);
     return $pdo->lastInsertId();
@@ -125,8 +127,8 @@ if ($method === 'GET') {
                 i.*, 
                 g.grave_code, g.remarks AS grave_remarks, 
                 b.block_name, b.block_id, b.remarks AS block_remarks, b.owner_contact_id,
-                d.name AS deceased_name, d.sex AS deceased_sex, d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death,
-                c.name AS contact_name, c.phone_number AS contact_phone, c.remarks AS contact_remarks, c.deleted_at AS contact_deleted
+                d.name AS deceased_name, d.sex AS deceased_sex, d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death, d.date_of_birth, d.last_known_address,
+                c.name AS contact_name, c.phone_number AS contact_phone, c.remarks AS contact_remarks, c.deleted_at AS contact_deleted, c.address AS contact_address, c.barangay AS contact_barangay
             FROM interments i
             LEFT JOIN graves g ON i.grave_id = g.grave_id
             LEFT JOIN blocks b ON g.block_id = b.block_id
@@ -184,18 +186,22 @@ if ($method === 'GET') {
             ],
             
             'deceased' => [
-                'deceased_id' => (int)$record['deceased_id'],
-                'name'        => $record['deceased_name'],
-                'sex'         => $record['deceased_sex'],
-                'remarks'     => $record['deceased_remarks'],
-                'death_certificate' => $record['death_certificate'],
+                'deceased_id'        => (int)$record['deceased_id'],
+                'name'               => $record['deceased_name'],
+                'sex'                => $record['deceased_sex'],
+                'date_of_birth'      => $record['date_of_birth'],
                 'date_of_death'      => $record['date_of_death'],
-                'is_archived' => $record['deceased_deleted'] !== null
+                'death_certificate'  => $record['death_certificate'],
+                'last_known_address' => $record['last_known_address'],
+                'remarks'            => $record['deceased_remarks'],
+                'is_archived'        => $record['deceased_deleted'] !== null
             ],
             
             'contact' => [
                 'contact_id'   => (int)$record['contact_id'],
                 'name'         => $record['contact_name'],
+                'address'      => $record['contact_address'],
+                'barangay'     => $record['contact_barangay'],
                 'phone_number' => $record['contact_phone'],
                 'remarks'      => $record['contact_remarks'],
                 'is_archived'  => $record['contact_deleted'] !== null
@@ -308,8 +314,9 @@ if ($method === 'GET') {
             g.grave_code, g.grave_id, g.remarks AS grave_remarks,
             b.block_name, b.block_id, b.owner_contact_id, b.remarks AS block_remarks,
             d.name AS deceased_name, d.deceased_id, d.sex AS deceased_sex,
-            d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death,
+            d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death, d.date_of_birth, d.last_known_address,
             c.name AS contact_name, c.phone_number AS contact_phone, c.contact_id,
+            c.address AS contact_address, c.barangay AS contact_barangay,
             c.remarks AS contact_remarks, c.deleted_at AS contact_deleted
         FROM interments i
         LEFT JOIN graves g ON i.grave_id = g.grave_id
@@ -371,15 +378,19 @@ if ($method === 'GET') {
                 'deceased_id'       => (int)$row['deceased_id'],
                 'name'              => $row['deceased_name'],
                 'sex'               => $row['deceased_sex'],
-                'remarks'           => $row['deceased_remarks'],
-                'death_certificate' => $row['death_certificate'],
+                'date_of_birth'     => $row['date_of_birth'],
                 'date_of_death'     => $row['date_of_death'],
+                'death_certificate' => $row['death_certificate'],
+                'last_known_address'=> $row['last_known_address'],
+                'remarks'           => $row['deceased_remarks'],
                 'is_archived'       => $row['deceased_deleted'] !== null
             ],
             
             'contact' => [
                 'contact_id'   => (int)$row['contact_id'],
                 'name'         => $row['contact_name'],
+                'address'      => $row['contact_address'],
+                'barangay'     => $row['contact_barangay'],
                 'phone_number' => $row['contact_phone'],
                 'remarks'      => $row['contact_remarks'],
                 'is_archived'  => $row['contact_deleted'] !== null
@@ -474,15 +485,14 @@ if ($method === 'POST') {
         // 3. Insert Interment
         $stmt = $pdo->prepare("
             INSERT INTO interments (
-                control_number, deceased_id, grave_id, contact_id, assistance_type, assistance_other_remarks,
+                control_number, deceased_id, grave_id, contact_id, assistance_type,
                 burial_permit_number, burial_permit_date, transfer_permit_number, transfer_permit_issued_by, transfer_permit_date,
                 exhumation_permit_number, exhumation_permit_date, date_buried, clearance_date, lease_expiration_date, remarks, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
-            $controlNumber, $deceasedId, $graveId, $contactId, $assistanceType, 
-            $rawData['assistance_other_remarks'] ?? null,
+            $controlNumber, $deceasedId, $graveId, $contactId, $assistanceType,
             $rawData['burial_permit_number'] ?? null, $rawData['burial_permit_date'] ?? null,
             $rawData['transfer_permit_number'] ?? null, $rawData['transfer_permit_issued_by'] ?? null, $rawData['transfer_permit_date'] ?? null,
             $rawData['exhumation_permit_number'] ?? null, $rawData['exhumation_permit_date'] ?? null,
@@ -576,7 +586,6 @@ if ($method === 'PUT') {
             UPDATE interments SET 
                 control_number = COALESCE(?, control_number),
                 assistance_type = COALESCE(?, assistance_type),
-                assistance_other_remarks = COALESCE(?, assistance_other_remarks),
                 burial_permit_number = COALESCE(?, burial_permit_number),
                 burial_permit_date = COALESCE(?, burial_permit_date),
                 transfer_permit_number = COALESCE(?, transfer_permit_number),
@@ -597,7 +606,6 @@ if ($method === 'PUT') {
         $updateInterment->execute([
             $rawData['control_number'] ?? null,
             $rawData['assistance_type'] ?? null,
-            $rawData['assistance_other_remarks'] ?? null,
             $rawData['burial_permit_number'] ?? null,
             $rawData['burial_permit_date'] ?? null,
             $rawData['transfer_permit_number'] ?? null,
@@ -624,6 +632,7 @@ if ($method === 'PUT') {
                     date_of_birth = COALESCE(?, date_of_birth),
                     date_of_death = COALESCE(?, date_of_death),
                     death_certificate = COALESCE(?, death_certificate),
+                    last_known_address = COALESCE(?, last_known_address),
                     remarks = COALESCE(?, remarks),
                     updated_by = ?,
                     updated_at = NOW()
@@ -635,6 +644,7 @@ if ($method === 'PUT') {
                 $dec['date_of_birth'] ?? null,
                 $dec['date_of_death'] ?? null,
                 $dec['death_certificate'] ?? null,
+                $dec['last_known_address'] ?? null,
                 $dec['remarks'] ?? null,
                 $userData['user_id'],
                 $currentRecord['deceased_id']
@@ -648,6 +658,8 @@ if ($method === 'PUT') {
                 UPDATE contacts SET 
                     name = COALESCE(?, name),
                     phone_number = COALESCE(?, phone_number),
+                    address = COALESCE(?, address),
+                    barangay = COALESCE(?, barangay),
                     remarks = COALESCE(?, remarks),
                     updated_by = ?,
                     updated_at = NOW()
@@ -655,7 +667,9 @@ if ($method === 'PUT') {
             ");
             $updateCon->execute([
                 $con['name'] ?? null,
-                $con['phone_number'] ?? null,
+                formatPhNumber($con['phone_number']) ?? null,
+                $con['address'] ?? null,
+                $con['barangay'] ?? null,
                 $con['remarks'] ?? null,
                 $userData['user_id'],
                 $currentRecord['contact_id']
