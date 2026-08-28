@@ -50,7 +50,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
       // Run this instantly before the page paints
       if (localStorage.getItem("memoria_role") === "Administrator") {
@@ -164,7 +164,7 @@
           </div>
           <div class="statBottom">
             <!-- Added ID here -->
-            <h2 class="statValue" id="stat-total-interments">--</h2>
+            <h2 class="statValue skeleton" id="stat-total-interments">--</h2>
           </div>
         </div>
 
@@ -175,7 +175,7 @@
           </div>
           <div class="statBottom">
             <!-- Added ID here -->
-            <h2 class="statValue" id="stat-available-graves">--</h2>
+            <h2 class="statValue skeleton" id="stat-available-graves">--</h2>
           </div>
         </div>
 
@@ -185,7 +185,7 @@
             <div class="iconBadge"><i class="fas fa-clock"></i></div>
           </div>
           <div class="statBottom">
-            <h2 class="statValue" id="stat-expiring-leases">--</h2>
+            <h2 class="statValue skeleton" id="stat-expiring-leases">--</h2>
             <span class="badge badgeWarning">Next 30 Days</span>
           </div>
         </div>
@@ -196,7 +196,7 @@
             <div class="iconBadge"><i class="fas fa-user-shield"></i></div>
           </div>
           <div class="statBottom">
-            <h2 class="statValue" id="stat-unverified-accounts">--</h2>
+            <h2 class="statValue skeleton" id="stat-unverified-accounts">--</h2>
             <span class="badge badgeDanger">Action Req.</span>
           </div>
         </div>
@@ -207,7 +207,7 @@
             <div class="iconBadge"><i class="fas fa-file-signature"></i></div>
           </div>
           <div class="statBottom">
-            <h2 class="statValue" id="stat-pending-clearances">--</h2>
+            <h2 class="statValue skeleton" id="stat-pending-clearances">--</h2>
             <span class="badge badgeWarning">Action Req.</span>
           </div>
         </div>

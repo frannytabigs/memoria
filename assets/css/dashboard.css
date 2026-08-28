@@ -51,12 +51,19 @@
   }
 
   .statsGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    /* 1. Swapped Grid for Flexbox */
+    display: flex;
+    flex-wrap: wrap;
     gap: 20px;
     margin-bottom: 28px;
 
     .statCard {
+      /* 2. Added Flexbox sizing so they can stretch and shrink dynamically */
+      flex: 1 1 230px;
+      min-width: 200px;
+      box-sizing: border-box;
+      overflow: hidden; /* Prevents text from spilling out when shrinking */
+
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 14px;
@@ -65,7 +72,10 @@
       flex-direction: column;
       justify-content: space-between;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+
+      /* 3. Updated transition to include 'all' for smooth width/margin collapsing */
       transition:
+        all 1s ease,
         transform 0.2s,
         box-shadow 0.2s;
 
@@ -201,5 +211,49 @@
         min-width: 0;
       }
     }
+  }
+}
+
+/* Skeleton Loader Pulse */
+.skeleton {
+  background-color: rgba(
+    165,
+    165,
+    165,
+    0.2
+  ); /* Subtle gray that works on dark/light mode */
+  animation: pulse 1.5s infinite ease-in-out;
+  border-radius: 6px;
+  color: transparent !important; /* Hides any fallback text */
+  min-width: 60px;
+  min-height: 32px; /* Matches your h2 height */
+  display: inline-block;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Smooth Fade In */
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

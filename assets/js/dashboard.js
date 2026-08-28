@@ -28,6 +28,11 @@ window.initDashboardCharts = function (pieDataValues, barDataValues) {
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: 20 },
+        // Correct v3+ animation syntax
+        animation: {
+          duration: 1500,
+          easing: "easeOutQuart",
+        },
         plugins: {
           legend: {
             position: "bottom",
@@ -75,6 +80,11 @@ window.initDashboardCharts = function (pieDataValues, barDataValues) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        // Correct v3+ animation syntax
+        animation: {
+          duration: 1200,
+          easing: "easeOutQuart",
+        },
         plugins: { legend: { display: false } },
         scales: {
           x: { grid: { display: false }, ticks: { font: { size: 12 } } },
@@ -89,13 +99,34 @@ window.initDashboardCharts = function (pieDataValues, barDataValues) {
   }
 };
 
-// Helper function to hide the entire .statCard parent element
+// Helper function to smoothly hide the entire .statCard
 function hideStatCard(cardId) {
   const element = document.getElementById(cardId);
   if (element) {
     const statCard = element.closest(".statCard");
-    if (statCard) {
-      statCard.style.display = "none"; // or statCard.remove();
+
+    // Only animate if it hasn't been hidden yet
+    if (statCard && statCard.style.display !== "none") {
+      // 1. Add smooth transition properties
+      statCard.style.transition = "all 0.4s ease-out";
+      statCard.style.overflow = "hidden"; // Prevents content from spilling during shrink
+
+      // 2. Fade out and scale down slightly
+      statCard.style.opacity = "0";
+      statCard.style.transform = "scale(0.9)";
+
+      // 3. Wait for the fade, then collapse the physical space smoothly
+      setTimeout(() => {
+        statCard.style.width = "0px";
+        statCard.style.margin = "0px";
+        statCard.style.padding = "0px";
+        statCard.style.border = "none";
+
+        // 4. Finally, remove it from the document flow completely
+        setTimeout(() => {
+          statCard.style.display = "none";
+        }, 400);
+      }, 300); // Starts collapsing just before the fade is completely done
     }
   }
 }
@@ -123,6 +154,10 @@ async function loadDashboardData() {
         const value = data[key];
 
         if (value !== undefined && value !== null) {
+          // Data exists: Remove skeleton, add fade-in, and set the text
+          element.classList.remove("skeleton");
+          element.classList.add("fade-in");
+
           if (
             key === "payments" &&
             value.pending_office !== undefined &&
@@ -134,9 +169,11 @@ async function loadDashboardData() {
           } else if (key !== "payments") {
             element.textContent = value;
           } else {
+            // Data format is unexpected, hide the card smoothly
             hideStatCard(id);
           }
         } else {
+          // Data is completely missing, hide the card smoothly
           hideStatCard(id);
         }
       });
