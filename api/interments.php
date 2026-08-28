@@ -14,10 +14,10 @@ $role = $userData['role'];
 
 // Define the two types of allowed access
 $isFullAccess = in_array($role, [ROLE_ADMIN, ROLE_OFFICE]);
-$isReadOnly   = ($role === ROLE_GROUNDS && $method === 'GET');
+//$isReadOnly   = ($role === ROLE_GROUNDS && $method === 'GET');
 
 // If the user has NEITHER of these permissions, kick them out
-if (!$isFullAccess && !$isReadOnly) {
+if (!$isFullAccess) { //&& !$isReadOnly) {
     Response::error("Forbidden. You do not have permission to perform this action.", 403);
 }
 
