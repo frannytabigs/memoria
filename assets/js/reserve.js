@@ -234,6 +234,9 @@ document.addEventListener("DOMContentLoaded", () => {
       .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
       .actions button:disabled:hover { transform: none; box-shadow: none; }
 
+      button.smsBtn:disabled { cursor: not-allowed !important; }
+      button.smsBtn:disabled:hover { transform: none; box-shadow: none; }
+
       .skeletonBox {
         height: 12px;
         border-radius: 6px;
@@ -612,7 +615,7 @@ document.addEventListener("DOMContentLoaded", () => {
               row.contact.phone_number
                 ? `
                   <button
-                    class="smsBtn"
+                    class="smsBtn"${lockedAttrs}
                     style="
                       background: #f3f4f6;
                       border: 1px solid #d1d5db;
@@ -1432,6 +1435,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const result = await response.json();
       if (result.success) notify("SMS sent successfully!", "success");
+      else notify(result.message, "error");
     } catch (error) {
       notify("Failed to send SMS.", "error");
     }

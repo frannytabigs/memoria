@@ -6,6 +6,8 @@ require_once 'checkuser.php';
 require_once 'textbee.php';
 require_once 'logs.php';
 
+header('Content-Type: application/json');
+
 $userData = checkuser();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
@@ -17,6 +19,11 @@ $rawData = array_merge(
     $_POST ?? []
 );
 
+$role = $userData['role'];
+if ( !in_array( $role , [ ROLE_ADMIN, ROLE_OFFICE ] ) ){
+    Response::error("Forbidden. You do not have permission to perform this action.", 403);
+}
+
 if ($method === 'POST') {
     
     // Default to true if not provided
@@ -26,6 +33,7 @@ if ($method === 'POST') {
         !isset($rawData['phone_number']) ||
         !isset($rawData['message'])
     ) {
+        http_response_code(400);
         echo json_encode([
             "success" => false,
             "message" => "phone_number and message are required."
@@ -37,14 +45,15 @@ if ($method === 'POST') {
     
     if (!$smsStatus['success']) {
         systemLog("Failed to send SMS to {$rawData['phone_number']}. Error: {$smsStatus['error']}. Content: {$rawData['message']}", $userData['user_id']);
-        
+        http_response_code(500);
         echo json_encode([
             "success" => false, 
-            "message" => "Saved changes, but failed to send SMS: " . $smsStatus['error']
+            "message" => "Failed to send SMS: " . $smsStatus['error']
         ]);
         exit; 
     }
 
+    http_response_code(200);
     echo json_encode([
         "success" => true,
         "message" => "SMS sent successfully to " . $rawData['phone_number'] . " with the message content: " . $rawData['message']
