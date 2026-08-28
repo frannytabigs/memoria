@@ -212,7 +212,20 @@ if ($method === 'DELETE') {
     }
 
     try {
-        $stmt = $pdo->prepare("UPDATE users SET deleted_at = CURRENT_TIMESTAMP, status = :status, username = CONCAT(username, '_deleted_', user_id), email = CONCAT(email, '_deleted_', user_id), updated_by = :admin_id WHERE user_id = :id AND deleted_at IS NULL");
+       $stmt = $pdo->prepare("
+            UPDATE users
+            SET
+                deleted_at = CURRENT_TIMESTAMP,
+                status = :status,
+                username = CONCAT(LEFT(COALESCE(username, ''), 10), '_del_', user_id),
+                email = CONCAT(LEFT(COALESCE(email, ''), 10), '_del_', user_id),
+                phone_number = CONCAT(LEFT(COALESCE(phone_number, ''), 10), '_del_', user_id),
+                updated_by = :admin_id
+            WHERE
+                user_id = :id
+                AND deleted_at IS NULL
+        ");
+
         $stmt->execute([
             ':id' => (int)$resourceId, 
             ':admin_id' => $userData['user_id'],
@@ -226,7 +239,7 @@ if ($method === 'DELETE') {
         Response::error("Not Found: User does not exist", 404);
     } catch (PDOException $e) {
         error_log($e->getMessage());
-        Response::error("Database error: Could not delete user", 500);
+        Response::error("Database error: Could not delete user. " . $e->getMessage(), 500);
     }
 }
 
