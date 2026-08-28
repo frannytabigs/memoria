@@ -188,9 +188,9 @@ CREATE TABLE interments (
     
     status ENUM('Active', 'Expired', 'Exhumed', 'Moved to Family', 'Pending') DEFAULT 'Active',
     
-    -- SIMPLIFIED SMS TRACKING
-    sms_status ENUM('Not Sent', 'Warning Sent', 'Expired Notice Sent') DEFAULT 'Not Sent',
-    last_sms_sent_at TIMESTAMP NULL,
+    -- SIMPLIFIED SMS TRACKING [I removed this]
+    -- sms_status ENUM('Not Sent', 'Warning Sent', 'Expired Notice Sent') DEFAULT 'Not Sent',
+    -- last_sms_sent_at TIMESTAMP NULL,
     
     remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -256,21 +256,21 @@ CREATE TABLE payments(
     FOREIGN KEY (confirmed_ground_staff) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
-CREATE TABLE photos(
-    photo_id INT AUTO_INCREMENT PRIMARY KEY,
-    image_link VARCHAR(255) NOT NULL,
-    remarks TEXT NOT NULL,
+-- CREATE TABLE photos(
+--    photo_id INT AUTO_INCREMENT PRIMARY KEY,
+--    image_link VARCHAR(255) NOT NULL,
+--    remarks TEXT NOT NULL,
         
     -- Audit & Approvals
-    uploaded_by INT NULL,
+--    uploaded_by INT NULL,
     
     -- Standard System Columns
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL DEFAULT NULL,
+--    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--    deleted_at TIMESTAMP NULL DEFAULT NULL,
     
-    FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE SET NULL
-); 
+--    FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE SET NULL
+-- ); 
 
 -- ==========================================
 -- 4. PERFORMANCE INDEXES
@@ -305,8 +305,8 @@ SELECT
     'Vacant' AS urgency_level,           -- Hardcoded tag for the frontend
     NULL AS deceased_name,               -- No body yet
     NULL AS family_contact,              -- No family to contact
-    NULL AS lease_expiration_date,       -- No lease
-    NULL AS sms_status                   -- No SMS needed
+    NULL AS lease_expiration_date        -- No lease
+    -- NULL AS sms_status                   -- No SMS needed [ removed the sms]
 FROM graves g
 JOIN blocks b ON g.block_id = b.block_id
 WHERE g.status = 'Vacant'
@@ -323,8 +323,8 @@ SELECT
     END AS urgency_level,                -- Dynamically tags based on today's date
     d.name AS deceased_name,
     c.phone_number AS family_contact,
-    i.lease_expiration_date,
-    i.sms_status                         -- Pulls the simplified SMS tracking we just made!
+    i.lease_expiration_date
+  --i.sms_status                         -- Pulls the simplified SMS tracking we just made! [i removed the sms]
 FROM interments i
 JOIN graves g ON i.grave_id = g.grave_id
 JOIN blocks b ON g.block_id = b.block_id
