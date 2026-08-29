@@ -4,72 +4,70 @@ define('ITS_ME_JUSTTOVERIFY', true);
 require_once 'logs.php';
 require_once 'imagemanager.php';
 require_once 'checkuser.php';
+require_once 'textbee.php';
 
 $userData = checkuser(false);
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
-// --- REST ROUTING: PARSE THE URI ---
-// Check our custom .htaccess parameter first, then fallback to standard PATH_INFO
+// --- REST-ish ROUTING: PARSE THE URI ---
 $pathInfo = $_GET['path_info'] ?? $_SERVER['PATH_INFO'] ?? '';
 $pathParts = array_filter(explode('/', trim($pathInfo, '/')));
 $resourceId = array_shift($pathParts);
 
+// Handle Unauthenticated GET Requests First
 if (!$userData) {
     try {
         if ($method === 'GET') {
             if ($resourceId) {
-                // api/settings.php/1 - Fetch a specific setting
                 $stmt = $pdo->prepare("SELECT * FROM settings WHERE setting_id = :id AND deleted_at IS NULL AND description NOT LIKE '%sensitive%'");
                 $stmt->execute([':id' => $resourceId]);
                 $setting = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                if (!$setting) {
-                    Response::error("Public Setting not found", 404);
-                }
-
+                if (!$setting) Response::error("Public Setting not found", 404);
                 Response::success("Public System setting retrieved", $setting);
             } else {
-                // api/settings.php - Fetch all settings
                 $stmt = $pdo->prepare("SELECT * FROM settings WHERE deleted_at IS NULL AND description NOT LIKE '%sensitive%' ORDER BY created_at DESC");
                 $stmt->execute();
                 $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 Response::success("Public System settings retrieved", $settings);
             }
+        } else {
+            Response::error("Unauthorized access", 401);
         }
     } catch (PDOException $e) {
         systemLog("Database Error: " . $e->getMessage(), "Unauthenticated");
-        Response::error("An internal server error occurred while processing the database request. " . $e->getMessage(), 500);
+        Response::error("Internal server error.", 500);
     }
+    exit; // Stop execution for unauthenticated users
 }
+
+// Strict Gatekeeper
+$canModify = in_array($userData['role'], [ROLE_ADMIN, ROLE_OFFICE]);
+if (!$canModify) {
+    Response::error("Forbidden to access this resource", 403);
+}
+
 $manager = new ImageManager();
 
-// Strict Gatekeeper: Only Verified Admins
-if ($userData['role'] !== ROLE_ADMIN) {
-    Response::error("Forbidden: Only administrators can access this resource", 403);
-}
-
-
+// Parse Input Data
 $rawData = array_merge(
     json_decode(file_get_contents("php://input"), true) ?: [], 
     $_POST ?? []
 );
 
-// Determine the method (Handle method spoofing via $rawData)
+// Handle method spoofing
 if ($method === 'POST' && !empty($rawData['_method'])) {
     $method = strtoupper($rawData['_method']);
 }
 
-// Track newly uploaded files for rollback
-$uploadedFilename = null;
-
-//did not include pagination since this wont be big i guess? lol hopefully
 try {
+    
     switch ($method) {
-        
+
         case 'GET':
             if ($resourceId) {
-                // api/settings.php/1 - Fetch a specific setting
+                // Get single setting
                 $stmt = $pdo->prepare("SELECT * FROM settings WHERE setting_id = :id AND deleted_at IS NULL");
                 $stmt->execute([':id' => $resourceId]);
                 $setting = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -78,177 +76,159 @@ try {
                     Response::error("Setting not found", 404);
                 }
 
-                systemLog("{$userData['name']} ({$userData['username']}) retrieved setting ID: {$resourceId}.", $userData['user_id']);
+                // Decrypt specific sensitive value (only for admins)
+                if (stripos($setting['description'], 'sensitive') !== false) {
+                    if ($userData['role'] !== ROLE_ADMIN) {
+                        Response::error("Forbidden to access this resource", 403);
+                    }
+                    $setting['setting_value'] = decryptCredential($setting['setting_value']);
+                }
+
+                systemLog(
+                    "{$userData['name']} ({$userData['username']}) retrieved setting ID: {$resourceId}.",
+                    $userData['user_id']
+                );
                 Response::success("System setting retrieved", $setting);
-                
+
             } else {
-                // api/settings.php - Fetch all settings
+                // Get all settings
                 $stmt = $pdo->prepare("SELECT * FROM settings WHERE deleted_at IS NULL ORDER BY created_at DESC");
                 $stmt->execute();
                 $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                systemLog("{$userData['name']} ({$userData['username']}) retrieved all system settings.", $userData['user_id']);
+
+                // Process sensitive values
+                foreach ($settings as &$setting) {
+                    if (stripos($setting['description'], 'sensitive') !== false) {
+                        if ($userData['role'] !== ROLE_ADMIN) {
+                            // Non-admins: remove the entire sensitive setting from the list
+                            $setting = null; // mark for removal
+                        } else {
+                            // Admins: decrypt the value
+                            $setting['setting_value'] = decryptCredential($setting['setting_value']);
+                        }
+                    }
+                }
+                unset($setting); // break reference
+
+                // Remove null entries (sensitive settings hidden from non-admins)
+                $settings = array_values(array_filter($settings, fn($s) => $s !== null));
+
+                systemLog(
+                    "{$userData['name']} ({$userData['username']}) retrieved all system settings.",
+                    $userData['user_id']
+                );
                 Response::success("System settings retrieved", $settings);
             }
             break;
 
-
+        case 'PUT':
+        case 'PATCH':
         case 'POST':
-            // --- BULK MODE ---
             if (isset($rawData['bulk_settings']) && is_array($rawData['bulk_settings'])) {
-                
-                $pdo->beginTransaction(); // Start transaction
-                $uploadedFiles = []; // Track all files uploaded in this bulk request for rollback
+                $pdo->beginTransaction(); 
+                $uploadedFiles = []; 
 
                 try {
                     foreach ($rawData['bulk_settings'] as $index => $setting) {
                         $sKey = trim($setting['setting_key'] ?? '');
-                        $sValue = trim($setting['setting_value'] ?? '');
                         $sDesc = trim($setting['description'] ?? '');
+                        $sValue = trim($setting['setting_value'] ?? '');
+                        $hasImage = isset($_FILES['bulk_images']['name'][$index]) && $_FILES['bulk_images']['error'][$index] === UPLOAD_ERR_OK;
 
-                        if (empty($sKey)) continue; // Skip invalid entries
+                        if (empty($sKey) || empty($sDesc)) {
+                            throw new Exception("Setting key and description are strictly required for all entries.");
+                        }
+                        if (empty($sValue) && !$hasImage) {
+                            throw new Exception("Setting value is required for '{$sKey}' if no image is uploaded.");
+                        }
 
-                        // Handle potential bulk image upload 
-                        // Note: PHP formats bulk files as $_FILES['bulk_images']['name'][$index]
-                        if (isset($_FILES['bulk_images']['name'][$index]) && $_FILES['bulk_images']['error'][$index] === UPLOAD_ERR_OK) {
-                            $requestedName = "setting_" . preg_replace('/[^A-Za-z0-9\-]/', '', $sKey) . "_" . time();
+                       if ($hasImage) {
+                            $tmpName = $_FILES['bulk_images']['tmp_name'][$index];
                             
-                            // Check if replacing an existing image
-                            $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = :key AND deleted_at IS NULL");
-                            $stmt->execute([':key' => $sKey]);
-                            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+                            // STRICT PNG VALIDATION
+                            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                            $mime = finfo_file($finfo, $tmpName);
+                            finfo_close($finfo);
 
-                            if ($existing && !empty($existing['setting_value'])) {
-                                $result = $manager->replaceImage($existing['setting_value'], $_FILES['bulk_images']['tmp_name'][$index]);
-                            } else {
-                                $result = $manager->uploadImage(
-                                    $_FILES['bulk_images']['tmp_name'][$index], 
-                                    $_FILES['bulk_images']['name'][$index], 
-                                    $requestedName
-                                );
+                            if ($mime !== 'image/png') {
+                                throw new Exception("Upload failed: Only PNG images are allowed for '{$sKey}'.");
                             }
+
+                            // Force the filename to be the setting_key.
+                            // The ImageManager will automatically append the verified '.png' extension.
+                            $requestedName = $sKey; 
+                            
+                            // Always use uploadImage with $replaceIfExists = true
+                            // This ensures logo1.png safely overwrites logo1.png using file locking
+                            $result = $manager->uploadImage(
+                                $tmpName, 
+                                $_FILES['bulk_images']['name'][$index], 
+                                $requestedName,
+                                true 
+                            );
 
                             if (!$result['success']) {
                                 throw new Exception("Image upload failed for {$sKey}: " . $result['error']);
                             }
-                            $sValue = $result['filepath'];
-                            $uploadedFiles[] = $sValue; // Track for rollback
+                            
+                            // $sValue will now strictly be "logo1.png", "cemetery_full_logo.png", etc.
+                            $sValue = $result['filename'];
+                            $uploadedFiles[] = $sValue; 
                         }
 
-                        // UPSERT LOGIC (Insert or Update if setting_key exists)
+                        // Encrypt before saving if description flags it as sensitive
+                        if (stripos($sDesc, 'sensitive') !== false) {
+                            $sValue = encryptCredential($sValue);
+                        }
+
                         $sql = "INSERT INTO settings (setting_key, setting_value, description, created_by) 
                                 VALUES (:key, :value, :desc, :user_id)
                                 ON DUPLICATE KEY UPDATE 
                                 setting_value = VALUES(setting_value), 
                                 description = VALUES(description), 
-                                updated_by = VALUES(created_by)";
+                                updated_by = :update_user_id";
                         
                         $stmt = $pdo->prepare($sql);
                         $stmt->execute([
                             ':key' => $sKey,
                             ':value' => $sValue,
                             ':desc' => $sDesc,
-                            ':user_id' => $userData['user_id']
+                            ':user_id' => $userData['user_id'],
+                            ':update_user_id' => $userData['user_id']
                         ]);
                     }
 
-                    $pdo->commit(); // Save all changes to the database
+                    $pdo->commit(); 
                     systemLog("{$userData['name']} ({$userData['username']}) performed a bulk settings update.", $userData['user_id']);
                     Response::success("Bulk settings saved successfully");
 
                 } catch (Exception $e) {
-                    $pdo->rollBack(); // Undo all database changes
+                    $pdo->rollBack(); 
                     
-                    // Delete any images that were uploaded before the crash
                     foreach ($uploadedFiles as $file) {
-                        $manager->deleteImage($file);
+                        $cleanupResult = $manager->deleteImage($file);
+                        if (!$cleanupResult['success']) {
+                            error_log("Could not clean up setting image {$file}: {$cleanupResult['error']}");
+                            systemLog("Could not clean up setting image {$file}: {$cleanupResult['error']}", $userData['user_id']);
+                        }
                     }
                     
                     systemLog("Bulk Update Error: " . $e->getMessage(), $userData['user_id']);
-                    Response::error("Bulk update failed: " . $e->getMessage(), 500);
+                    Response::error($e->getMessage(), 400); 
                 }
-                
-                break; // End Bulk Mode
+            } else {
+                Response::error("Invalid payload: bulk_settings array is required.", 400);
             }
-
-            // --- SINGLE MODE (Your existing code goes here) ---
-            $settingKey = trim($rawData['setting_key'] ?? '');
-            $settingValue = trim($rawData['setting_value'] ?? '');
-            $description = trim($rawData['description'] ?? '');
-            
-            $hasImage = isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE;
-
-            if ($settingKey === '' || ($settingValue === '' && !$hasImage) || $description === '') {
-                Response::error("setting_key, setting_description, and either a setting_value or an image are required", 400);
-            }
-            
-            // ... (Keep the rest of your single POST logic here) ...
-            
             break;
-
-
-        case 'PUT':
-        case 'PATCH':
-            // Prioritize the URL ID, fallback to payload ID
-            $settingId = $resourceId ?? $rawData['setting_id'] ?? null;
-            $settingKey = trim($rawData['setting_key'] ?? '');
-            $settingValue = trim($rawData['setting_value'] ?? '');
-            $description = trim($rawData['description'] ?? '');
-            
-            if (!$settingId || empty($settingKey)) {
-                Response::error("Setting ID (via URL or payload) and Setting Key are required for updates", 400);
-            }
-
-            $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_id = :id AND deleted_at IS NULL");
-            $stmt->execute([':id' => $settingId]);
-            $existingSetting = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$existingSetting) {
-                Response::error("Setting not found or has been deleted", 404);
-            }
-
-            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                $targetFile = $existingSetting['setting_value'];
-                $result = $manager->replaceImage($targetFile, $_FILES['image']['tmp_name']);
-                
-                if (!$result['success']) {
-                    Response::error($result['error'], $result['status_code'] ?? 400);
-                }
-                
-                $settingValue = $result['filepath'] ?? $targetFile; 
-                if (isset($result['filepath'])) {
-                    $uploadedFilename = $result['filepath'];
-                }
-            }
-
-            $sql = "UPDATE settings 
-                    SET setting_key = :key, setting_value = :value, description = :description, updated_by = :user_id 
-                    WHERE setting_id = :id";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':key' => $settingKey,
-                ':value' => $settingValue,
-                ':description' => $description,
-                ':user_id' => $userData['user_id'],
-                ':id' => $settingId
-            ]);
-
-            systemLog("{$userData['name']} ({$userData['username']}) updated setting ID: {$settingId}", $userData['user_id']);
-            Response::success("Setting updated successfully", ["setting_id" => $settingId]);
-            break;
-
 
         case 'DELETE':
-            // Use the URL ID
             $settingId = $resourceId ?? $rawData['setting_id'] ?? null;
             
             if (!$settingId) {
-                Response::error("Setting ID is required for deletion (e.g., DELETE /api/setting.php/1)", 400);
+                Response::error("Setting ID is required for deletion.", 400);
             }
 
-            $sql = "UPDATE settings 
-                    SET deleted_at = CURRENT_TIMESTAMP, updated_by = :user_id 
-                    WHERE setting_id = :id AND deleted_at IS NULL";
+            $sql = "UPDATE settings SET deleted_at = CURRENT_TIMESTAMP, updated_by = :user_id WHERE setting_id = :id AND deleted_at IS NULL";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 ':user_id' => $userData['user_id'],
@@ -259,10 +239,9 @@ try {
                 Response::error("Setting not found or already deleted", 404);
             }
 
-            systemLog("{$userData['name']} ({$userData['username']}) soft-deleted setting ID: {$settingId}", $userData['user_id']);
-            Response::success("Setting deleted successfully", []);
+            systemLog("{$userData['name']} soft-deleted setting ID: {$settingId}", $userData['user_id']);
+            Response::success("Setting deleted successfully");
             break;
-
 
         default:
             Response::error("Method not allowed", 405);
@@ -270,15 +249,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    if ($uploadedFilename !== null) {
-        $cleanupResult = $manager->deleteImage($uploadedFilename);
-        if (!$cleanupResult['success']) {
-            error_log("Could not clean up setting image {$uploadedFilename}: {$cleanupResult['error']}");
-            systemLog("Could not clean up setting image {$uploadedFilename}: {$cleanupResult['error']}", $userData['user_id']);
-        }
-    }
-
-    systemLog("Database Error: " . $e->getMessage(), $userData['user_id']);
-    Response::error("An internal server error occurred while processing the database request. " . $e->getMessage(), 500);
+    systemLog("Database Error: " . $e->getMessage(), $userData['user_id'] ?? 'Unknown');
+    Response::error("An internal server error occurred. " . $e->getMessage(), 500);
 }
 ?>

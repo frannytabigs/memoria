@@ -182,8 +182,8 @@ function toggleOtherPurpose(selectElement) {
   if (!otherWrapper || !otherInput) return;
 
   if (selectElement.value === "Others") {
-    otherWrapper.classList.remove("hidden");
-    otherInput.setAttribute("required", "true");
+    // otherWrapper.classList.remove("hidden");
+    // otherInput.setAttribute("required", "true");
   } else {
     otherWrapper.classList.add("hidden");
     otherInput.removeAttribute("required");
@@ -194,25 +194,159 @@ function toggleOtherPurpose(selectElement) {
 function initPaymentView() {
   const paymentForm = document.getElementById("paymentForm");
   const otherWrapper = document.getElementById("otherPurposeWrapper");
+  const otherInput = document.getElementById("payOtherPurpose");
 
-  if (paymentForm) {
-    paymentForm.addEventListener("submit", (e) => {
-      e.preventDefault();
+  if (!paymentForm) return;
 
-      const formData = new FormData(paymentForm);
-      const data = Object.fromEntries(formData.entries());
+  paymentForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-      console.log("Payment Record Submitted:", data);
-      alert(
-        "Thank you! Your payment details have been successfully submitted for verification.",
-      );
+    // ----- 1. Collect and validate data -----
+    const reference = document.getElementById("payReference").value.trim();
+    const channel = document.getElementById("payChannel").value;
+    const amount = parseFloat(document.getElementById("payAmount").value);
+    const purposeSelect = document.getElementById("payPurpose");
+    let purpose = purposeSelect.value;
+    const remarks = document.getElementById("payRemarks").value.trim();
+    const imageFile = document.getElementById("payImage").files[0];
 
-      paymentForm.reset();
-      if (otherWrapper) {
-        otherWrapper.classList.add("hidden");
+    // Extra fields (not in DB – we'll add them to remarks)
+    const fullName = document.getElementById("payName").value.trim();
+    const deceasedName = document
+      .getElementById("payDeceasedName")
+      .value.trim();
+    const contact = document.getElementById("payContact").value.trim();
+    const email = document.getElementById("payEmail").value.trim();
+
+    // Basic validation
+    if (!reference)
+      return showModal({
+        type: "error",
+        title: "Missing Reference",
+        message: "Please enter a reference number.",
+      });
+    if (!channel)
+      return showModal({
+        type: "error",
+        title: "Missing Channel",
+        message: "Please select a payment channel.",
+      });
+    if (!amount || amount <= 0)
+      return showModal({
+        type: "error",
+        title: "Invalid Amount",
+        message: "Amount must be greater than zero.",
+      });
+    if (!purpose)
+      return showModal({
+        type: "error",
+        title: "Missing Purpose",
+        message: "Please select a payment purpose.",
+      });
+    if (!imageFile)
+      return showModal({
+        type: "error",
+        title: "Missing Image",
+        message: "Please upload a proof of payment image.",
+      });
+
+    // // Handle "Others" purpose
+    // if (purpose === "Others") {
+    //   const customPurpose = otherInput ? otherInput.value.trim() : "";
+    //   if (!customPurpose) {
+    //     return showModal({
+    //       type: "error",
+    //       title: "Missing Purpose",
+    //       message: "Please specify the purpose.",
+    //     });
+    //   }
+    //   purpose = customPurpose; // overwrite with custom text
+    // }
+
+    // Build a descriptive remarks string that includes extra info
+    let remarksFull = remarks;
+    const extraInfo = [];
+    if (fullName) extraInfo.push(`Name: ${fullName}`);
+    if (deceasedName) extraInfo.push(`Deceased: ${deceasedName}`);
+    if (contact) extraInfo.push(`Contact: ${contact}`);
+    if (email) extraInfo.push(`Email: ${email}`);
+    if (extraInfo.length) {
+      remarksFull =
+        (remarksFull ? remarksFull + "\n" : "") + extraInfo.join(" | ");
+    }
+
+    // ----- 2. Prepare FormData -----
+    const formData = new FormData();
+    formData.append("reference_number", reference);
+    formData.append("payment_channel", channel);
+    formData.append("amount", amount);
+    formData.append("purpose", purpose);
+    formData.append("image", imageFile);
+    formData.append("deceased_name", deceasedName);
+    formData.append("remarks_payer", remarksFull); // combine everything
+
+    // If you want to send the original purpose (e.g., "Others") for reference, add another field
+    // but the backend only uses `purpose`, so we don't.
+
+    // ----- 3. Send request -----
+    try {
+      // Show a loading state (optional)
+      const submitBtn = paymentForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+
+      const response = await fetch("api/payments", {
+        method: "POST",
+        body: formData,
+        // No Content-Type header – browser sets it with boundary for FormData
+      });
+
+      const result = await response.json();
+
+      // Reset button state
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+
+      if (!response.ok) {
+        // Show error from server
+        const errorMsg =
+          result.message ||
+          result.error ||
+          "Submission failed. Please try again.";
+        showModal({
+          type: "error",
+          title: "Submission Failed",
+          message: errorMsg,
+        });
+        return;
       }
-    });
-  }
+
+      // Success
+      showModal({
+        type: "success",
+        title: "Payment For Verification",
+        message:
+          result.message ||
+          "Thank you! Your payment details have been successfully submitted for verification. We will contact you soon!",
+        actionText: "Noted",
+        allowOutsideClick: false,
+      });
+
+      // Reset form and hide "Other" field
+      paymentForm.reset();
+      if (otherWrapper) otherWrapper.classList.add("hidden");
+      if (otherInput) otherInput.value = "";
+    } catch (error) {
+      console.error("Payment submission error:", error);
+      showModal({
+        type: "error",
+        title: "Network Error",
+        message:
+          "Unable to reach the server. Please check your internet connection and try again.",
+      });
+    }
+  });
 }
 
 // function closeHoursModal() {
@@ -314,3 +448,190 @@ function closeRecordModal() {
     recordModal.classList.remove("open");
   }
 }
+
+// 1. Map API setting keys → array of HTML element IDs
+const TEXT_SETTINGS_MAP = {
+  main_title: ["heading_one", "heading_one1"],
+  cemetery_name: [
+    "cemetery_name",
+    "cemetery_name1",
+    "cemetery_name2",
+    "cemetery_name3",
+  ],
+  cemetery_address: ["cemetery_address", "cemetery_address1"],
+  office_address: ["cemetery_office_location"],
+  office_hours: ["cemetery_office_hours"],
+  contact_phone: ["cemetery_phone_number"],
+  contact_email: ["cemetery_email"],
+  // Special keys are handled separately (not in this map)
+};
+
+// Helper to populate a <select> from an array
+function populateSelect(selectId, items, placeholderText) {
+  var select = document.getElementById(selectId);
+  if (!select) {
+    console.warn("Select element #" + selectId + " not found.");
+    return;
+  }
+  select.innerHTML = "";
+  var placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  placeholder.textContent = placeholderText || "Select an option";
+  select.appendChild(placeholder);
+  if (!Array.isArray(items)) return;
+  items.forEach(function (item) {
+    var option = document.createElement("option");
+    if (typeof item === "object" && item !== null && item.value !== undefined) {
+      option.value = item.value;
+      option.textContent = item.label || item.value;
+    } else {
+      option.value = item;
+      option.textContent = item;
+    }
+    select.appendChild(option);
+  });
+}
+
+// 2. Fetch and populate
+function loadSiteContent() {
+  fetch("/api/settings", { cache: "no-store" })
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (result) {
+      if (!result || !result.data) {
+        console.error("Unexpected response structure:", result);
+        showAlertTOP(
+          "Failed to load settings: Invalid response format",
+          "error",
+        );
+        return;
+      }
+
+      var processedKeys = new Set();
+      console.log("--- Starting to load settings ---");
+
+      result.data.forEach(function (setting) {
+        var key = setting.setting_key;
+        var val = setting.setting_value;
+
+        if (processedKeys.has(key)) {
+          console.log("Skipping duplicate (older):", key);
+          return;
+        }
+        processedKeys.add(key);
+        console.log("Processing key:", key, "→ value:", val);
+
+        // ----- SPECIAL CASES -----
+
+        // 1. Burial Requirements (Markdown → sanitised HTML)
+        if (key === "requirements_for_burial") {
+          var el = document.getElementById("burialRequirements");
+          if (el) {
+            var rawHtml = marked.parse(val);
+            var cleanHtml = DOMPurify.sanitize(rawHtml);
+            el.innerHTML = cleanHtml;
+            console.log("  ✓ Set burial requirements for #burialRequirements");
+            document.getElementById("whatburialrequirements").style.display =
+              "none";
+          } else {
+            console.warn("  ✗ Element #burialRequirements not found");
+          }
+          return;
+        }
+
+        // 2. Google Map embed (secure)
+        if (key === "map_embed_url") {
+          var el = document.getElementById("cemetery_google_map");
+          if (el) {
+            var url;
+            try {
+              url = new URL(val);
+              if (url.protocol !== "http:" && url.protocol !== "https:") {
+                throw new Error("Only http/https URLs allowed");
+              }
+            } catch (e) {
+              console.warn("  ✗ Invalid map URL:", val);
+              el.innerHTML = '<p style="color:red;">Invalid map URL</p>';
+              return;
+            }
+            var iframeHtml = `<iframe
+                src="${url.href}"
+                allowfullscreen=""
+                loading="lazy"
+                referrerpolicy="strict-origin-when-cross-origin"
+              ></iframe>`;
+            var cleanIframe = DOMPurify.sanitize(iframeHtml, {
+              ADD_TAGS: ["iframe"],
+              ADD_ATTR: ["src", "allowfullscreen", "loading", "referrerpolicy"],
+            });
+            el.innerHTML = cleanIframe;
+            console.log("  ✓ Set map iframe for #cemetery_google_map");
+          } else {
+            console.warn("  ✗ Element #cemetery_google_map not found");
+          }
+          return;
+        }
+
+        // ----- REGULAR TEXT FIELDS (using the map) -----
+        var targetIds = TEXT_SETTINGS_MAP[key];
+        if (targetIds) {
+          targetIds.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) {
+              console.warn("  ✗ Element #" + id + " not found for key: " + key);
+              return;
+            }
+            if (
+              el.tagName === "INPUT" ||
+              el.tagName === "TEXTAREA" ||
+              el.tagName === "SELECT"
+            ) {
+              el.value = val;
+            } else {
+              el.textContent = val;
+            }
+            console.log("  ✓ Updated #" + id + " → " + val);
+          });
+        } else {
+          console.log("  (No mapping for key:", key, ")");
+        }
+
+        // ----- DROPDOWN LISTS (payment_channels, permit_types) -----
+        try {
+          if (key === "payment_channels" && val) {
+            populateSelect(
+              "payChannel",
+              JSON.parse(val),
+              "Select payment method",
+            );
+            console.log("  ✓ Populated payment channels dropdown");
+          }
+          if (key === "permit_types" && val) {
+            populateSelect(
+              "payPurpose",
+              JSON.parse(val),
+              "Select payment purpose",
+            );
+            console.log("  ✓ Populated permit types dropdown");
+          }
+        } catch (jsonError) {
+          console.warn("  ✗ Could not parse JSON for " + key + ":", val);
+        }
+      });
+
+      console.log(
+        "--- Finished loading settings. Processed keys:",
+        Array.from(processedKeys),
+      );
+    })
+    .catch(function (error) {
+      console.error(error);
+      showAlertTOP("Too many requests. Please try again later.", "error");
+    });
+}
+
+// 3. Run it
+loadSiteContent();

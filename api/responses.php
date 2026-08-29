@@ -8,6 +8,7 @@ class Response {
         
         http_response_code($status);
         header('Content-Type: application/json');
+        header('Access-Control-Allow-Origin: *'); // If needed for CORS
 
         $responseBody = [
             'success' => $success,

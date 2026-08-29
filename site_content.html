@@ -25,9 +25,17 @@
     <meta name="robots" content="index, follow" />
     <meta name="geo.region" content="PH-CEB" />
     <meta name="geo.placename" content="Mandaue City" />
-    <title>Records</title>
+    <title>Site Content</title>
+
+    <!-- 1. Include Marked.js (converts Markdown to HTML) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- 2. Include DOMPurify (cleans the HTML to prevent security hacks) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <link rel="stylesheet" href="assets/css/root.css" />
+    <link rel="stylesheet" href="assets/css/burialrequirements.css" />
+
     <link
       rel="stylesheet"
       href="api/rootcolors.php"
@@ -152,56 +160,110 @@
       <div class="siteContentWrapper">
         <form id="siteContentForm" onsubmit="return false;">
           <div class="formCard">
-            <h3>Header Logos</h3>
+            <h3>Logos</h3>
             <div class="logoGrid">
               <div class="logoField">
-                <label>City Logo</label>
+                <label>Logo 1</label>
                 <div class="logoPreviewBox">
                   <img
-                    id="previewCityLogo"
-                    src="assets/images/MandaueLogo.png"
-                    alt="City Logo Preview"
+                    id="logo1"
+                    src="api/images/logo1.png"
+                    onerror="
+                      this.onerror = null;
+                      this.src = 'assets/images/MandaueLogo.png';
+                    "
+                    alt="Logo 1 Preview"
                   />
                 </div>
                 <input
                   type="file"
-                  id="uploadCityLogo"
+                  id="uploadlogo1"
                   accept="image/*"
-                  onchange="previewImage(this, 'previewCityLogo')"
+                  onchange="previewImage(this, 'logo1')"
                 />
               </div>
 
               <div class="logoField">
-                <label>Department Logo</label>
+                <label>Logo 2</label>
                 <div class="logoPreviewBox">
                   <img
-                    id="previewDeptLogo"
-                    src="assets/images/DGSLogo.png"
-                    alt="Department Logo Preview"
+                    id="logo2"
+                    src="api/images/logo2.png"
+                    onerror="
+                      this.onerror = null;
+                      this.src = 'assets/images/DGSLogo.png';
+                    "
+                    alt="Logo 2 Preview"
                   />
                 </div>
                 <input
                   type="file"
-                  id="uploadDeptLogo"
+                  id="uploadlogo2"
                   accept="image/*"
-                  onchange="previewImage(this, 'previewDeptLogo')"
+                  onchange="previewImage(this, 'logo2')"
                 />
               </div>
 
               <div class="logoField">
-                <label>Memoria Banner Logo</label>
+                <label>Cemetery Logo</label>
                 <div class="logoPreviewBox">
                   <img
-                    id="previewMemoriaLogo"
-                    src="assets/images/MemoriaLogo.png"
-                    alt="Memoria Logo Preview"
+                    id="cemetery_logo"
+                    src="api/images/cemetery_logo.png"
+                    onerror="
+                      this.onerror = null;
+                      this.src = 'assets/images/MemoriaLogo.png';
+                    "
+                    alt="Cemetery Logo Preview"
                   />
                 </div>
                 <input
                   type="file"
-                  id="uploadMemoriaLogo"
+                  id="uploadcemetery_logo"
                   accept="image/*"
-                  onchange="previewImage(this, 'previewMemoriaLogo')"
+                  onchange="previewImage(this, 'cemetery_logo')"
+                />
+              </div>
+
+              <div class="logoField">
+                <label>Cemetery Small Logo</label>
+                <div class="logoPreviewBox">
+                  <img
+                    id="cemetery_logo_small"
+                    src="api/images/cemetery_logo_small.png"
+                    onerror="
+                      this.onerror = null;
+                      this.src = 'assets/images/MLogo.png';
+                    "
+                    alt="Cemetery Small Logo Preview"
+                  />
+                </div>
+                <input
+                  type="file"
+                  id="uploadcemetery_logo_small"
+                  accept="image/*"
+                  onchange="previewImage(this, 'cemetery_logo_small')"
+                />
+              </div>
+
+              <div class="logoField">
+                <label>Background Image</label>
+                <div class="logoPreviewBox">
+                  <img
+                    id="cemetery_background"
+                    src="api/images/cemetery_background.png"
+                    onerror="
+                      this.onerror = null;
+                      this.src = 'assets/images/MandaueBackground.png';
+                    "
+                    alt="Cemetery Logo Preview"
+                  />
+                </div>
+                <input
+                  type="file"
+                  id="uploadcemetery_background"
+                  accept="image/*"
+                  onchange="previewImage(this, 'cemetery_background')"
                 />
               </div>
             </div>
@@ -210,11 +272,11 @@
           <div class="formCard">
             <h3>Header Titles</h3>
             <div class="formGroup">
-              <label for="deptTitle">Main Department Title</label>
+              <label for="deptTitle">Main Title</label>
               <input
                 type="text"
                 id="deptTitle"
-                value="Department of General Services"
+                placeholder="Department of General Services"
               />
             </div>
             <div class="formGroup">
@@ -222,7 +284,7 @@
               <input
                 type="text"
                 id="cemeteryTitle"
-                value="Mandaue City Public Cemetery"
+                placeholder="Mandaue City Public Cemetery"
               />
             </div>
           </div>
@@ -231,25 +293,40 @@
             <h3>Address & Links</h3>
             <div class="formGroup">
               <label for="cemeteryAddress">Cemetery Address</label>
-              <textarea id="cemeteryAddress" rows="2">
-Mandaue City Public Cemetery, Omeña St, Guizo, Mandaue City, Cebu, Philippines, 6014</textarea
-              >
+              <input
+                type="text"
+                id="cemeteryAddress"
+                placeholder="City Public Cemetery, Omeña St, Guizo, Mandaue City, Cebu, Philippines, 6014
+             "
+              />
             </div>
             <div class="formGroup">
               <label for="officeAddress">Office Address</label>
-              <textarea id="officeAddress" rows="2">
-Department of General Services, Mandaue City Hall Compound, Centro, Mandaue City, Philippines, 6014</textarea
+              <!-- FIX: Added id="officeAddress" so JavaScript can actually find it -->
+              <input
+                type="text"
+                id="officeAddress"
+                placeholder="Department of General Services, Mandaue City Hall Compound, Centro, Mandaue City, Philippines, 6014"
+              />
+            </div>
+            <div class="formGroup">
+              <!-- FIX: Changed label for="cemeteryAddress" to for="officeHours" -->
+              <label for="officeHours">Office Hours</label>
+              <textarea rows="2" id="officeHours">
+Weekdays - 8:00 - 5:00;
+Saturday - 8:00 - 4:00; 
+Sundays and Holidays Closed</textarea
               >
             </div>
             <div class="formGroup">
-              <label for="mapEmbedUrl"
-                >Google Maps Embed iFrame Source URL</label
+              <label for="cemeteryGoogleMaps"
+                >Google Maps Embed iFrame Source URL (Get from google
+                maps)</label
               >
-              <input
-                type="text"
-                id="mapEmbedUrl"
-                value="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d693.8860555934123!2d123.94400457004447!3d10.32488936201375!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a999006ffb7753%3A0x1e52e02b25fd79be!2sDepartment%20of%20General%20Services!5e0!3m2!1sen!2sph!4v1786613815863!5m2!1sen!2sph"
-              />
+              <textarea id="cemeteryGoogleMaps" rows="2">
+https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d693.8860555934123!2d123.94400457004447!3d10.32488936201375!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a999006ffb7753%3A0x1e52e02b25fd79be!2sDepartment%20of%20General%20Services!5e0!3m2!1sen!2sph!4v1786613815863!5m2!1sen!2sph
+</textarea
+              >
             </div>
           </div>
 
@@ -257,16 +334,110 @@ Department of General Services, Mandaue City Hall Compound, Centro, Mandaue City
             <h3>Contact Information</h3>
             <div class="formGroup">
               <label for="contactPhone">Contact Number</label>
-              <input type="text" id="contactPhone" value="+63 912 3456 789" />
+              <input
+                type="text"
+                id="contactPhone"
+                placeholder="+63 912 3456 789"
+              />
             </div>
             <div class="formGroup">
               <label for="contactEmail">Email Address</label>
-              <input type="email" id="contactEmail" value="memoria@gmail.com" />
+              <input
+                type="email"
+                id="contactEmail"
+                placeholder="memoria@gmail.com"
+              />
             </div>
           </div>
 
           <div class="formCard">
-            <h3>Payment Dropdown Settings</h3>
+            <h3>Requirements for Burial</h3>
+            <div class="formGroup">
+              <textarea id="requirements_for_burial" rows="10">
+# 🕊️ REQUEST FOR BURIAL SPACE
+
+**Who May Avail:** Mandaue City Residents
+**Classification:** Simple (G2C)
+
+---
+
+## 📋 Checklist of Requirements
+
+| Requirement                                    | Where to Secure    |
+| ---------------------------------------------- | ------------------ |
+| **1. Death Certificate** — 1 copy              | City Health Office |
+| **2. Barangay Certification** — 1 copy         | Barangay concerned |
+| **3. Exhumation and Reburial Permit** — 1 copy | City Health Office |
+
+---
+
+## 📝 Client Steps & Process
+
+**1. Submit Request**
+Submit a letter request to the receiving clerk.
+
+> **Fee:** None · **Processing Time:** 5 minutes · **Person Responsible:** Section Head
+
+**2. Verification**
+The office verifies the logbook for burial space availability and confirms availability with the cemetery in-charge.
+
+> **Fee:** None · **Processing Time:** 20 minutes
+
+**3. Certification Issuance**
+The office issues the Certification and forwards it to the Section Head.
+
+> **Fee:** None · **Processing Time:** 8 hours
+
+**4. Receive Certification**
+Receive **one (1) original copy** of the Certification. The office retains a file copy.
+
+> **Fee:** None · **Processing Time:** 5 minutes
+
+---
+
+## 💰 Processing Summary
+
+**Total Fees:** NONE
+**Total Processing Time:** **1 Day, 30 Minutes**
+
+---
+
+## 📜 Plot Lease Renewal Requirements
+
+Please prepare the following:
+
+* **Original Certificate of Plot Allocation / Deed**
+* **Government-issued ID of the Deed Holder**
+* **Latest Official Receipt of Annual Lease/Maintenance Fee**
+
+---
+
+## 🧹 Visitor & Cleaning Guidelines
+
+* 🕕 **Cemetery Hours:** Open daily from **6:00 AM to 6:00 PM**
+* 🗑️ **Clean As You Go (CLAYGO):** Strictly enforced
+* 🔇 **Noise Policy:** No loud sound systems are allowed
+* 🚫 **Alcohol Policy:** Alcoholic beverages are not allowed
+
+---
+
+### 🤍 Important Reminder
+
+Please ensure that all required documents are complete and available before submitting your request to help make the process faster and smoother.</textarea
+              >
+            </div>
+          </div>
+          <div class="formCard">
+            <h3>Requirements for Burial Preview</h3>
+            <div
+              class="formGroup"
+              id="burialRequirements"
+              style="padding: 10px; margin: 10px"
+            ></div>
+          </div>
+
+          <div class="formCard">
+            <h3>Dropdown Settings</h3>
 
             <div class="formGroup">
               <div class="cardsHeader">

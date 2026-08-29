@@ -1,0 +1,408 @@
+/* =========================================
+   BURIAL REQUIREMENTS - STANDALONE SECTION
+   ========================================= */
+
+#burialRequirements {
+  width: 100%;
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0;
+  box-sizing: border-box;
+
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 24px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.1),
+    0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+/* =========================================
+   MAIN TITLE
+   ========================================= */
+
+#burialRequirements > h1 {
+  margin: 0;
+  padding: 30px 36px 20px;
+
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.2;
+
+  color: #0f172a;
+
+  background: linear-gradient(
+    135deg,
+    rgba(6, 182, 212, 0.12),
+    rgba(99, 102, 241, 0.08)
+  );
+
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================
+   INTRO INFORMATION
+   ========================================= */
+
+#burialRequirements > p {
+  margin: 0;
+  padding: 20px 36px;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.7;
+
+  background: #f8fafc;
+}
+
+#burialRequirements > p strong {
+  color: #0f172a;
+}
+
+/* =========================================
+   HORIZONTAL DIVIDERS
+   ========================================= */
+
+#burialRequirements > hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+/* =========================================
+   SECTION HEADINGS
+   ========================================= */
+
+#burialRequirements > h2,
+#burialRequirements > h3 {
+  margin: 0;
+  padding: 30px 36px 16px;
+
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+/* =========================================
+   NORMAL TEXT
+   ========================================= */
+
+#burialRequirements > p:not(:first-of-type) {
+  display: block;
+
+  padding: 0 36px 18px;
+
+  background: transparent;
+
+  color: #475569;
+}
+
+/* =========================================
+   REQUIREMENTS TABLE
+   ========================================= */
+
+#burialRequirements > table {
+  width: calc(100% - 72px);
+  margin: 0 36px 20px;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  overflow: hidden;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+#burialRequirements > table th {
+  padding: 15px 18px;
+
+  text-align: left;
+
+  color: #ffffff;
+  background: #0f172a;
+
+  font-weight: 700;
+}
+
+#burialRequirements > table td {
+  padding: 15px 18px;
+
+  background: #ffffff;
+
+  border-top: 1px solid #e2e8f0;
+
+  line-height: 1.55;
+}
+
+#burialRequirements > table tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+#burialRequirements > table tr:hover td {
+  background: rgba(6, 182, 212, 0.05);
+}
+
+/* =========================================
+   PROCESS STEPS
+   ========================================= */
+
+#burialRequirements > ol {
+  margin: 0 36px 25px;
+  padding: 0;
+
+  list-style: none;
+
+  counter-reset: burial-step;
+}
+
+#burialRequirements > ol > li {
+  position: relative;
+
+  margin-bottom: 14px;
+  padding: 18px 20px 18px 58px;
+
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+
+  color: #475569;
+  line-height: 1.6;
+
+  counter-increment: burial-step;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+#burialRequirements > ol > li::before {
+  content: counter(burial-step);
+
+  position: absolute;
+  left: 18px;
+  top: 18px;
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+  background: linear-gradient(135deg, #06b6d4, #6366f1);
+
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+#burialRequirements > ol > li:hover {
+  transform: translateY(-2px);
+
+  border-color: rgba(6, 182, 212, 0.3);
+
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+}
+
+#burialRequirements > ol > li strong {
+  color: #0f172a;
+}
+
+/* =========================================
+   PROCESS META INFORMATION
+   ========================================= */
+
+#burialRequirements blockquote {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+
+  border-left: 3px solid #06b6d4;
+
+  background: rgba(6, 182, 212, 0.06);
+  border-radius: 0 8px 8px 0;
+
+  color: #64748b;
+
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+#burialRequirements blockquote p {
+  margin: 0;
+}
+
+/* =========================================
+   PROCESSING SUMMARY
+   ========================================= */
+
+#burialRequirements > h2:nth-of-type(2) + p {
+  margin: 0 36px 30px;
+  padding: 20px 24px;
+
+  display: block;
+
+  background: linear-gradient(
+    135deg,
+    rgba(6, 182, 212, 0.08),
+    rgba(99, 102, 241, 0.08)
+  );
+
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  border-radius: 14px;
+
+  color: #334155;
+}
+
+/* =========================================
+   LISTS
+   ========================================= */
+
+#burialRequirements > ul {
+  margin: 0 36px 25px;
+  padding: 0;
+
+  list-style: none;
+}
+
+#burialRequirements > ul > li {
+  position: relative;
+
+  margin-bottom: 10px;
+  padding: 13px 16px 13px 42px;
+
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+
+  color: #475569;
+  line-height: 1.5;
+}
+
+#burialRequirements > ul > li::before {
+  content: "✓";
+
+  position: absolute;
+  left: 15px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #06b6d4;
+  font-weight: 800;
+}
+
+/* =========================================
+   IMPORTANT REMINDER
+   ========================================= */
+
+#burialRequirements > h3:last-of-type {
+  margin-top: 10px;
+
+  padding: 24px 36px 8px;
+
+  color: #0f172a;
+}
+
+#burialRequirements > h3:last-of-type + p {
+  margin: 0;
+  padding: 0 36px 32px;
+
+  display: block;
+
+  color: #64748b;
+
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE
+   ========================================= */
+
+@media (max-width: 700px) {
+  #burialRequirements {
+    width: calc(100% - 24px);
+    margin: 24px auto;
+
+    border-radius: 18px;
+  }
+
+  #burialRequirements > h1 {
+    padding: 24px 22px 18px;
+
+    font-size: 1.5rem;
+  }
+
+  #burialRequirements > p {
+    padding: 16px 22px;
+  }
+
+  #burialRequirements > h2,
+  #burialRequirements > h3 {
+    padding: 24px 22px 14px;
+
+    font-size: 1.1rem;
+  }
+
+  #burialRequirements > p:not(:first-of-type) {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  #burialRequirements > table {
+    width: calc(100% - 44px);
+    margin-left: 22px;
+    margin-right: 22px;
+
+    display: block;
+    overflow-x: auto;
+  }
+
+  #burialRequirements > table th,
+  #burialRequirements > table td {
+    padding: 12px 14px;
+
+    white-space: nowrap;
+  }
+
+  #burialRequirements > ol {
+    margin-left: 22px;
+    margin-right: 22px;
+  }
+
+  #burialRequirements > ul {
+    margin-left: 22px;
+    margin-right: 22px;
+  }
+
+  #burialRequirements > h2:nth-of-type(2) + p {
+    margin-left: 22px;
+    margin-right: 22px;
+  }
+
+  #burialRequirements > h3:last-of-type {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  #burialRequirements > h3:last-of-type + p {
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-bottom: 26px;
+  }
+}

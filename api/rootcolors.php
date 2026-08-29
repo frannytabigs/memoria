@@ -12,7 +12,7 @@ $mainColor = $stmt->fetchColumn();
 $hasColor = !empty($mainColor);
 
 // --- Background image ---
-$bgRelativePath = 'images/background_image.png';
+$bgRelativePath = 'images/cemetery_background.png';
 $bgCssPath = "../../api/" . $bgRelativePath;   //change this if the path to the image is different and maybe on deployment on the webserver i guess
 
 $hasImage = file_exists($bgRelativePath);

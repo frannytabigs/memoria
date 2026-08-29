@@ -26,6 +26,11 @@
     <meta name="geo.region" content="PH-CEB" />
     <meta name="geo.placename" content="Mandaue City" />
     <title>Memoria</title>
+    <!-- 1. Include Marked.js (converts Markdown to HTML) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- 2. Include DOMPurify (cleans the HTML to prevent security hacks) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <link rel="stylesheet" href="assets/css/root.css" />
     <link
@@ -36,6 +41,7 @@
       "
     />
     <link rel="stylesheet" href="assets/css/website.css" />
+    <link rel="stylesheet" href="assets/css/burialrequirements.css" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -74,7 +80,7 @@
 
           <div class="headerText">
             <h1 id="heading_one">Depertment of General Services</h1>
-            <h2 id="cemetery_address">Mandaue City</h2>
+            <h2 id="cemetery_name">Mandaue City</h2>
           </div>
         </div>
 
@@ -113,7 +119,7 @@
             </h2>
             <p>
               Official Website for
-              <a id="cemetery_name">Mandaue City Public Cemetery </a> Records
+              <a id="cemetery_name1">Mandaue City Public Cemetery </a> Records
               and Services.
             </p>
             <div class="memoriaButtons">
@@ -211,7 +217,12 @@
                 </div>
               </div>
 
-              <section class="cemeterySection" id="burialRequirements">
+              <section
+                class="cemeterySection"
+                id="burialRequirements"
+              ></section>
+
+              <section class="cemeterySection" id="whatburialrequirements">
                 <h3 class="sectionTitle">Request for Burial Space</h3>
                 <p class="subtitle">
                   <strong>Who May Avail:</strong> Mandaue City Residents |
@@ -352,7 +363,7 @@
                     </svg>
                     <div>
                       <small>Office Location</small>
-                      <a id="cemtery_office_location">
+                      <a id="cemetery_office_location">
                         Department of General Services, Mandaue City Hall
                         Compound, Centro, Mandaue City, Philippines, 6014
                       </a>
@@ -441,7 +452,12 @@
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 ></path>
               </svg>
-              <input type="text" placeholder="Enter Deceased Name" required />
+              <input
+                type="text"
+                placeholder="Enter Deceased Name"
+                id="searchdeceased"
+                required
+              />
             </div>
             <button class="searchBtn" type="submit">Search Records</button>
           </form>
@@ -454,7 +470,7 @@
       <section class="mView" id="mapView">
         <div class="mapSectionWrapper">
           <div class="mapTitleHeader">
-            <h2><a id="cemetery_name1">Mandaue City Public Cemetery</a> Map</h2>
+            <h2><a id="cemetery_name2">Mandaue City Public Cemetery</a> Map</h2>
             <p>Overhead map view for plot and block identification.</p>
           </div>
 
@@ -495,7 +511,7 @@
               <div class="formGrid">
                 <div class="inputField">
                   <label for="payName">Full Name</label>
-                  <input type="text" id="payName" name="name" required />
+                  <input type="text" id="payName" name="payName" required />
                 </div>
 
                 <div class="inputField">
@@ -503,25 +519,30 @@
                   <input
                     type="text"
                     id="payDeceasedName"
-                    name="deceased_name"
+                    name="payDeceasedName"
                     required
                   />
                 </div>
 
                 <div class="inputField">
                   <label for="payContact">Contact Number</label>
-                  <input type="tel" id="payContact" name="contact" required />
+                  <input
+                    type="tel"
+                    id="payContact"
+                    name="payContact"
+                    required
+                  />
                 </div>
 
                 <div class="inputField">
                   <label for="payEmail">Email Address</label>
-                  <input type="email" id="payEmail" name="email" required />
+                  <input type="email" id="payEmail" name="payEmail" required />
                 </div>
 
                 <div class="inputField">
                   <label for="payChannel">Payment Channel</label>
                   <div class="selectWrapper">
-                    <select id="payChannel" name="channel" required>
+                    <select id="payChannel" name="payChannel" required>
                       <option value="" disabled selected>
                         Select payment method
                       </option>
@@ -562,7 +583,7 @@
                   <input
                     type="number"
                     id="payAmount"
-                    name="amount"
+                    name="payAmount"
                     step="0.01"
                     min="0"
                     required
@@ -603,7 +624,7 @@
                   </div>
                 </div>
 
-                <div
+                <!-- <div
                   class="inputField fullWidth hidden"
                   id="otherPurposeWrapper"
                 >
@@ -614,7 +635,7 @@
                     name="other_purpose"
                     placeholder="Please specify payment reason"
                   />
-                </div>
+                </div> -->
 
                 <div class="inputField fullWidth">
                   <label for="payImage">Proof of Payment (Image)</label>
@@ -631,7 +652,7 @@
                   <label for="payRemarks">Remarks</label>
                   <textarea
                     id="payRemarks"
-                    name="remarks"
+                    name="payRemarks"
                     rows="3"
                     placeholder="Additional details..."
                   ></textarea>
@@ -760,15 +781,17 @@
       <div class="footerContainer">
         <p>
           &copy; 2026 <a id="heading_one1">Department of General Services</a> -
-          <a id="cemetery_address2">Mandaue City</a>
+          <a id="cemetery_address1">Mandaue City</a>
         </p>
         <p>
           Memoria -
-          <a id="cemetery_name2">Mandaue City Public Cemetery</a> Website
+          <a id="cemetery_name3">Mandaue City Public Cemetery</a> Website
         </p>
       </div>
     </footer>
 
+    <script src="assets/js/alert.js"></script>
+    <script src="assets/js/modal.js"></script>
     <script src="assets/js/website.js"></script>
   </body>
 </html>

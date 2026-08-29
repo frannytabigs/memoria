@@ -227,7 +227,33 @@ CREATE TABLE interments (
 --   FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT, 
 --    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE RESTRICT,
 --    FOREIGN KEY (deceased_id) REFERENCES deceased(deceased_id) ON DELETE RESTRICT
---);
+-- );
+
+CREATE TABLE grave_transitions (
+    transition_id INT AUTO_INCREMENT PRIMARY KEY,
+    grave_id INT NOT NULL,
+    incoming_interment_id INT NOT NULL,
+    outgoing_interment_ids JSON,          -- captured at stage time; kills bug #2
+    outgoing_destination ENUM('none','specific_grave','common_bone_chamber',
+                              'family_custody','other') NOT NULL DEFAULT 'none',
+    destination_grave_id INT NULL,
+    destination_notes TEXT,
+    status ENUM('Staged','Completed','Cancelled') NOT NULL DEFAULT 'Staged',
+    prior_grave_status VARCHAR(30),       -- so Cancel restores, not guesses
+    staged_by INT NULL, confirmed_by INT NULL,
+    confirmed_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    -- one live staging per grave, enforced by the engine not the app
+    active_grave_id INT AS (IF(status='Staged' AND deleted_at IS NULL, grave_id, NULL)) STORED,
+    UNIQUE KEY uniq_live_staging (active_grave_id),
+    FOREIGN KEY (grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT,
+    FOREIGN KEY (incoming_interment_id) REFERENCES interments(interment_id) ON DELETE RESTRICT,
+    FOREIGN KEY (destination_grave_id) REFERENCES graves(grave_id) ON DELETE RESTRICT,
+    FOREIGN KEY (staged_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (confirmed_by) REFERENCES users(user_id) ON DELETE SET NULL
+);
 
 -- Payments table
 CREATE TABLE payments(
@@ -324,7 +350,7 @@ SELECT
     d.name AS deceased_name,
     c.phone_number AS family_contact,
     i.lease_expiration_date
-  --i.sms_status                         -- Pulls the simplified SMS tracking we just made! [i removed the sms]
+  -- i.sms_status                         -- Pulls the simplified SMS tracking we just made! [i removed the sms]
 FROM interments i
 JOIN graves g ON i.grave_id = g.grave_id
 JOIN blocks b ON g.block_id = b.block_id

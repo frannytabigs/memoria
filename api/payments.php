@@ -50,7 +50,7 @@ if ($method === 'GET') {
     if (is_numeric($resourceId)) {
         $sql = "
             SELECT 
-                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose, 
+                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose, p.deceased_name,
                 p.image_link, p.remarks_payer, p.remarks_office, p.remarks_grounds, p.created_at,
                 p.confirmed_office_staff, u1.name AS office_staff_name,
                 p.confirmed_ground_staff, u2.name AS ground_staff_name
@@ -95,7 +95,7 @@ if ($method === 'GET') {
         // 3. Fetch Data
         $sql = "
             SELECT 
-                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose, 
+                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose,  p.deceased_name,
                 p.image_link, p.remarks_payer, p.remarks_office, p.remarks_grounds, p.created_at,
                 p.confirmed_office_staff, u1.name AS office_staff_name,
                 p.confirmed_ground_staff, u2.name AS ground_staff_name
@@ -137,7 +137,7 @@ if ($method === 'GET') {
             'reference_number' => $row['reference_number'],
             'created_at'       => $row['created_at'],
             'overall_status'   => $status,
-            
+            'deceased_name' =>  $row['deceased_name'],
             'details' => [
                 'channel'       => $row['payment_channel'],
                 'amount'        => (float)$row['amount'],
@@ -181,10 +181,12 @@ if ($method === 'POST') {
     $channel = trim($rawData['payment_channel'] ?? '');
     $amount  = trim($rawData['amount'] ?? 0);
     $purpose = trim($rawData['purpose'] ?? '');
+    $deceased_name = trim($rawData['deceased_name'] ?? '');
+
     $uploadedFilename = null;
 
-    if (empty($refNum) || empty($channel) || empty($amount) || empty($purpose)) {
-        Response::error("Reference number, channel, amount, and purpose are required.", 400);
+    if (empty($refNum) || empty($channel) || empty($amount) || empty($purpose) || empty($deceased_name)) {
+        Response::error("Reference number, channel, amount, deceased_name, and purpose are required.", 400);
     }
 
     if (!is_numeric($amount) || (float)$amount <= 0) {
@@ -214,21 +216,22 @@ if ($method === 'POST') {
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO payments (reference_number, payment_channel, amount, purpose, image_link, remarks_payer, remarks_office) 
+            INSERT INTO payments (reference_number, payment_channel, amount, purpose, image_link, remarks_payer, deceased_name) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $refNum, $channel, $amount, $purpose, $image, 
             trim($rawData['remarks_payer'] ?? ''), 
-            trim($rawData['remarks_office'] ?? '') // Admins can optionally include an office remark immediately
+            $deceased_name
+            //trim($rawData['remarks_office'] ?? '') // Admins can optionally include an office remark immediately
         ]);
         
         $newId = $pdo->lastInsertId();
         
         // Safely log the creation, even if it's an anonymous public client
-        $loggerName = $userData['name'] ?? "Public Client";
-        $loggerId = $userData['user_id'] ?? null;
-        systemLog($loggerName . " uploaded payment proof: " . $refNum, $loggerId);
+        // $loggerName = $userData['name'] ?? "Public Client";
+        // $loggerId = $userData['user_id'] ?? null;
+        systemLog("Uploaded payment proof: " . $refNum, "Public");
         
         Response::success("Payment proof submitted successfully. Pending office review.", ["payment_id" => $newId], 201);
 
