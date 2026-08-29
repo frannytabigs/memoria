@@ -511,18 +511,18 @@ function loadSiteContent() {
       }
 
       var processedKeys = new Set();
-      console.log("--- Starting to load settings ---");
+      // // // // // console.log("--- Starting to load settings ---");
 
       result.data.forEach(function (setting) {
         var key = setting.setting_key;
         var val = setting.setting_value;
 
         if (processedKeys.has(key)) {
-          console.log("Skipping duplicate (older):", key);
+          // // // // // console.log("Skipping duplicate (older):", key);
           return;
         }
         processedKeys.add(key);
-        console.log("Processing key:", key, "→ value:", val);
+        // // // // // console.log("Processing key:", key, "→ value:", val);
 
         // ----- SPECIAL CASES -----
 
@@ -533,7 +533,7 @@ function loadSiteContent() {
             var rawHtml = marked.parse(val);
             var cleanHtml = DOMPurify.sanitize(rawHtml);
             el.innerHTML = cleanHtml;
-            console.log("  ✓ Set burial requirements for #burialRequirements");
+            // // // // // console.log("  ✓ Set burial requirements for #burialRequirements");
             document.getElementById("whatburialrequirements").style.display =
               "none";
           } else {
@@ -568,7 +568,7 @@ function loadSiteContent() {
               ADD_ATTR: ["src", "allowfullscreen", "loading", "referrerpolicy"],
             });
             el.innerHTML = cleanIframe;
-            console.log("  ✓ Set map iframe for #cemetery_google_map");
+            // // // // console.log("  ✓ Set map iframe for #cemetery_google_map");
           } else {
             console.warn("  ✗ Element #cemetery_google_map not found");
           }
@@ -593,10 +593,10 @@ function loadSiteContent() {
             } else {
               el.textContent = val;
             }
-            console.log("  ✓ Updated #" + id + " → " + val);
+            // // // // console.log("  ✓ Updated #" + id + " → " + val);
           });
         } else {
-          console.log("  (No mapping for key:", key, ")");
+          // // // // console.log("  (No mapping for key:", key, ")");
         }
 
         // ----- DROPDOWN LISTS (payment_channels, permit_types) -----
@@ -607,7 +607,7 @@ function loadSiteContent() {
               JSON.parse(val),
               "Select payment method",
             );
-            console.log("  ✓ Populated payment channels dropdown");
+            // // // // console.log("  ✓ Populated payment channels dropdown");
           }
           if (key === "permit_types" && val) {
             populateSelect(
@@ -615,21 +615,21 @@ function loadSiteContent() {
               JSON.parse(val),
               "Select payment purpose",
             );
-            console.log("  ✓ Populated permit types dropdown");
+            // // // // console.log("  ✓ Populated permit types dropdown");
           }
         } catch (jsonError) {
-          console.warn("  ✗ Could not parse JSON for " + key + ":", val);
+          //console.warn("  ✗ Could not parse JSON for " + key + ":", val);
         }
       });
 
-      console.log(
-        "--- Finished loading settings. Processed keys:",
-        Array.from(processedKeys),
-      );
+      // // // // // // console.log(
+      //   "--- Finished loading settings. Processed keys:",
+      //   Array.from(processedKeys),
+      // );
     })
     .catch(function (error) {
       console.error(error);
-      showAlertTOP("Too many requests. Please try again later.", "error");
+      //showAlertTOP("Too many requests. Please try again later.", "error");
     });
 }
 
