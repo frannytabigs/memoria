@@ -1,24 +1,15 @@
 <?php
-// require_once 'notallowed.php';
 require_once 'responses.php'; 
 require_once 'config.php';
 require_once 'ratelimit.php';
-require_once 'database.php'; // MUST INCLUDE DATABASE CONNECTION
+require_once 'database.php'; 
 require_once 'database_enums.php';
-
-// Manually require the JWT files IN THIS EXACT ORDER
-// require_once 'jwt/JWTExceptionWithPayloadInterface.php';
-// require_once 'jwt/BeforeValidException.php';
-// require_once 'jwt/ExpiredException.php';
-// require_once 'jwt/SignatureInvalidException.php';
-// require_once 'jwt/Key.php';
-// require_once 'jwt/JWT.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 function checkuser($force_exit = true) {
-    global $pdo; // Bring in the PDO connection
+    global $pdo; 
     $jwt = null;
 
     // 1. FIRST: Check for Authorization Header
@@ -47,15 +38,23 @@ function checkuser($force_exit = true) {
 
     // 4. Verify and decode the JWT
     try {
-        $JWT_SECRET = JWT_SECRET;
-        $JWT_ALGO = JWT_ALGO;
+        // --- NEW: Manually read the payload to get the user_id BEFORE verification ---
+        $jwtParts = explode('.', $jwt);
+        if (count($jwtParts) !== 3) {
+            throw new Exception("Malformed token");
+        }
+        
+        // Base64Url decode the payload (the middle part of the JWT)
+        $payloadRaw = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $jwtParts[1])));
+        $userId = $payloadRaw->data->user_id ?? null;
 
-        $decoded = JWT::decode($jwt, new Key($JWT_SECRET, $JWT_ALGO));
-        $userData = (array) $decoded->data;
+        if (!$userId) {
+            throw new Exception("Invalid token structure");
+        }
 
-        // 5. REAL-TIME DATABASE VERIFICATION
-        $stmt = $pdo->prepare("SELECT status, role FROM users WHERE user_id = :id AND deleted_at is NULL LIMIT 1");
-        $stmt->execute([':id' => $userData['user_id']]);
+        // --- UPDATED: Fetch password_hash along with status and role ---
+        $stmt = $pdo->prepare("SELECT status, role, password_hash FROM users WHERE user_id = :id AND deleted_at is NULL LIMIT 1");
+        $stmt->execute([':id' => $userId]);
         $dbUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // If user was deleted or unverified by admin, kill the session
@@ -67,6 +66,14 @@ function checkuser($force_exit = true) {
             return false;
         }
 
+        $JWT_SECRET = JWT_SECRET;
+        $JWT_ALGO = JWT_ALGO;
+
+        // --- NEW: Verify the JWT using the secret appended with the DB password_hash ---
+        // If the password changed in the DB, this decode step will throw a SignatureInvalidException!
+        $decoded = JWT::decode($jwt, new Key($JWT_SECRET . $dbUser['password_hash'], $JWT_ALGO));
+        $userData = (array) $decoded->data;
+
         // Keep the payload fresh by injecting the latest DB role and status
         $userData['status'] = $dbUser['status'];
         $userData['role'] = $dbUser['role'];
@@ -76,7 +83,8 @@ function checkuser($force_exit = true) {
     catch (Exception $e) {
         setcookie('auth_token', '', time() - JWT_EXPIRATION, '/');
         if ($force_exit) {
-            Response::error("Invalid session", 401);
+            // Optional: you can check if $e is a SignatureInvalidException to log "forced logout due to password change"
+            Response::error("Invalid or expired session. Please log in again.", 401);
         }
         return false;
     }

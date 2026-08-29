@@ -71,6 +71,8 @@ try {
 
     if ($user && password_verify($password, $user['password_hash'])) {
         
+        // --- NEW: Save the hash before unsetting it ---
+        $currentPasswordHash = $user['password_hash'];
         unset($user['password_hash']);
 
         if ($user['status'] !== STATUS_VERIFIED) {
@@ -98,7 +100,7 @@ try {
             ]   
         ];
 
-        $jwt = JWT::encode($payload, $JWT_SECRET, $JWT_ALGO);
+        $jwt = JWT::encode($payload, $JWT_SECRET . $currentPasswordHash, $JWT_ALGO);
 
         setcookie('auth_token', $jwt, [
             'expires' => time() + $JWT_EXPIRATION,
