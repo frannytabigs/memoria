@@ -156,7 +156,10 @@ function loadSiteContent() {
     })
     .catch((error) => {
       console.error("Error loading settings:", error);
-      showAlertTOP("Failed to load settings. Please refresh.", "error");
+      showAlertTOP(
+        "Failed to load settings. Please try again later, or check your internet connection.",
+        "error",
+      );
     });
 }
 

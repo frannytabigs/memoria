@@ -5,7 +5,7 @@
 // ---------- Constants & Mappings ----------
 const TEXT_SETTINGS_MAP = {
   main_title: ["heading_one", "heading_one1"],
-  cemetery_name: [
+  cemetery_title: [
     "cemetery_name",
     "cemetery_name1",
     "cemetery_name2",
@@ -147,6 +147,7 @@ function loadSiteContent() {
             } else {
               el.textContent = val; // safe
             }
+            console.log("Changed to: " + val);
           }
         }
 

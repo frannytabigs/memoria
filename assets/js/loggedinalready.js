@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // 1. Map API setting keys → array of HTML element IDs
       const TEXT_SETTINGS_MAP = {
         main_title: ["heading_one"],
-        cemetery_name: ["cemetery_name"],
+        cemetery_title: ["cemetery_name"],
         cemetery_address: ["cemetery_address"],
       };
       fetch("/api/settings", { cache: "no-store" })
