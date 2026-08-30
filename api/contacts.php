@@ -117,9 +117,8 @@ if ($method === 'GET') {
         'total_pages'   => $totalPages
     ];
 
-    if ($records === []){
-        Response::error("No records found matching the search criteria (" . $searchTerm . ")", 404);
-    }
+    // An empty page is a valid answer — "nobody matched that search" is not a
+    // failed request. The old 404 made every no-hit lookup print an error banner.
     if (!empty($searchTerm)){
         Response::success("Records retrieved successfully", [
             "search_term" => $searchTerm,
@@ -149,6 +148,17 @@ if ($method === 'POST') {
     $phone = trim($rawData['phone_number'] ?? '');
     $email = trim($rawData['email_address'] ?? '');
     $remarks = trim($rawData['remarks'] ?? '');
+
+    // Normalize before storing. api/sendsms.php dials whatever is in this column,
+    // and reserve/interments already run every number through this helper — a raw
+    // "0917 123 4567" saved here would not match a "+639171234567" saved there,
+    // so the same person could end up as two contacts.
+    if ($phone !== '') {
+        $phone = formatPhNumber($phone);
+        if (!$phone) {
+            Response::error("Invalid Philippines phone number format.", 400);
+        }
+    }
 
     try {
         $stmt = $pdo->prepare("
@@ -186,6 +196,12 @@ if ($method === 'PUT') {
     $newAddress = array_key_exists('address', $rawData) ? trim($rawData['address']) : $oldRecord['address'];
     $newBarangay = array_key_exists('barangay', $rawData) ? trim($rawData['barangay']) : $oldRecord['barangay'];
     $newPhone = array_key_exists('phone_number', $rawData) ? trim($rawData['phone_number']) : $oldRecord['phone_number'];
+    if (array_key_exists('phone_number', $rawData) && $newPhone !== '') {
+        $newPhone = formatPhNumber($newPhone);
+        if (!$newPhone) {
+            Response::error("Invalid Philippines phone number format.", 400);
+        }
+    }
     $newEmail = array_key_exists('email_address', $rawData) ? trim($rawData['email_address']) : $oldRecord['email_address'];
     $newRemarks = array_key_exists('remarks', $rawData) ? trim($rawData['remarks']) : $oldRecord['remarks'];
 
@@ -211,17 +227,19 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     if (!is_numeric($resourceId)) Response::error("Contact ID required", 400);
 
-    // Cross-check: Ensure this person isn't a block owner, or tied to an interment or reservation
+    // Cross-check: this person must not own a block or be the contact person on
+    // any interment. `reservations` no longer exists — grave_transitions replaced
+    // it, and a staging reaches its contact through interments.contact_id, which
+    // the second subquery already covers.
     $checkStmt = $pdo->prepare("
-        SELECT 
+        SELECT
             (SELECT COUNT(*) FROM blocks WHERE owner_contact_id = ? AND deleted_at IS NULL) +
-            (SELECT COUNT(*) FROM interments WHERE contact_id = ? AND deleted_at IS NULL) +
-            (SELECT COUNT(*) FROM reservations WHERE contact_id = ? AND deleted_at IS NULL AND status = 'Active')
+            (SELECT COUNT(*) FROM interments WHERE contact_id = ? AND deleted_at IS NULL)
     ");
-    $checkStmt->execute([$resourceId, $resourceId, $resourceId]);
-    
+    $checkStmt->execute([$resourceId, $resourceId]);
+
     if ($checkStmt->fetchColumn() > 0) {
-        Response::error("Conflict: Cannot delete this contact because they own a block, are linked to an interment, or hold an active reservation.", 409);
+        Response::error("Conflict: Cannot delete this contact because they own a block or are linked to an interment record.", 409);
     }
 
     try {

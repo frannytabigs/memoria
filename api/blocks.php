@@ -94,7 +94,7 @@ if ($method === 'GET') {
         $graveRows = $graveStmt->fetchAll(PDO::FETCH_ASSOC);
 
         $graveInterments = [];
-        $graveReservations = [];
+        $graveStagings = [];
 
         if ($isAuthorizedStaff && count($graveRows) > 0) {
             
@@ -136,36 +136,57 @@ if ($method === 'GET') {
                 ];
             }
 
-            $reservationStmt = $pdo->prepare("
+            // Live stagings (grave_transitions replaced the old `reservations`
+            // table). uniq_live_staging means at most one per grave, so this
+            // maps grave_id -> single staging object, not a list.
+            $stagingStmt = $pdo->prepare("
                 SELECT
-                    r.grave_id, r.reservation_id, r.expiration_date AS reservation_expiration, r.remarks AS reservation_remarks,
-                    rc.contact_id AS r_contact_id, rc.name AS r_contact_name, rc.phone_number AS r_contact_phone, rc.deleted_at AS r_contact_deleted,
-                    rd.deceased_id AS r_deceased_id, rd.name AS r_deceased_name, rd.deleted_at AS r_deceased_deleted
-                FROM reservations r
-                INNER JOIN graves g ON r.grave_id = g.grave_id
-                LEFT JOIN contacts rc ON r.contact_id = rc.contact_id
-                LEFT JOIN deceased rd ON r.deceased_id = rd.deceased_id
-                WHERE g.block_id = :id 
+                    t.grave_id, t.transition_id, t.outgoing_destination, t.destination_grave_id,
+                    t.destination_notes, t.prior_grave_status, t.created_at AS staged_at,
+                    dg.grave_code AS destination_grave_code,
+                    i.interment_id AS incoming_interment_id, i.control_number,
+                    i.date_buried, i.lease_expiration_date,
+                    d.deceased_id AS t_deceased_id, d.name AS t_deceased_name, d.deleted_at AS t_deceased_deleted,
+                    c.contact_id AS t_contact_id, c.name AS t_contact_name, c.phone_number AS t_contact_phone, c.deleted_at AS t_contact_deleted
+                FROM grave_transitions t
+                INNER JOIN graves g ON t.grave_id = g.grave_id
+                INNER JOIN interments i ON t.incoming_interment_id = i.interment_id
+                LEFT JOIN deceased d ON i.deceased_id = d.deceased_id
+                LEFT JOIN contacts c ON i.contact_id = c.contact_id
+                LEFT JOIN graves dg ON t.destination_grave_id = dg.grave_id
+                WHERE g.block_id = :id
                 AND g.deleted_at IS NULL
-                AND r.deleted_at IS NULL
-                AND r.status = 'Active'
+                AND t.deleted_at IS NULL
+                AND t.status = 'Staged'
             ");
-            $reservationStmt->execute([':id' => $resourceId]);
-            foreach ($reservationStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                $graveReservations[$row['grave_id']][] = [
-                    'reservation_id'  => (int)$row['reservation_id'],
-                    'expiration_date' => $row['reservation_expiration'],
-                    'remarks'         => $row['reservation_remarks'],
-                    'reserver' => [
-                        'contact_id'   => (int)$row['r_contact_id'],
-                        'name'         => $row['r_contact_name'],
-                        'phone_number' => $row['r_contact_phone'],
-                        'is_archived'  => $row['r_contact_deleted'] !== null
+            $stagingStmt->execute([':id' => $resourceId]);
+            foreach ($stagingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $graveStagings[$row['grave_id']] = [
+                    'transition_id'      => (int)$row['transition_id'],
+                    'staged_at'          => $row['staged_at'],
+                    'prior_grave_status' => $row['prior_grave_status'],
+                    'outgoing_destination' => [
+                        'type'       => $row['outgoing_destination'],
+                        'grave_id'   => $row['destination_grave_id'] !== null ? (int)$row['destination_grave_id'] : null,
+                        'grave_code' => $row['destination_grave_code'],
+                        'notes'      => $row['destination_notes']
                     ],
-                    'reserved_for_deceased' => [
-                        'deceased_id' => (int)$row['r_deceased_id'],
-                        'name'        => $row['r_deceased_name'],
-                        'is_archived' => $row['r_deceased_deleted'] !== null
+                    'incoming' => [
+                        'interment_id'          => (int)$row['incoming_interment_id'],
+                        'control_number'        => $row['control_number'],
+                        'date_buried'           => $row['date_buried'],
+                        'lease_expiration_date' => $row['lease_expiration_date'],
+                        'deceased' => [
+                            'deceased_id' => $row['t_deceased_id'] !== null ? (int)$row['t_deceased_id'] : null,
+                            'name'        => $row['t_deceased_name'],
+                            'is_archived' => $row['t_deceased_deleted'] !== null
+                        ],
+                        'contact' => [
+                            'contact_id'   => $row['t_contact_id'] !== null ? (int)$row['t_contact_id'] : null,
+                            'name'         => $row['t_contact_name'],
+                            'phone_number' => $row['t_contact_phone'],
+                            'is_archived'  => $row['t_contact_deleted'] !== null
+                        ]
                     ]
                 ];
             }
@@ -183,7 +204,7 @@ if ($method === 'GET') {
                 'col_num'      => (int)$row['col_num'],
                 'remarks'      => $isAuthorizedStaff ? $row['grave_remarks'] : null,
                 'interments'   => $isAuthorizedStaff ? ($graveInterments[$gId] ?? []) : [],
-                'reservations' => $isAuthorizedStaff ? ($graveReservations[$gId] ?? []) : []
+                'staging'      => $isAuthorizedStaff ? ($graveStagings[$gId] ?? null) : null
             ];
         }
 
@@ -253,26 +274,25 @@ if ($method === 'GET') {
                 ) OR
                 EXISTS (
                     SELECT 1
-                    FROM reservations sr
-                    INNER JOIN graves srg ON sr.grave_id = srg.grave_id
-                    LEFT JOIN deceased srd ON sr.deceased_id = srd.deceased_id
-                    LEFT JOIN contacts src ON sr.contact_id = src.contact_id
-                    WHERE srg.block_id = b.block_id
-                    AND srg.deleted_at IS NULL
-                    AND sr.deleted_at IS NULL
+                    FROM grave_transitions st
+                    INNER JOIN graves stg ON st.grave_id = stg.grave_id
+                    WHERE stg.block_id = b.block_id
+                    AND stg.deleted_at IS NULL
+                    AND st.deleted_at IS NULL
                     AND (
-                        CAST(sr.reservation_id AS CHAR) LIKE ? OR
-                        sr.status LIKE ? OR
-                        sr.remarks LIKE ? OR
-                        srd.name LIKE ? OR
-                        src.name LIKE ? OR
-                        src.phone_number LIKE ? OR
-                        src.email_address LIKE ?
+                        CAST(st.transition_id AS CHAR) LIKE ? OR
+                        st.status LIKE ? OR
+                        st.outgoing_destination LIKE ? OR
+                        st.destination_notes LIKE ? OR
+                        st.prior_grave_status LIKE ?
                     )
                 )
             )
         ";
-        $params = array_fill(0, 37, $searchLike);
+        // 14 block/owner + 6 grave + 10 interment + 5 transition.
+        // The interments EXISTS carries no status filter, so a staged (Pending)
+        // record's deceased and contact are already reachable through it.
+        $params = array_fill(0, 35, $searchLike);
     }
     
     $sql = "
@@ -344,9 +364,7 @@ if ($method === 'GET') {
     }
 
     if (!empty($searchTerm)){
-        if ($groupedFloors === []){
-            Response::error("Nothing found in the blocks with the search criteria (". $searchTerm . ")",404);
-        }
+        // A search that matched nothing is a valid answer, not an error.
         Response::success("Blocks retrieved successfully", [
             "search_term" => $searchTerm,
             "floors" => $groupedFloors
@@ -650,20 +668,20 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     if (!is_numeric($resourceId)) Response::error("Block ID required", 400);
 
-    // Cross-check for existing dependencies (Interments / Reservations)
+    // Cross-check for existing dependencies (interments / staged transitions)
     $stmt = $pdo->prepare("
-        SELECT COUNT(DISTINCT g.grave_id) 
+        SELECT COUNT(DISTINCT g.grave_id)
         FROM graves g
-        LEFT JOIN interments i ON g.grave_id = i.grave_id AND i.deleted_at IS NULL AND i.status IN ('Active', 'Expired')
-        LEFT JOIN reservations r ON g.grave_id = r.grave_id AND r.deleted_at IS NULL AND r.status = 'Active'
-        WHERE g.block_id = ? 
+        LEFT JOIN interments i ON g.grave_id = i.grave_id AND i.deleted_at IS NULL
+        LEFT JOIN grave_transitions t ON g.grave_id = t.grave_id AND t.deleted_at IS NULL AND t.status = 'Staged'
+        WHERE g.block_id = ?
         AND g.deleted_at IS NULL
-        AND (g.status != 'Vacant' OR i.interment_id IS NOT NULL OR r.reservation_id IS NOT NULL)
+        AND (g.status != 'Vacant' OR i.interment_id IS NOT NULL OR t.transition_id IS NOT NULL)
     ");
     $stmt->execute([$resourceId]);
-    
+
     if ($stmt->fetchColumn() > 0) {
-        Response::error("Conflict: Cannot delete a block containing active bodies, reservations, or linked paperwork.", 409);
+        Response::error("Conflict: Cannot delete a block whose graves carry interment history, a staged transition, or a non-Vacant status.", 409);
     }
 
     try {

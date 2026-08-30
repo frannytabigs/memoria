@@ -148,61 +148,10 @@
               </tr>
             </thead>
 
-            <tbody id="reservation">
-              <tr>
-                <td>Abcde F. Ghijk</td>
-                <td class="block-text">AA1</td>
-                <td>January 01, 2026</td>
-                <td>Lmnop Q. Rstuv</td>
-                <td>+63 912 345 6789</td>
-
-                <td class="buriedBg">Abcde F. Ghijk</td>
-                <td class="buriedBg">123 Mandaue City</td>
-                <td class="buriedBg">Lmnop Q. Rstuv</td>
-                <td class="buriedBg">+63 999 888 7777</td>
-                <td class="buriedBg">123 Mandaue City</td>
-
-                <td>-</td>
-                <td class="actions">
-                  <button class="checkBtn" title="Remove Record (Completed)">
-                    <i class="fas fa-check"></i>
-                  </button>
-                  <button class="editBtn" title="Burial Clearance (New Person)">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="deleteBtn" title="Delete">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </td>
-              </tr>
-
-              <tr>
-                <td>Abcde F. Ghijk</td>
-                <td class="block-text">BB2</td>
-                <td>March 15, 2026</td>
-                <td>Lmnop Q. Rstuv</td>
-                <td>+63 912 345 6789</td>
-
-                <td class="buriedBg">Abcde F. Ghijk</td>
-                <td class="buriedBg">123 Mandaue City</td>
-                <td class="buriedBg">Lmnop Q. Rstuv</td>
-                <td class="buriedBg">+63 915 222 3333</td>
-                <td class="buriedBg">123 Mandaue City</td>
-
-                <td>-</td>
-                <td class="actions">
-                  <button class="checkBtn" title="Remove Record (Completed)">
-                    <i class="fas fa-check"></i>
-                  </button>
-                  <button class="editBtn" title="Burial Clearance (New Person)">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="deleteBtn" title="Delete">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
+            <!-- Rows are rendered by assets/js/monitor.js. Do not add demo
+                 markup here: it flashes before the first fetch resolves and
+                 reads as real data. -->
+            <tbody id="reservation"></tbody>
           </table>
         </div>
       </div>
@@ -246,7 +195,8 @@
 
             <div class="col">
               <label>Barangay Address:</label>
-              <select id="requesting_barangay">
+              <input type="text" id="requesting_barangay" />
+              <!-- <select id="requesting_barangay">
                 <option value="" disabled selected>Select Barangay...</option>
                 <option value="Alang-alang">Alang-alang</option>
                 <option value="Bakilid">Bakilid</option>
@@ -274,7 +224,7 @@
                 <option value="Tingub">Tingub</option>
                 <option value="Tipolo">Tipolo</option>
                 <option value="Umapad">Umapad</option>
-              </select>
+              </select> -->
             </div>
           </div>
 
@@ -313,6 +263,7 @@
                 <option value="" disabled selected>Select...</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
+                <option value="Unknown">Unknown</option>
               </select>
             </div>
 
@@ -362,10 +313,13 @@
             LOCATION ASSIGNMENT & RECORD SCHEDULING
           </div>
 
+          <!-- The grave is fixed by the staging transition: the outgoing
+               snapshot and the destination both hang off it. Cancel and re-file
+               from Reserve to put this record in a different grave. -->
           <div class="row">
             <div class="col">
-              <label>Burial Type:</label>
-              <select id="burialBlock">
+              <label>Block (assigned):</label>
+              <select id="burialBlock" disabled>
                 <option value="Niche Wall">Niche Wall</option>
                 <option value="Bone Chamber">Bone Chamber</option>
                 <option value="Lawn / Grounds">Lawn / Grounds</option>
@@ -375,8 +329,13 @@
             </div>
 
             <div class="col">
-              <label>Specific Grave Code (if applicable):</label>
-              <input type="text" id="graveCode" />
+              <label>Grave Code (assigned):</label>
+              <input
+                type="text"
+                id="graveCode"
+                readonly
+                style="background-color: #f8fafc; font-weight: 600"
+              />
             </div>
           </div>
 
@@ -388,12 +347,7 @@
 
             <div class="col">
               <label>Expiration Date:</label>
-              <input
-                type="date"
-                id="expirationDate"
-                style="background-color: #f8fafc; font-weight: 600"
-                readonly
-              />
+              <input type="date" id="expirationDate" />
             </div>
           </div>
 
@@ -418,6 +372,7 @@
     </div>
 
     <script src="assets/js/alert.js"></script>
+    <script src="assets/js/sendsms.js"></script>
     <script src="assets/js/monitor.js"></script>
     <script src="assets/js/sidebar.js"></script>
     <script>

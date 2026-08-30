@@ -117,9 +117,8 @@ if ($method === 'GET') {
         'total_pages'   => $totalPages
     ];
 
-    if ($records === []){
-        Response::error("No records found matching the search criteria (" . $searchTerm . ")", 404);
-    }
+    // An empty page is a valid answer — "nobody matched that search" is not a
+    // failed request. The old 404 made every no-hit lookup print an error banner.
     if (!empty($searchTerm)){
         Response::success("Records retrieved successfully", [
             "search_term" => $searchTerm,
@@ -212,16 +211,22 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     if (!is_numeric($resourceId)) Response::error("Deceased ID required", 400);
 
-    // Cross-check: Ensure this person isn't tied to an active interment or reservation
+    // Cross-check: Ensure this person isn't tied to a live interment or a staged
+    // transition. `reservations` no longer exists — grave_transitions replaced it,
+    // and a Pending interment is what a staging points at.
     $checkStmt = $pdo->prepare("
-        SELECT 
-            (SELECT COUNT(*) FROM interments WHERE deceased_id = ? AND deleted_at IS NULL AND status != 'Exhumed') +
-            (SELECT COUNT(*) FROM reservations WHERE deceased_id = ? AND deleted_at IS NULL AND status = 'Active')
+        SELECT
+            (SELECT COUNT(*) FROM interments
+              WHERE deceased_id = ? AND deleted_at IS NULL
+                AND status IN ('Active', 'Expired', 'Pending')) +
+            (SELECT COUNT(*) FROM grave_transitions t
+              INNER JOIN interments i ON t.incoming_interment_id = i.interment_id
+              WHERE i.deceased_id = ? AND t.status = 'Staged' AND t.deleted_at IS NULL)
     ");
     $checkStmt->execute([$resourceId, $resourceId]);
-    
+
     if ($checkStmt->fetchColumn() > 0) {
-        Response::error("Conflict: Cannot delete this record because it is tied to an active interment or reservation.", 409);
+        Response::error("Conflict: Cannot delete this record because it is tied to a live interment or a staged transition.", 409);
     }
 
     try {

@@ -3,6 +3,7 @@ define('ITS_ME_JUSTTOVERIFY', true);
 
 require_once 'checkuser.php';
 require_once 'logs.php';
+require_once 'gravestate.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? null;
 $userData = checkuser(); 
@@ -133,8 +134,8 @@ if ($method === 'GET') {
         $sql = "
             SELECT 
                 i.*, 
-                g.grave_code, g.remarks AS grave_remarks, 
-                b.block_name, b.block_id, b.remarks AS block_remarks, b.owner_contact_id,
+                g.grave_code, g.remarks AS grave_remarks,
+                b.block_name, b.block_id, b.block_type, b.remarks AS block_remarks, b.owner_contact_id,
                 d.name AS deceased_name, d.sex AS deceased_sex, d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death, d.date_of_birth, d.last_known_address,
                 c.name AS contact_name, c.phone_number AS contact_phone, c.remarks AS contact_remarks, c.deleted_at AS contact_deleted, c.address AS contact_address, c.barangay AS contact_barangay
             FROM interments i
@@ -189,6 +190,7 @@ if ($method === 'GET') {
             'block' => [
                 'block_id'         => (int)$record['block_id'],
                 'block_name'       => $record['block_name'],
+                'block_type'       => $record['block_type'],
                 'owner_contact_id' => $record['owner_contact_id'] ? (int)$record['owner_contact_id'] : null,
                 'remarks'          => $record['block_remarks']
             ],
@@ -320,7 +322,15 @@ if ($method === 'GET') {
             i.exhumation_permit_number, i.exhumation_permit_date,
             i.date_buried, i.clearance_date, i.lease_expiration_date, i.status, i.remarks,
             g.grave_code, g.grave_id, g.remarks AS grave_remarks,
-            b.block_name, b.block_id, b.owner_contact_id, b.remarks AS block_remarks,
+            b.block_name, b.block_id, b.block_type, b.owner_contact_id, b.remarks AS block_remarks,
+            -- How many bodies this grave physically holds, counted across the WHOLE
+            -- ledger. Records used to derive its merged-xN badge by tallying the
+            -- rows on the page it happened to be showing, so two co-interments that
+            -- landed on different pages both read as unshared.
+            (SELECT COUNT(*) FROM interments s
+              WHERE s.grave_id = i.grave_id
+                AND s.deleted_at IS NULL
+                AND s.status IN ('Active', 'Expired')) AS grave_occupant_count,
             d.name AS deceased_name, d.deceased_id, d.sex AS deceased_sex,
             d.remarks AS deceased_remarks, d.deleted_at AS deceased_deleted, d.death_certificate, d.date_of_death, d.date_of_birth, d.last_known_address,
             c.name AS contact_name, c.phone_number AS contact_phone, c.contact_id,
@@ -372,12 +382,18 @@ if ($method === 'GET') {
             'grave' => [
                 'grave_id'   => (int)$row['grave_id'],
                 'grave_code' => $row['grave_code'],
+                // 0 for an unassigned record; >1 means this grave is a co-interment.
+                'occupant_count' => (int)$row['grave_occupant_count'],
                 'remarks'    => $row['grave_remarks']
             ],
-            
+
             'block' => [
                 'block_id'         => (int)$row['block_id'],
                 'block_name'       => $row['block_name'],
+                // The real enum. Records was inferring the burial type by looking for
+                // the word "niche" or "bone" in block_name, which silently mislabelled
+                // every block whose name did not spell its own type out.
+                'block_type'       => $row['block_type'],
                 'owner_contact_id' => $row['owner_contact_id'] ? (int)$row['owner_contact_id'] : null,
                 'remarks'          => $row['block_remarks']
             ],
@@ -414,9 +430,9 @@ if ($method === 'GET') {
         'total_pages'   => $totalPages
     ];
     
-    if ($formattedInterments === []){
-        Response::error("No records found matching the search criteria (" . $searchTerm . ")", 404);
-    }
+    // An empty page is a valid answer, not an error. The old 404 here made
+    // records.js render "the backend is not running" for an empty ledger and
+    // for any search that simply matched nothing.
     if (!empty($searchTerm)){
         Response::success("Interments retrieved", [
         "search_term" => $searchTerm,
@@ -465,30 +481,30 @@ if ($method === 'POST') {
         $deceasedId = $resolveDeceased($rawData['deceased'] ?? [], $pdo, $userData['user_id']);
         $contactId = !empty($rawData['contact']) ? $resolveContact($rawData['contact'], $pdo, $userData['user_id']) : null;
 
-        // 2. Validate Grave Status (Smart Co-Interment Logic)
+        // 2. Lock the grave row, then run the SHARED intake gate.
+        //    The old check only rejected status === 'Occupied', which meant Records
+        //    could insert straight into a grave that Monitor had already staged
+        //    ('Reserved' / 'Pending Exhumation') or that was 'Under Maintenance'.
+        //    graveIntakeBlocker() is the same gate api/reserve.php uses, so the two
+        //    intake paths cannot disagree about whether a grave is available.
         $graveStmt = $pdo->prepare("
-            SELECT g.status, b.block_type 
-            FROM graves g
-            LEFT JOIN blocks b ON g.block_id = b.block_id
-            WHERE g.grave_id = ? AND g.deleted_at IS NULL FOR UPDATE
+            SELECT grave_id
+            FROM graves
+            WHERE grave_id = ? AND deleted_at IS NULL
+            FOR UPDATE
         ");
         $graveStmt->execute([$graveId]);
-        $graveInfo = $graveStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$graveStmt->fetchColumn()) throw new Exception("Selected grave does not exist.", 404);
 
-        if (!$graveInfo) throw new Exception("Selected grave does not exist.", 404);
+        // Records calls this "Merge"; the payload has always shipped as
+        // is_co_interment. Accept either so the UI wording and the API stay decoupled.
+        $isMerge = filter_var(
+            $rawData['is_merged'] ?? $rawData['is_co_interment'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        );
 
-        // If the grave is already occupied, we check if multiple occupants are allowed
-        if ($graveInfo['status'] === 'Occupied') {
-            
-            //$isBoneChamber = in_array($graveInfo['block_type'], ['Bone Chamber', 'Mass Grave', 'Cluster', 'Unmapped Area', 'Lawn']);
-            //$isTransfer = ($assistanceType === 'Transfer' || $assistanceType === 'Other');
-            $isManualCoInterment = filter_var($rawData['is_co_interment'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-            // If none of the co-interment conditions are met, block it!
-            if (!$isManualCoInterment) {
-                throw new Exception("Conflict: This grave is already occupied by an active interment. To add ashes or transferred bones here, please enable Co-Interment.", 409);
-            }
-        }
+        $blocker = graveIntakeBlocker($pdo, (int)$graveId, $isMerge);
+        if ($blocker) throw new Exception($blocker['message'], $blocker['code']);
         
         // 3. Insert Interment
         $stmt = $pdo->prepare("
@@ -510,22 +526,25 @@ if ($method === 'POST') {
         
         $newId = $pdo->lastInsertId();
 
-        // 4. Update Grave to Occupied
-        $updateGrave = $pdo->prepare("UPDATE graves SET status = 'Occupied', updated_by = ?, updated_at = NOW() WHERE grave_id = ?");
-        $updateGrave->execute([$userData['user_id'], $graveId]);
+        // 4. Update Grave Status dynamically
+        $newGraveStatus = recomputeGraveStatus($pdo, $graveId);
 
         $pdo->commit();
-        systemLog($userData['name'] . " created interment: " . $controlNumber, $userData['user_id']);
-        Response::success("Interment processed and grave occupied.", ["interment_id" => $newId], 201);
+        systemLog($userData['name'] . " created interment: " . $controlNumber . ($isMerge ? " (merged)" : ""), $userData['user_id']);
+        Response::success("Interment record filed.", [
+            "interment_id" => $newId,
+            "grave_status" => $newGraveStatus,
+            "merged"       => $isMerge
+        ], 201);
 
     } catch (PDOException $e) {
-        $pdo->rollBack();
-        
+        if ($pdo->inTransaction()) $pdo->rollBack();
+
         // Handle specific PDO error codes
         if ($e->getCode() == 23000) {
             Response::error("Conflict: Control number already exists.", 409);
         }
-        
+
         // Check for date/time format errors in PDO exceptions
         $message = $e->getMessage();
         if (
@@ -534,11 +553,11 @@ if ($method === 'POST') {
         ) {
             Response::error("Invalid date/time format. Please use YYYY-MM-DD HH:MM:SS format.", 400);
         }
-        
+
         Response::error("Database error while creating interment: " . $e->getMessage(), 500);
-        
+
     } catch (Exception $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         $code = $e->getCode() ?: 500;
         
         // Handle specific HTTP error codes
@@ -560,29 +579,54 @@ if ($method === 'DELETE') {
     try {
         $pdo->beginTransaction();
 
-        // Find the linked grave first
-        $stmt = $pdo->prepare("SELECT grave_id FROM interments WHERE interment_id = ? AND deleted_at IS NULL");
+        // Fetch the whole row, not just grave_id: interments.grave_id is nullable,
+        // and `!$graveId` used to report a legitimately unassigned record as 404.
+        $stmt = $pdo->prepare("
+            SELECT interment_id, grave_id, control_number, status
+            FROM interments
+            WHERE interment_id = ? AND deleted_at IS NULL
+            FOR UPDATE
+        ");
         $stmt->execute([$resourceId]);
-        $graveId = $stmt->fetchColumn();
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$graveId) throw new Exception("Interment not found.", 404);
+        if (!$record) throw new Exception("Interment not found.", 404);
+
+        // A record captured by a live staging belongs to Monitor. Soft-deleting it
+        // from Records would leave grave_transitions pointing at a dead row, and
+        // finalizing that transition would then quietly do nothing.
+        $lock = stagingLockFor($pdo, (int)$resourceId);
+        if ($lock) {
+            throw new Exception(
+                "Conflict: this record is part of a staged transition (#" . $lock['transition_id'] . "). " .
+                "Finalize it or cancel it in the Monitor module first.",
+                409
+            );
+        }
+
+        $graveId = $record['grave_id'] !== null ? (int)$record['grave_id'] : null;
 
         // Delete Interment
         $delStmt = $pdo->prepare("UPDATE interments SET deleted_at = NOW(), updated_by = ? WHERE interment_id = ?");
         $delStmt->execute([$userData['user_id'], $resourceId]);
 
-        // Free the Grave back to Vacant
-        $freeGrave = $pdo->prepare("UPDATE graves SET status = 'Vacant', updated_by = ?, updated_at = NOW() WHERE grave_id = ?");
-        $freeGrave->execute([$userData['user_id'], $graveId]);
+        // Recalculate grave status safely. A co-interred grave stays Occupied.
+        $newGraveStatus = $graveId !== null ? recomputeGraveStatus($pdo, $graveId) : null;
 
         $pdo->commit();
-        systemLog($userData['name'] . " deleted interment ID: " . $resourceId . " and freed grave.", $userData['user_id']);
-        Response::success("Interment deleted and grave status reverted to Vacant.");
+        systemLog($userData['name'] . " deleted interment ID: " . $resourceId . " (" . $record['control_number'] . ")", $userData['user_id']);
+        Response::success(
+            $newGraveStatus === null
+                ? "Interment deleted."
+                : "Interment deleted. The grave is now " . $newGraveStatus . ".",
+            ["grave_status" => $newGraveStatus]
+        );
 
     } catch (Exception $e) {
-        $pdo->rollBack();
-        if ($e->getCode() == 404) Response::error($e->getMessage(), 404);
-        Response::error("Im sorry, there is a database error :(( . " . $e->getMessage(), 500);
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        $code = $e->getCode() ?: 500;
+        if (in_array($code, [400, 404, 409])) Response::error($e->getMessage(), $code);
+        Response::error("Database error while deleting the record. " . $e->getMessage(), 500);
     }
 }
 
@@ -604,127 +648,218 @@ if ($method === 'PUT') {
         $pdo->beginTransaction();
 
         // 1. Verify the record exists and grab its linked IDs
-        $stmtCheck = $pdo->prepare("SELECT deceased_id, contact_id FROM interments WHERE interment_id = ? AND deleted_at IS NULL FOR UPDATE");
+        $stmtCheck = $pdo->prepare("SELECT deceased_id, contact_id, grave_id, status FROM interments WHERE interment_id = ? AND deleted_at IS NULL FOR UPDATE");
         $stmtCheck->execute([$resourceId]);
         $currentRecord = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
         if (!$currentRecord) throw new Exception("Interment record not found.", 404);
 
-        // 2. Update the main Interment table
-        $updateInterment = $pdo->prepare("
-            UPDATE interments SET 
-                control_number = COALESCE(?, control_number),
-                assistance_type = COALESCE(?, assistance_type),
-                burial_permit_number = COALESCE(?, burial_permit_number),
-                burial_permit_date = COALESCE(?, burial_permit_date),
-                transfer_permit_number = COALESCE(?, transfer_permit_number),
-                transfer_permit_issued_by = COALESCE(?, transfer_permit_issued_by),
-                transfer_permit_date = COALESCE(?, transfer_permit_date),
-                exhumation_permit_number = COALESCE(?, exhumation_permit_number),
-                exhumation_permit_date = COALESCE(?, exhumation_permit_date),
-                date_buried = COALESCE(?, date_buried),
-                clearance_date = COALESCE(?, clearance_date),
-                lease_expiration_date = COALESCE(?, lease_expiration_date),
-                status = COALESCE(?, status),
-                remarks = COALESCE(?, remarks),
-                updated_by = ?,
-                updated_at = NOW()
-            WHERE interment_id = ?
-        ");
-        
-        $updateInterment->execute([
-            $rawData['control_number'] ?? null,
-            $rawData['assistance_type'] ?? null,
-            $rawData['burial_permit_number'] ?? null,
-            $rawData['burial_permit_date'] ?? null,
-            $rawData['transfer_permit_number'] ?? null,
-            $rawData['transfer_permit_issued_by'] ?? null,
-            $rawData['transfer_permit_date'] ?? null,
-            $rawData['exhumation_permit_number'] ?? null,
-            $rawData['exhumation_permit_date'] ?? null,
-            $rawData['date_buried'] ?? null,
-            $rawData['clearance_date'] ?? null,
-            $rawData['lease_expiration_date'] ?? null,
-            $rawData['status'] ?? null,
-            $rawData['remarks'] ?? null,
-            $userData['user_id'],
-            $resourceId
-        ]);
+        // 1b. If Monitor is holding this record inside a live staging, Records must
+        //     not touch it. Flipping a staged 'Pending' row to 'Active' from here
+        //     would place a body in the grave while the transition still believes
+        //     the old occupant has to come out first.
+        $lock = stagingLockFor($pdo, (int)$resourceId);
+        if ($lock) {
+            throw new Exception(
+                "Conflict: this record is part of a staged transition (#" . $lock['transition_id'] . "). " .
+                "Edit it in the Monitor module, or cancel the transition first.",
+                409
+            );
+        }
 
-        // 3. Update the nested Deceased data (if provided)
+        // 2. Build the interment UPDATE from the keys the client actually sent.
+        //    The old version wrapped every column in COALESCE(?, col), which made it
+        //    impossible to CLEAR a field: an emptied date either kept its old value
+        //    or reached MySQL as '' and blew up. Absent key = leave alone,
+        //    present-but-blank = clear.
+        $textColumns = [
+            'burial_permit_number', 'transfer_permit_number', 'transfer_permit_issued_by',
+            'exhumation_permit_number', 'remarks'
+        ];
+        $dateColumns = [
+            'burial_permit_date', 'transfer_permit_date', 'exhumation_permit_date',
+            'date_buried', 'date_exhumed', 'clearance_date', 'lease_expiration_date'
+        ];
+
+        $sets = [];
+        $vals = [];
+
+        foreach ($textColumns as $col) {
+            if (!array_key_exists($col, $rawData)) continue;
+            $sets[] = "$col = ?";
+            $vals[] = trim((string)$rawData[$col]);
+        }
+
+        foreach ($dateColumns as $col) {
+            if (!array_key_exists($col, $rawData)) continue;
+            $value = $rawData[$col] === null ? '' : trim((string)$rawData[$col]);
+            $sets[] = "$col = ?";
+            $vals[] = ($value === '') ? null : $value;
+        }
+
+        // control_number is UNIQUE NOT NULL. A blank one is treated as "unchanged"
+        // rather than an error, so a readonly field that failed to populate cannot
+        // fail the whole save.
+        if (array_key_exists('control_number', $rawData)) {
+            $newControl = trim((string)($rawData['control_number'] ?? ''));
+            if ($newControl !== '') {
+                $sets[] = "control_number = ?";
+                $vals[] = $newControl;
+            }
+        }
+
+        if (array_key_exists('assistance_type', $rawData)) {
+            $newType = trim((string)$rawData['assistance_type']);
+            if ($newType !== '') {
+                if (!in_array($newType, ['Burial', 'Transfer', 'Other'], true)) {
+                    throw new Exception("Invalid assistance type. Use Burial, Transfer or Other.", 400);
+                }
+                $sets[] = "assistance_type = ?";
+                $vals[] = $newType;
+            }
+        }
+
+        if (array_key_exists('status', $rawData)) {
+            $newStatus = trim((string)$rawData['status']);
+            if ($newStatus !== '') {
+                if (!in_array($newStatus, ['Active', 'Expired', 'Exhumed', 'Moved to Family'], true)) {
+                    // 'Pending' is deliberately excluded: it only means "waiting on a
+                    // staged transition", and only api/reserve may create that state.
+                    throw new Exception("Invalid status. Use Active, Expired, Exhumed or Moved to Family.", 400);
+                }
+                $sets[] = "status = ?";
+                $vals[] = $newStatus;
+            }
+        }
+
+        if ($sets !== []) {
+            $sets[] = "updated_by = ?";
+            $vals[] = $userData['user_id'];
+            $sets[] = "updated_at = NOW()";
+
+            $vals[] = $resourceId;
+            $updateInterment = $pdo->prepare(
+                "UPDATE interments SET " . implode(", ", $sets) . " WHERE interment_id = ?"
+            );
+            $updateInterment->execute($vals);
+        }
+
+        // 3. Update the nested Deceased data (if provided).
+        //    Same rule as above: absent key = leave alone, present-but-blank = clear.
         if (isset($rawData['deceased']) && is_array($rawData['deceased'])) {
             $dec = $rawData['deceased'];
-            $updateDec = $pdo->prepare("
-                UPDATE deceased SET 
-                    name = COALESCE(?, name),
-                    sex = COALESCE(?, sex),
-                    date_of_birth = COALESCE(?, date_of_birth),
-                    date_of_death = COALESCE(?, date_of_death),
-                    death_certificate = COALESCE(?, death_certificate),
-                    last_known_address = COALESCE(?, last_known_address),
-                    remarks = COALESCE(?, remarks),
-                    updated_by = ?,
-                    updated_at = NOW()
-                WHERE deceased_id = ?
-            ");
-            $updateDec->execute([
-                $dec['name'] ?? null,
-                $dec['sex'] ?? null,
-                $dec['date_of_birth'] ?? null,
-                $dec['date_of_death'] ?? null,
-                $dec['death_certificate'] ?? null,
-                $dec['last_known_address'] ?? null,
-                $dec['remarks'] ?? null,
-                $userData['user_id'],
-                $currentRecord['deceased_id']
-            ]);
+            $decSets = [];
+            $decVals = [];
+
+            foreach (['name', 'death_certificate', 'last_known_address', 'remarks'] as $col) {
+                if (!array_key_exists($col, $dec)) continue;
+                $value = trim((string)($dec[$col] ?? ''));
+                // The name is NOT NULL and identifies the person; never blank it.
+                if ($col === 'name' && $value === '') continue;
+                $decSets[] = "$col = ?";
+                $decVals[] = $value;
+            }
+
+            foreach (['date_of_birth', 'date_of_death'] as $col) {
+                if (!array_key_exists($col, $dec)) continue;
+                $value = $dec[$col] === null ? '' : trim((string)$dec[$col]);
+                $decSets[] = "$col = ?";
+                $decVals[] = ($value === '') ? null : $value;
+            }
+
+            if (array_key_exists('sex', $dec)) {
+                $sexValue = trim((string)$dec['sex']);
+                if ($sexValue !== '') {
+                    if (!in_array($sexValue, ['Male', 'Female', 'Unknown'], true)) {
+                        throw new Exception("Invalid sex. Use Male, Female or Unknown.", 400);
+                    }
+                    $decSets[] = "sex = ?";
+                    $decVals[] = $sexValue;
+                }
+            }
+
+            if ($decSets !== []) {
+                $decSets[] = "updated_by = ?";
+                $decVals[] = $userData['user_id'];
+                $decSets[] = "updated_at = NOW()";
+                $decVals[] = $currentRecord['deceased_id'];
+
+                $updateDec = $pdo->prepare(
+                    "UPDATE deceased SET " . implode(", ", $decSets) . " WHERE deceased_id = ?"
+                );
+                $updateDec->execute($decVals);
+            }
         }
 
         // 4. Update the nested Contact data (if provided)
         if (isset($rawData['contact']) && is_array($rawData['contact']) && $currentRecord['contact_id']) {
             $con = $rawData['contact'];
-            
-            // --- FIX: Only validate if a phone number was actually passed in the PUT payload ---
-            $phone = null;
-            if (isset($con['phone_number']) && trim($con['phone_number']) !== '') {
-                $phone = formatPhNumber(trim($con['phone_number']));
-                if (!$phone) {
-                    throw new Exception("Invalid Philippines phone number format.", 400);
+            $conSets = [];
+            $conVals = [];
+
+            foreach (['name', 'address', 'barangay', 'email_address', 'remarks'] as $col) {
+                if (!array_key_exists($col, $con)) continue;
+                $value = trim((string)($con[$col] ?? ''));
+                // The contact's name is NOT NULL; never blank it.
+                if ($col === 'name' && $value === '') continue;
+                $conSets[] = "$col = ?";
+                $conVals[] = $value;
+            }
+
+            // Only validate the phone when one was actually sent. An explicit blank
+            // clears it, since a contact without a number is a legitimate state.
+            if (array_key_exists('phone_number', $con)) {
+                $rawPhone = trim((string)($con['phone_number'] ?? ''));
+                if ($rawPhone === '') {
+                    $conSets[] = "phone_number = ?";
+                    $conVals[] = null;
+                } else {
+                    $phone = formatPhNumber($rawPhone);
+                    if (!$phone) throw new Exception("Invalid Philippines phone number format.", 400);
+                    $conSets[] = "phone_number = ?";
+                    $conVals[] = $phone;
                 }
             }
-            
-            $updateCon = $pdo->prepare("
-                UPDATE contacts SET 
-                    name = COALESCE(?, name),
-                    phone_number = COALESCE(?, phone_number),
-                    address = COALESCE(?, address),
-                    barangay = COALESCE(?, barangay),
-                    remarks = COALESCE(?, remarks),
-                    updated_by = ?,
-                    updated_at = NOW()
-                WHERE contact_id = ?
-            ");
-            $updateCon->execute([
-                $con['name'] ?? null,
-                $phone, // Will be null if omitted, so COALESCE keeps the old DB value
-                $con['address'] ?? null,
-                $con['barangay'] ?? null,
-                $con['remarks'] ?? null,
-                $userData['user_id'],
-                $currentRecord['contact_id']
-            ]);
+
+            if ($conSets !== []) {
+                $conSets[] = "updated_by = ?";
+                $conVals[] = $userData['user_id'];
+                $conSets[] = "updated_at = NOW()";
+                $conVals[] = $currentRecord['contact_id'];
+
+                $updateCon = $pdo->prepare(
+                    "UPDATE contacts SET " . implode(", ", $conSets) . " WHERE contact_id = ?"
+                );
+                $updateCon->execute($conVals);
+            }
+        }
+
+        // 5. The edit may have changed whether this record still occupies the grave
+        //    ('Active' -> 'Exhumed' / 'Moved to Family' empties it). Without this the
+        //    grave stayed 'Occupied' forever and never came back into Reserve's lists.
+        $newGraveStatus = null;
+        if ($currentRecord['grave_id'] !== null) {
+            $newGraveStatus = recomputeGraveStatus($pdo, (int)$currentRecord['grave_id']);
         }
 
         $pdo->commit();
         systemLog($userData['name'] . " edited interment ID: " . $resourceId, $userData['user_id']);
-        Response::success("Interment record updated successfully.");
+        Response::success("Interment record updated successfully.", ["grave_status" => $newGraveStatus]);
 
     } catch (Exception $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         $code = $e->getCode() ?: 500;
         $message = $e->getMessage();
-    
-        // Check for invalid date/time format errors
+
+        // Our own validation errors carry a real HTTP code, so let them through
+        // FIRST. The date sniffing below matches on the bare word 'Date', which
+        // used to swallow deliberate 400/404/409 messages and rewrite them as
+        // "Invalid date/time format".
+        if (in_array($code, [400, 404, 409])) {
+            Response::error($message, $code);
+        }
+
+        // Check for invalid date/time format errors raised by the driver
         if (
             stripos($message, 'Incorrect datetime value') !== false ||
             stripos($message, 'Invalid date') !== false ||
@@ -732,14 +867,9 @@ if ($method === 'PUT') {
             stripos($message, 'TIMESTAMP') !== false ||
             stripos($message, 'Date') !== false
         ) {
-            Response::error("Invalid date/time format. Please use YYYY-MM-DD HH:MM:SS format.", 400);
+            Response::error("Invalid date/time format. Please use YYYY-MM-DD.", 400);
         }
-        
-        // Handle specific HTTP error codes
-        if (in_array($code, [400, 404, 409])) {
-            Response::error($message, $code);
-        }
-        
+
         // Default database error
         Response::error("Database error while updating the record. " . $message, 500);
     }

@@ -6,15 +6,10 @@
  * GET    api/interments?control_number=  uniqueness probe for generated control numbers
  * POST   api/interments                  new record (resolves the nested deceased + contact)
  * PUT    api/interments/{id}             control no., permits, dates, status, remarks, plus nested deceased/contact updates
- * DELETE api/interments/{id}             soft delete, and it frees the grave
+ * DELETE api/interments/{id}             soft delete, and it frees the grave safely via graveState
  * GET    api/graves?search=CODE          resolve a grave: its status and who is already in it
  *
- * MERGE = co-interment: several records sharing one grave (bones moved into a bone
- * chamber, a family stacking a niche). POST api/interments refuses an occupied
- * grave unless the block is a chamber/mass grave/cluster, the request is a
- * Transfer, or is_co_interment is set — so the form asks for that confirmation
- * out loud. DELETE always frees the grave to Vacant, so after deleting one of a
- * merged set we flag the grave back to Occupied.
+ * MERGE = co-interment: several records sharing one grave.
  */
 document.addEventListener("DOMContentLoaded", () => {
   const ROWS_PER_PAGE = 250;
@@ -65,9 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let searchTimer = null;
   let graveTimer = null;
 
-  // The page is already gated to Administrator / Office Staff by initAuth(). A
-  // missing cached role only means auth has not answered yet, so do not lock the
-  // buttons on a fresh login — just keep Grounds Staff read-only.
   const canModify = () =>
     localStorage.getItem("memoria_role") !== "Grounds Staff";
 
@@ -76,10 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   const text = (value) =>
     value === null || value === undefined ? "" : String(value).trim();
-
-  // Empty strings must become NULL or MySQL rejects them on DATE columns.
   const orNull = (value) => (text(value) === "" ? null : text(value));
-
   const normalizeCode = (value) => text(value).toUpperCase();
   const toInputDate = (value) => (value ? String(value).slice(0, 10) : "");
 
@@ -127,14 +116,20 @@ document.addEventListener("DOMContentLoaded", () => {
       .slice(0, 10);
   };
 
+  const shiftDays = (value, days) => {
+    const iso = toInputDate(value);
+    const [year, month, day] = iso.split("-").map(Number);
+    if (!year || !month || !day) return "";
+    return new Date(Date.UTC(year, month - 1, day + days))
+      .toISOString()
+      .slice(0, 10);
+  };
+
   const slug = (value) =>
     text(value)
       .toLowerCase()
       .replace(/[^a-z]+/g, "");
 
-  // The DB holds values the static <select>s never listed (sex "Unknown", the
-  // barangay "Tawason", "Paknaan" vs the form's "Pakna-an"). Append rather than
-  // silently dropping the stored value on save.
   const ensureOption = (select, value) => {
     if (!select || text(value) === "") return;
     const exists = Array.from(select.options).some(
@@ -153,8 +148,37 @@ document.addEventListener("DOMContentLoaded", () => {
     select.value = text(value);
   };
 
-  // #reqAssistance ships without value attributes, so the label text would land
-  // straight in ENUM('Burial','Transfer','Other').
+  /**
+   * The API accepts four statuses; a row can still legitimately read 'Pending'.
+   * Show that truthfully without making it choosable: the option is tagged so
+   * resetForm() can take it back out, otherwise viewing one Pending record left
+   * a status in the dropdown that every later save would be rejected for.
+   */
+  const setStatusValue = (select, value) => {
+    if (!select) return;
+    const wanted = text(value);
+    if (wanted === "") return;
+
+    const known = Array.from(select.options).some(
+      (option) => option.value === wanted,
+    );
+    if (!known) {
+      const option = document.createElement("option");
+      option.value = wanted;
+      option.textContent = `${wanted} (managed in Monitor)`;
+      option.dataset.transient = "1";
+      select.appendChild(option);
+    }
+    select.value = wanted;
+  };
+
+  const clearTransientStatus = (select) => {
+    if (!select) return;
+    Array.from(select.querySelectorAll('option[data-transient="1"]')).forEach(
+      (option) => option.remove(),
+    );
+  };
+
   const ASSISTANCE_LABELS = {
     Burial: "Burial of the late",
     Transfer: "Transfer the remains of the late to the bone chamber",
@@ -168,8 +192,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return "Other";
   };
 
-  // Burial Type is form-speak ("Niche Wall"); blocks are named "Niche Wall A",
-  // "Lawn Area D". Infer the type from the block name so the form stays coherent.
   const guessBurialType = (blockName) => {
     const name = text(blockName).toLowerCase();
     if (name.includes("bone")) return "Bone Chamber";
@@ -182,6 +204,43 @@ document.addEventListener("DOMContentLoaded", () => {
     return "";
   };
 
+  const normalizeBlockType = (value) =>
+    text(value)
+      .toLowerCase()
+      .replace(/[\s/]/g, "");
+
+  /**
+   * blocks.block_type is a DB enum ('Niche', 'Lawn/Grounds', 'Mass Grave', …)
+   * while this form offers friendlier labels ('Niche Wall', 'Lawn / Grounds').
+   * Match on the normalized prefix so the two vocabularies line up without
+   * appending a near-duplicate <option> next to the one that already fits.
+   */
+  const selectBurialType = (select, blockType, blockName) => {
+    if (!select) return;
+
+    // Prefer the authoritative enum; fall back to sniffing the block's name only
+    // when the API did not send one (older payloads, or an unassigned record).
+    const dbValue = text(blockType);
+    if (dbValue !== "") {
+      const wanted = normalizeBlockType(dbValue);
+      const match = Array.from(select.options).find((option) => {
+        const have = normalizeBlockType(option.value || option.textContent);
+        return have !== "" && (have.startsWith(wanted) || wanted.startsWith(have));
+      });
+      if (match) {
+        select.value = match.value;
+        return;
+      }
+      // 'Mausoleum', 'Mass Grave', 'Cluster' and 'Block' have no equivalent in the
+      // form's list, so those genuinely need an option of their own.
+      setSelectValue(select, dbValue);
+      return;
+    }
+
+    const guessed = guessBurialType(blockName);
+    if (guessed) setSelectValue(select, guessed);
+  };
+
   // ==========================================
   // INJECTED STYLES
   // ==========================================
@@ -190,107 +249,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement("style");
     style.id = "recordsInjectedStyles";
     style.textContent = `
-      /* Enable horizontal scrolling for the container */
-      .tableContainer {
-        overflow-x: auto;
-        max-width: 100%;
+      .tableContainer { overflow-x: auto; max-width: 100%; }
+      .tableContainer table { width: 100%; }
+      .tableContainer th, .tableContainer td { padding: 12px 16px; vertical-align: top; }
+      .tableContainer td { white-space: nowrap; }
+      .tableContainer td:nth-child(2), .tableContainer td:nth-child(5), .tableContainer td:nth-child(9), .tableContainer td:nth-child(11), .tableContainer td:nth-child(7), .tableContainer td:nth-child(12) {
+        white-space: normal; min-width: 180px; max-width: 480px; line-height: 1.5; word-wrap: break-word;
       }
-      .tableContainer table {
-        width: 100%;
-        /* Removed min-width: max-content so columns can actually wrap vertically */
-      }
-      
-      .tableContainer th, .tableContainer td {
-        padding: 12px 16px;
-        /* Align to top so when a row expands vertically, everything looks neat */
-        vertical-align: top; 
-      }
-      
-      /* Default all columns to stay on one line (great for Dates, Phone Numbers, IDs) */
-      .tableContainer td {
-        white-space: nowrap;
-      }
-
-      /* Let text-heavy columns wrap and take up space down below */
-      .tableContainer td:nth-child(2), /* Deceased Name */
-      .tableContainer td:nth-child(5), /* Deceased Address */
-      .tableContainer td:nth-child(9), /* Contact Name */
-      .tableContainer td:nth-child(11),
-      .tableContainer td:nth-child(7), /* Contact Address */
-      .tableContainer td:nth-child(12)  /* Remarks */ {
-        white-space: normal; /* Allow text to wrap */
-        min-width: 180px;    /* Keep a comfortable base width */
-        max-width: 480px;    /* Force it to wrap at this point instead of stretching forever */
-        line-height: 1.5;    /* Give multi-line text breathing room */
-        word-wrap: break-word; /* Ensure super long unbroken strings don't ruin the table */
-      }
-
-      .recordsMeta {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        padding: 10px 16px;
-        border-bottom: 1px solid #e2e8f0;
-        background: #f8fafc;
-        font-size: 12px;
-        color: #64748b;
-      }
+      .recordsMeta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; font-size: 12px; color: #64748b; }
       .recordsMeta strong { color: #1e293b; font-weight: 600; }
-      .searchChip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 6px 3px 10px;
-        border-radius: 999px;
-        background: #e0f2fe;
-        color: #0369a1;
-        font-weight: 600;
-      }
-      .searchChip button {
-        border: none;
-        background: transparent;
-        color: inherit;
-        cursor: pointer;
-        font-size: 14px;
-        line-height: 1;
-        padding: 0 2px;
-      }
+      .searchChip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px 3px 10px; border-radius: 999px; background: #e0f2fe; color: #0369a1; font-weight: 600; }
+      .searchChip button { border: none; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
       .cellMuted { color: #cbd5e1; }
       .blockCell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-      .graveChip {
-        border: 1px solid #cbd5e1;
-        background: #f8fafc;
-        color: #334155;
-        border-radius: 6px;
-        padding: 2px 8px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-        cursor: pointer;
-        font-family: inherit;
-      }
+      .graveChip { border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; cursor: pointer; font-family: inherit; }
       .graveChip:hover { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
-      .sharedBadge {
-        background: #ede9fe;
-        color: #6d28d9;
-        border-radius: 999px;
-        padding: 2px 8px;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .rowChip {
-        display: inline-block;
-        margin-left: 8px;
-        border-radius: 999px;
-        padding: 2px 8px;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
+      .sharedBadge { background: #ede9fe; color: #6d28d9; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+      .smsBtn { color: #1e3a8a; background: none; border: none; cursor: pointer; padding: 0; font-weight: 600; font-family: inherit; display: inline-flex; align-items: center; gap: 5px; max-width: 100%; }
+      .smsBtn:hover { text-decoration: underline; color: #1d4ed8; }
+      .smsBtn:disabled { color: #94a3b8; cursor: not-allowed; text-decoration: none; }
+      .smsBtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .rowChip { display: inline-block; margin-left: 8px; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
       .rowChip.active { background: #dcfce7; color: #15803d; }
       .rowChip.expired { background: #fee2e2; color: #b91c1c; }
       .rowChip.exhumed { background: #e2e8f0; color: #475569; }
@@ -300,106 +279,30 @@ document.addEventListener("DOMContentLoaded", () => {
       .actions .mergeBtn { background: #ede9fe; color: #6d28d9; }
       .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
       tbody tr.clickableRow { cursor: pointer; }
-      
-      /* Empty State Animation */
-      .stateCell { 
-        text-align: center; 
-        padding: 40px 16px !important; 
-        color: #94a3b8; 
-        animation: emptyDataPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      }
-      @keyframes emptyDataPop {
-        0% { opacity: 0; transform: translateY(10px) scale(0.98); }
-        100% { opacity: 1; transform: translateY(0) scale(1); }
-      }
-
-      /* Skeleton Loader */
-      .skeletonBox {
-        display: block;
-        height: 14px;
-        width: 100%;
-        min-width: 60px;
-        border-radius: 4px;
-        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
-        background-size: 400% 100%;
-        animation: recordsShimmer 1.4s ease-in-out infinite;
-      }
+      .stateCell { text-align: center; padding: 40px 16px !important; color: #94a3b8; animation: emptyDataPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      @keyframes emptyDataPop { 0% { opacity: 0; transform: translateY(10px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+      .skeletonBox { display: block; height: 14px; width: 100%; min-width: 60px; border-radius: 4px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%); background-size: 400% 100%; animation: recordsShimmer 1.4s ease-in-out infinite; }
       td:nth-child(even) .skeletonBox { width: 70%; }
       td:nth-child(3n) .skeletonBox { width: 85%; }
-
-      @keyframes recordsShimmer {
-        0% { background-position: 100% 50%; }
-        100% { background-position: 0 50%; }
-      }
+      @keyframes recordsShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
       .pageGap { padding: 6px 4px; color: #94a3b8; font-size: 13px; }
-      .formMode {
-        text-align: center;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        color: #64748b;
-        margin: -22px 0 26px 0;
-      }
+      .formMode { text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b; margin: -22px 0 26px 0; }
       .fieldHint { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.45; }
-      .coBox {
-        border: 1px solid #ddd6fe;
-        background: #f5f3ff;
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 15px;
-      }
+      .coBox { border: 1px solid #ddd6fe; background: #f5f3ff; border-radius: 8px; padding: 14px 16px; margin-bottom: 15px; }
       .coBox.isHidden { display: none; }
       .coTitle { font-size: 12px; font-weight: 700; color: #5b21b6; margin-bottom: 6px; }
       .coNote { font-size: 12px; color: #4c1d95; line-height: 1.5; }
       .coOccupants { margin: 10px 0 0 0; padding: 0; list-style: none; }
-      .coOccupants li {
-        font-size: 12px;
-        color: #3730a3;
-        padding: 5px 0;
-        border-top: 1px dashed #ddd6fe;
-      }
-      .coCheck {
-        display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        margin-top: 12px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #4c1d95;
-        cursor: pointer;
-      }
+      .coOccupants li { font-size: 12px; color: #3730a3; padding: 5px 0; border-top: 1px dashed #ddd6fe; }
+      .coCheck { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; font-size: 12px; font-weight: 700; color: #4c1d95; cursor: pointer; }
       .coCheck input { width: 16px; height: 16px; margin: 1px 0 0 0; cursor: pointer; }
       .paperForm.isBusy { opacity: 0.6; pointer-events: none; }
-      .rec_overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 99998;
-        font-family: Inter, Arial, sans-serif;
-      }
-      .rec_dialog {
-        width: 380px;
-        background: #fff;
-        border-radius: 14px;
-        padding: 22px;
-        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
-      }
+      .rec_overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; z-index: 99998; font-family: Inter, Arial, sans-serif; }
+      .rec_dialog { width: 380px; background: #fff; border-radius: 14px; padding: 22px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25); }
       .rec_title { font-size: 17px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
       .rec_text { font-size: 13px; color: #475569; line-height: 1.55; margin-bottom: 18px; }
       .rec_actions { display: flex; justify-content: flex-end; gap: 10px; }
-      .rec_actions button {
-        border: none;
-        padding: 9px 16px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 600;
-        font-family: inherit;
-      }
+      .rec_actions button { border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; }
       .rec_cancel { background: #eef2f7; color: #334155; }
       .rec_confirm { background: #dc2626; color: #fff; }
     `;
@@ -432,17 +335,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const assistanceSelect = field("reqAssistance");
   const blockSelect = field("burialBlock");
 
-  // The paper form ships these two as readonly. Staff need to be able to type a
-  // control number straight off the paper copy and to override a lease that was
-  // not a plain five years, so unlock both and only auto-fill what is untouched.
   [controlNoInput, expirationInput].forEach((input) => {
     if (!input) return;
     input.removeAttribute("readonly");
     input.style.backgroundColor = "#ffffff";
   });
 
-  // The grave code is not optional — POST api/interments rejects a record
-  // without one — so relabel it and wire up a live picker.
   if (graveInput) {
     graveInput.setAttribute("list", graveListId);
     graveInput.setAttribute("placeholder", "Start typing a code, e.g. E-J1");
@@ -460,22 +358,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const graveHint = field("graveHint");
 
-  // One reusable line under the requesting party, for records that have no
-  // contact linked at all.
   const contactHint = document.createElement("div");
   contactHint.className = "fieldHint";
   contactHint.id = "contactHint";
   if (field("reqName"))
     field("reqName").insertAdjacentElement("afterend", contactHint);
 
-  // Record status has no field on the paper form, but PUT accepts it and staff
-  // need it to mark a body Exhumed or Moved to Family.
   const expirationRow = expirationInput
     ? expirationInput.closest(".row")
     : null;
   const statusCol = document.createElement("div");
   statusCol.className = "col";
   statusCol.id = "statusCol";
+  // 'Pending' is deliberately absent. api/interments PUT rejects it outright —
+  // it only ever means "waiting on a staged transition", and only api/reserve is
+  // allowed to create that state. Offering it here produced a 400 the operator
+  // had no way to interpret, and once ensureOption() had appended it for a
+  // Pending record being viewed, it stayed selectable for every later edit.
   statusCol.innerHTML = `
     <label>Record Status:</label>
     <select id="intermentStatus">
@@ -483,13 +382,11 @@ document.addEventListener("DOMContentLoaded", () => {
       <option value="Expired">Expired</option>
       <option value="Exhumed">Exhumed</option>
       <option value="Moved to Family">Moved to Family</option>
-      <option value="Pending">Pending</option>
     </select>
-    <div class="fieldHint">New records always start as Active.</div>`;
+    <div class="fieldHint">New records always start as Active. Staged reservations are handled in Monitor.</div>`;
   if (expirationRow) expirationRow.appendChild(statusCol);
   const statusSelect = field("intermentStatus");
 
-  // Co-interment ("merge") panel, right under the location assignment.
   const coBox = document.createElement("div");
   coBox.className = "coBox isHidden";
   coBox.innerHTML = `
@@ -515,8 +412,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   const readJSON = async (response) => {
     const contentType = response.headers.get("content-type") || "";
-    // A static file server (Live Server, python -m http.server) hands back the
-    // raw PHP; treat that as "backend is not running", not as a real error.
     if (!contentType.includes("application/json"))
       throw new Error("STATIC_SERVER");
     return response.json();
@@ -562,9 +457,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const occupantsOf = (grave) =>
     grave && Array.isArray(grave.interments) ? grave.interments : [];
 
+  /**
+   * Is Monitor mid-transition on this grave? api/graves returns the live
+   * grave_transitions row itself, which is the authoritative answer — graves.status
+   * is a cached label that has drifted badly in this database, so a grave can read
+   * 'Reserved' with no staging behind it and vice versa.
+   */
+  const graveIsStaged = (grave) => Boolean(grave && grave.staging);
+
+  // A grave is taken when something is physically in it or Monitor has claimed it.
   const graveIsTaken = (grave) =>
-    Boolean(grave) &&
-    (grave.status === "Occupied" || occupantsOf(grave).length > 0);
+    Boolean(grave) && (graveIsStaged(grave) || occupantsOf(grave).length > 0);
 
   // ==========================================
   // ROW MODEL
@@ -582,13 +485,15 @@ document.addEventListener("DOMContentLoaded", () => {
     status: text(item.status) || "Active",
     remarks: text(item.remarks),
     grave: {
-      // A NULL grave comes back as 0 from the endpoint's (int) cast.
       grave_id: Number(item.grave?.grave_id) || 0,
       grave_code: text(item.grave?.grave_code),
+      // Bodies in this grave across the whole ledger, not just this page.
+      occupant_count: Number(item.grave?.occupant_count) || 0,
     },
     block: {
       block_id: Number(item.block?.block_id) || 0,
       block_name: text(item.block?.block_name),
+      block_type: text(item.block?.block_type),
     },
     deceased: {
       deceased_id: Number(item.deceased?.deceased_id) || 0,
@@ -631,7 +536,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const token = ++loadToken;
     isLoading = true;
     showSkeleton();
-    renderPagination(); // Disables buttons while loading
+    renderPagination();
 
     const params = new URLSearchParams({
       page: String(currentPage),
@@ -640,8 +545,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchTerm) params.set("search", searchTerm);
 
     try {
-      // Force the skeleton loader to display for at least 600ms (0.6 seconds).
-      // We run the API fetch and the timer at the same time.
       const [result] = await Promise.all([
         apiGet(`api/interments?${params.toString()}`),
         new Promise((resolve) => setTimeout(resolve, 600)),
@@ -650,7 +553,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (token !== loadToken) return;
 
       if (!result.success) {
-        // An empty ledger answers 404 rather than an empty list.
         records = [];
         pagination = null;
         setState(
@@ -679,8 +581,8 @@ document.addEventListener("DOMContentLoaded", () => {
       renderMeta();
     } finally {
       if (token === loadToken) {
-        isLoading = false; // Turn off loading state
-        renderPagination(); // NOW draw the buttons (they will unlock!)
+        isLoading = false;
+        renderPagination();
       }
     }
   };
@@ -715,7 +617,6 @@ document.addEventListener("DOMContentLoaded", () => {
       parts.push(
         `<span class="searchChip">“${escapeHtml(searchTerm)}” <button type="button" id="clearSearch" title="Clear search">&times;</button></span>`,
       );
-      // The interments endpoint hard-caps a search at 45 rows.
       if (total >= 45) parts.push("search results are capped at 45");
     }
     metaText.innerHTML = parts.join(" &nbsp;·&nbsp; ");
@@ -751,9 +652,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const renderPagination = () => {
     const total = Math.max(1, Number(pagination?.total_pages) || 1);
-
-    // Trust the currentPage state (which goToPage just updated),
-    // but ensure it doesn't exceed the total pages.
     currentPage = Math.min(Math.max(1, currentPage), total);
 
     if (prevBtn) prevBtn.disabled = currentPage <= 1 || isLoading;
@@ -782,6 +680,54 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   // RENDER: TABLE
   // ==========================================
+  /**
+   * Which notice fits this ledger row. Records mixes every status, so unlike
+   * Reserve (always a lease notice) the template has to be chosen per row —
+   * and anything that is not clearly a lease or a reservation opens blank
+   * rather than sending wording that does not apply to the family.
+   */
+  const EXPIRY_WARNING_DAYS = 30;
+
+  const templateFor = (record, today) => {
+    if (record.status === "Pending") return "reservation_incoming";
+
+    const expiry = record.lease_expiration_date;
+    if (!expiry) return "custom";
+    if (record.status !== "Active" && record.status !== "Expired")
+      return "custom";
+    if (expiry < today || record.status === "Expired") return "lease_expired";
+    if (expiry <= shiftDays(today, EXPIRY_WARNING_DAYS)) return "lease_expiring";
+    return "custom";
+  };
+
+  const smsCell = (record, today) => {
+    const phone = record.contact.phone_number;
+    if (!phone) return '<span class="cellMuted">—</span>';
+
+    const data = {
+      contact_name: record.contact.name,
+      deceased_name: record.deceased.name,
+      grave_code: record.grave.grave_code,
+      block_name: record.block.block_name,
+      lease_expiration_date: record.lease_expiration_date,
+      date_buried: record.date_buried,
+      control_number: record.control_number,
+    };
+
+    // api/sendsms.php only accepts Administrator and Office Staff, so a
+    // Grounds Staff click would open the composer and then 403.
+    const gate = canModify()
+      ? `title="Send an SMS to ${escapeHtml(record.contact.name || "this contact")}"`
+      : 'disabled title="Your role cannot send notifications"';
+
+    return `<button type="button" class="smsBtn" data-sms
+      data-phone="${escapeHtml(phone)}"
+      data-sms-template="${escapeHtml(templateFor(record, today))}"
+      data-sms-data="${escapeHtml(JSON.stringify(data))}"
+      ${gate}
+    ><i class="fas fa-comment-sms"></i> <span>${escapeHtml(phone)}</span></button>`;
+  };
+
   const renderTable = () => {
     if (!records.length) {
       setState(
@@ -790,15 +736,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (noData) noData.style.display = "none";
-
-    // Only the rows we hold can be compared, so this flags a shared grave that
-    // happens to land on the same page. The chip below searches for the exact
-    // total, which is the reliable answer.
-    const sharing = new Map();
-    records.forEach((record) => {
-      const code = record.grave.grave_code;
-      if (code) sharing.set(code, (sharing.get(code) || 0) + 1);
-    });
 
     const writable = canModify();
     const today = todayISO();
@@ -810,7 +747,7 @@ document.addEventListener("DOMContentLoaded", () => {
           .join(", ");
 
         const code = record.grave.grave_code;
-        const shared = code ? sharing.get(code) || 0 : 0;
+        const shared = record.grave.occupant_count;
         const overdue =
           record.lease_expiration_date &&
           record.lease_expiration_date < today &&
@@ -826,7 +763,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             ${
               shared > 1
-                ? `<span class="sharedBadge" title="Another record on this page shares this grave">merged ×${shared}</span>`
+                ? `<span class="sharedBadge" title="${shared} records share this grave (co-interment)">merged ×${shared}</span>`
                 : ""
             }
           </div>`;
@@ -835,7 +772,19 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="rowChip ${slug(record.status)}">${escapeHtml(record.status)}</span>
           ${overdue ? '<span class="dayHint">lease already lapsed</span>' : ""}`;
 
-        const lock = writable ? "" : 'disabled title="View only"';
+        // FIX: Staged records must be strictly managed in Monitor.html
+        const isPending = record.status === "Pending";
+        const actionLock = !writable
+          ? 'disabled title="View only"'
+          : isPending
+            ? 'disabled title="Manage staged reservations in the Monitor module"'
+            : "";
+
+        const mergeLock = !code
+          ? 'disabled title="No grave on this record"'
+          : !writable
+            ? 'disabled title="View only"'
+            : "";
 
         return `
           <tr data-index="${index}">
@@ -848,17 +797,15 @@ document.addEventListener("DOMContentLoaded", () => {
             <td>${blockCell}</td>
             <td>${expiryCell}</td>
             <td>${cell(record.contact.name)}</td>
-            <td>${cell(record.contact.phone_number)}</td>
+            <td>${smsCell(record, today)}</td>
             <td>${cell(contactAddress)}</td>
             <td>${cell(record.remarks)}</td>
             <td>
               <div class="actions">
                 <button class="viewBtn" data-action="view" title="View details"><i class="fas fa-eye"></i></button>
-                <button class="editBtn" data-action="edit" title="Edit record" ${lock}><i class="fas fa-edit"></i></button>
-                <button class="mergeBtn" data-action="merge" title="Add another record to this same grave (merge)" ${
-                  code ? lock : 'disabled title="No grave on this record"'
-                }><i class="fas fa-layer-group"></i></button>
-                <button class="deleteBtn" data-action="delete" title="Delete record" ${lock}><i class="fas fa-trash-alt"></i></button>
+                <button class="editBtn" data-action="edit" title="Edit record" ${actionLock}><i class="fas fa-edit"></i></button>
+                <button class="mergeBtn" data-action="merge" title="Add another record to this same grave (merge)" ${mergeLock}><i class="fas fa-layer-group"></i></button>
+                <button class="deleteBtn" data-action="delete" title="Delete record" ${actionLock}><i class="fas fa-trash-alt"></i></button>
               </div>
             </td>
           </tr>`;
@@ -917,7 +864,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saveBtn) saveBtn.disabled = Boolean(busy);
   };
 
-  // Kept for the inline onclick in records.html, and reused for view mode.
   const setFormFieldsDisabled = (status) => {
     overlay.classList.toggle("view-mode", Boolean(status));
     overlay
@@ -946,7 +892,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const applyMode = () => {
     modeBanner.textContent = MODE_LABEL[mode] || "";
     if (statusCol)
-      // "" restores whatever records.css gives a .col — do not force flex.
       statusCol.style.display =
         mode === "create" || mode === "merge" ? "none" : "";
     if (cancelBtn) cancelBtn.textContent = mode === "view" ? "Close" : "Cancel";
@@ -961,7 +906,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const renderGraveNotice = () => {
     if (!coBox) return;
-    // Everyone in the grave except the record being edited.
     const occupants = occupantsOf(resolvedGrave).filter(
       (item) =>
         !activeRecord ||
@@ -969,8 +913,6 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     const isNew = mode === "create" || mode === "merge";
 
-    // Nothing to say: no grave, a free grave, or an edit where this record is
-    // the only body in it.
     if (
       !resolvedGrave ||
       !graveIsTaken(resolvedGrave) ||
@@ -981,16 +923,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     coBox.classList.remove("isHidden");
-    // A grave can read Occupied with nothing active filed against it (the last
-    // body was exhumed). POST still refuses it, so cover both wordings.
+
+    // A grave holding a live staging is off limits to Records entirely:
+    // graveIntakeBlocker() rejects it whether or not Merge is ticked, so showing
+    // the tickbox here only produced an unfixable 409 after a round trip.
+    const isStaged = graveIsStaged(resolvedGrave);
+
     coNote.innerHTML = `Grave <strong>${escapeHtml(resolvedGrave.grave_code)}</strong>${
       resolvedGrave.block_name
         ? ` in ${escapeHtml(resolvedGrave.block_name)}`
         : ""
-    } is marked <strong>${escapeHtml(resolvedGrave.status)}</strong>${
+    } is currently marked <strong>${escapeHtml(resolvedGrave.status)}</strong>. ${
+      isStaged
+        ? "<br><span style='color: #dc2626;'>⚠️ <strong>This grave is mid-transition in the Monitor module.</strong> Nothing can be filed into it from here — finalize or cancel that transition in Monitor first, or pick another grave.</span>"
+        : ""
+    }${
       occupants.length
-        ? ` and already holds ${occupants.length} record${occupants.length === 1 ? "" : "s"}.`
-        : ", though no active record is filed against it."
+        ? `<br>It holds ${occupants.length} record${occupants.length === 1 ? "" : "s"}.`
+        : " No active record is filed against it."
     }`;
 
     coOccupants.innerHTML = occupants
@@ -1002,7 +952,8 @@ document.addEventListener("DOMContentLoaded", () => {
       )
       .join("");
 
-    coCheckWrap.style.display = isNew ? "flex" : "none";
+    if (isStaged && coEnable) coEnable.checked = false;
+    coCheckWrap.style.display = isNew && !isStaged ? "flex" : "none";
   };
 
   const updateGraveNotice = async (force) => {
@@ -1023,7 +974,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     resolvedGrave = await resolveGrave(code, force);
-    if (normalizeCode(graveInput.value) !== code) return; // staff kept typing
+    if (normalizeCode(graveInput.value) !== code) return;
 
     if (!resolvedGrave) {
       coBox.classList.add("isHidden");
@@ -1034,14 +985,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (graveHint && mode !== "edit" && mode !== "view") {
       graveHint.textContent = `${resolvedGrave.block_name || "Unknown block"} · ${resolvedGrave.status}`;
     }
-    // Keep Burial Type in step with the block the grave actually belongs to.
-    const guessed = guessBurialType(resolvedGrave.block_name);
-    if (guessed) setSelectValue(blockSelect, guessed);
+    // api/graves now returns the block_type enum, so the burial type comes from
+    // the record rather than from pattern-matching the block's name.
+    selectBurialType(
+      blockSelect,
+      resolvedGrave.block_type,
+      resolvedGrave.block_name,
+    );
     renderGraveNotice();
   };
 
   const openModal = () => {
-    // display:block, not flex — .paperForm centres itself with margin: 0 auto.
     overlay.style.display = "block";
     document.body.style.overflow = "hidden";
   };
@@ -1056,6 +1010,7 @@ document.addEventListener("DOMContentLoaded", () => {
     expirationTouched = false;
     if (coEnable) coEnable.checked = false;
     if (coBox) coBox.classList.add("isHidden");
+    clearTransientStatus(statusSelect);
     lockGraveCode(false);
     if (graveHint) graveHint.textContent = "";
     contactHint.textContent = "";
@@ -1081,9 +1036,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const result = await apiGet(
           `api/interments?control_number=${encodeURIComponent(candidate)}`,
         );
-        if (!result.success) return candidate; // 404 means nothing is using it
+        if (!result.success) return candidate;
       } catch (error) {
-        return candidate; // offline: let the POST be the judge
+        return candidate;
       }
     }
     return `MEM-${year}-${String(Date.now()).slice(-5)}`;
@@ -1112,7 +1067,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Merging: pin the grave, pre-tick co-interment, and carry the family over.
     graveInput.value = mergeSource.grave.grave_code;
     lockGraveCode(
       true,
@@ -1120,9 +1074,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     if (coEnable) coEnable.checked = true;
     setSelectValue(assistanceSelect, ASSISTANCE_LABELS.Transfer);
-    setSelectValue(
+    selectBurialType(
       blockSelect,
-      guessBurialType(mergeSource.block.block_name) || blockSelect.value,
+      mergeSource.block.block_type,
+      mergeSource.block.block_name,
     );
 
     field("reqName").value = mergeSource.contact.name;
@@ -1136,7 +1091,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } — change it if a different family is asking.`;
     }
 
-    // Still fetch true grave occupancy notice (api/graves)
     setBusy(true);
     await updateGraveNotice(true);
     setBusy(false);
@@ -1151,7 +1105,6 @@ document.addEventListener("DOMContentLoaded", () => {
     activeRecord = record;
     applyMode();
 
-    // Map Interments Fields
     controlNoInput.value = record.control_number;
     field("clearanceDate").value = record.clearance_date;
     setSelectValue(
@@ -1163,18 +1116,17 @@ document.addEventListener("DOMContentLoaded", () => {
     field("permitTransfer").value = record.transfer_permit_number;
     field("dateInterment").value = record.date_buried;
     expirationInput.value = record.lease_expiration_date;
-    expirationTouched = true; // never silently recompute a stored lease
+    expirationTouched = true;
     field("deceasedRemarks").value = record.remarks;
 
-    // Map Grave/Block Status Fields
     graveInput.value = record.grave.grave_code;
-    setSelectValue(
+    selectBurialType(
       blockSelect,
-      guessBurialType(record.block.block_name) || blockSelect.value,
+      record.block.block_type,
+      record.block.block_name,
     );
-    setSelectValue(statusSelect, record.status);
+    setStatusValue(statusSelect, record.status);
 
-    // Map Deceased Details
     field("deceasedName").value = record.deceased.name;
     setSelectValue(field("deceasedSex"), record.deceased.sex);
     field("deceasedDob").value = record.deceased.date_of_birth;
@@ -1182,7 +1134,6 @@ document.addEventListener("DOMContentLoaded", () => {
     field("deceasedCert").value = record.deceased.death_certificate;
     field("deceasedAddress").value = record.deceased.last_known_address;
 
-    // Map Contact Details
     if (record.contact.contact_id) {
       field("reqName").value = record.contact.name;
       field("reqPhone").value = record.contact.phone_number;
@@ -1193,8 +1144,6 @@ document.addEventListener("DOMContentLoaded", () => {
         "This record has no linked requesting party, so contact details cannot be saved from here.";
     }
 
-    // PUT api/interments never writes grave_id, so a record cannot change grave
-    // from here. Say so instead of quietly dropping the edit.
     lockGraveCode(
       true,
       "A record cannot be moved to another grave from this form. Delete it and file it again, or use the merge button to add someone to this grave.",
@@ -1203,7 +1152,6 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal();
     if (mode === "view") setFormFieldsDisabled(true);
 
-    // True occupant list for the grave (api/graves), so a merged set is visible while editing.
     setBusy(true);
     await updateGraveNotice(true);
     setBusy(false);
@@ -1214,7 +1162,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   const collectDeceased = () => ({
     name: text(field("deceasedName").value),
-    // '' would break the ENUM insert.
     sex: text(field("deceasedSex").value) || "Unknown",
     date_of_birth: text(field("deceasedDob").value),
     date_of_death: text(field("deceasedDod").value),
@@ -1241,6 +1188,30 @@ document.addEventListener("DOMContentLoaded", () => {
       shake(["graveCode"]);
       return false;
     }
+
+    // Mirror graveIntakeBlocker()'s hard stops so the operator gets the reason
+    // in the form instead of a bare 409 from the save.
+    if (graveIsStaged(grave)) {
+      renderGraveNotice();
+      notify(
+        `Grave ${grave.grave_code} is mid-transition in Monitor. Finalize or cancel it there, or file this record into another grave.`,
+        "error",
+        8000,
+      );
+      shake(["graveCode"]);
+      coBox.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    }
+    if (grave.status === "Under Maintenance") {
+      notify(
+        `Grave ${grave.grave_code} is marked Under Maintenance and cannot accept a burial.`,
+        "error",
+        7000,
+      );
+      shake(["graveCode"]);
+      return false;
+    }
+
     if (graveIsTaken(grave) && !(coEnable && coEnable.checked)) {
       renderGraveNotice();
       notify(
@@ -1274,7 +1245,6 @@ document.addEventListener("DOMContentLoaded", () => {
       text(controlNoInput.value) || (await generateControlNumber());
     let result = await apiSend("api/interments", "POST", build(controlNumber));
 
-    // Two clerks can land on the same random number; take one more shot.
     if (
       !result.success &&
       /control number already exists/i.test(result.message || "")
@@ -1345,7 +1315,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!saved) return;
       const wasNew = mode !== "edit";
       closeModal();
-      if (wasNew) currentPage = 1; // new rows sort to the top
+      if (wasNew) currentPage = 1;
       reload();
     } catch (error) {
       console.error("Save failed:", error.message);
@@ -1374,12 +1344,6 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     if (!confirmed) return;
 
-    // Ask before deleting: the endpoint frees the grave whatever else is in it.
-    const grave = await resolveGrave(record.grave.grave_code, true);
-    const siblings = occupantsOf(grave).filter(
-      (item) => Number(item.interment_id) !== record.interment_id,
-    ).length;
-
     try {
       const result = await apiSend(
         `api/interments/${record.interment_id}`,
@@ -1394,27 +1358,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // DELETE always drops the grave to Vacant. If a merged record is still in
-      // there, put the status back so the grave does not read as free.
-      if (siblings > 0 && record.grave.grave_id) {
-        const repair = await apiSend(
-          `api/graves/${record.grave.grave_id}`,
-          "PUT",
-          {
-            status: "Occupied",
-          },
-        ).catch(() => null);
-        const fixed =
-          repair?.success || /no changes detected/i.test(repair?.message || "");
-        if (!fixed) {
-          notify(
-            `Deleted, but grave ${record.grave.grave_code} still holds ${siblings} record(s) and is now flagged Vacant — set it back to Occupied on the map.`,
-            "warning",
-            9000,
-          );
-        }
-      }
-
+      // FIX: The backend DELETE block now recalculates the grave status natively!
+      // We removed the frontend hack that forced the grave to Occupied.
       graveCache.delete(normalizeCode(record.grave.grave_code));
       notify("Record deleted.", "success");
       reload();
@@ -1432,19 +1377,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // EVENTS
   // ==========================================
   tableBody.addEventListener("click", (event) => {
+    // Phone buttons are owned by the sendsms.js binding below; they carry no
+    // data-action, so the lookup further down already skips them, but bail early
+    // rather than resolving a row we are not going to open.
+    if (event.target.closest("[data-sms]")) return;
+
     const row = event.target.closest("tr[data-index]");
     if (!row) return;
     const record = records[Number(row.dataset.index)];
     if (!record) return;
 
-    // Look for a button click. If a button wasn't clicked, stop here.
     const button = event.target.closest("button[data-action]");
     if (!button || button.disabled) return;
 
     const action = button.dataset.action;
 
     if (action === "grave") {
-      // The exact answer to "who else is in this grave?"
       if (searchInput) searchInput.value = record.grave.grave_code;
       searchTerm = record.grave.grave_code;
       currentPage = 1;
@@ -1464,9 +1412,48 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // If the action is "edit", it falls through to here
     openEdit(record, !canModify());
   });
+
+  // ==========================================
+  // SMS — delegated to assets/js/sendsms.js
+  // ==========================================
+  // Same shared composer Reserve and Monitor use. Records only tags its phone
+  // buttons with data-*; sendsms.js owns the modal, the templates, and the send,
+  // and it stays open on failure so a rejected send never looks delivered.
+  if (typeof bindSmsButtons === "function") {
+    bindSmsButtons(tableBody, (button) => {
+      let data = {};
+      try {
+        data = JSON.parse(button.dataset.smsData || "{}");
+      } catch (error) {
+        data = {};
+      }
+
+      const context = [];
+      if (data.deceased_name)
+        context.push({ label: "Deceased", value: data.deceased_name });
+      const where = [data.block_name, data.grave_code]
+        .filter(Boolean)
+        .join(" ");
+      if (where) context.push({ label: "Grave", value: where });
+      if (data.control_number)
+        context.push({ label: "Control No.", value: data.control_number });
+      if (data.lease_expiration_date)
+        context.push({ label: "Lease ends", value: data.lease_expiration_date });
+
+      return {
+        phone: button.dataset.phone,
+        template: button.dataset.smsTemplate || "custom",
+        data,
+        context,
+      };
+    });
+  } else {
+    console.error(
+      "records.js: assets/js/sendsms.js is not loaded — phone numbers will not open the composer.",
+    );
+  }
 
   const runSearch = () => {
     const value = text(searchInput ? searchInput.value : "");
@@ -1513,8 +1500,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (graveInput) {
-    // Live picker: api/graves?search= matches the code and returns the status
-    // plus everyone already interred there.
     graveInput.addEventListener("input", () => {
       clearTimeout(graveTimer);
       const value = normalizeCode(graveInput.value);
@@ -1562,7 +1547,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (document.querySelector(".rec_overlay")) return; // the confirm owns Escape
+    if (document.querySelector(".rec_overlay")) return;
     if (overlay.style.display === "block") closeModal();
   });
 
@@ -1571,41 +1556,30 @@ document.addEventListener("DOMContentLoaded", () => {
     addBtn.title = "View only";
   }
 
-  // Phone formatter handling both 09XX and +63 formats
   const phoneInput = field("reqPhone");
   if (phoneInput) {
     phoneInput.addEventListener("input", (event) => {
-      // 1. Keep digits and the plus sign (escaped as \+ for maximum safety)
       let value = event.target.value.replace(/[^\d\+]/g, "");
-      value = value.replace(/(?!^)\+/g, ""); // Strip any '+' that isn't the first character
+      value = value.replace(/(?!^)\+/g, "");
 
       let formatted = "";
 
-      // 2. If they start with a '+', instantly switch to international format
       if (value.startsWith("+")) {
-        // Format: +63 928 124 8905 (Max length: 13 characters)
         if (value.length > 13) value = value.substring(0, 13);
-
         formatted = value.substring(0, 3);
         if (value.length > 3) formatted += " " + value.substring(3, 6);
         if (value.length > 6) formatted += " " + value.substring(6, 9);
         if (value.length > 9) formatted += " " + value.substring(9, 13);
       } else {
-        // Format: 0928 589 3458 (Max length: 11 characters)
         if (value.length > 11) value = value.substring(0, 11);
-
         formatted = value.substring(0, 4);
         if (value.length > 4) formatted += " " + value.substring(4, 7);
         if (value.length > 7) formatted += " " + value.substring(7, 11);
       }
-
       event.target.value = formatted;
     });
   }
 
-  // ==========================================
-  // GLOBALS THE HTML STILL CALLS
-  // ==========================================
   window.openSeamlessModal = () => {
     if (!canModify()) {
       notify("Your role can view records but not add them.", "warning");
