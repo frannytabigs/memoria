@@ -383,7 +383,7 @@ function initPaymentView() {
     if (deceasedName) extra.push(`Deceased: ${deceasedName}`);
     if (contact) extra.push(`Contact: ${contact}`);
     if (email) extra.push(`Email: ${email}`);
-    const remarksFull = [remarks, ...extra].filter(Boolean).join(" | ");
+    const remarksFull = remarks;
 
     // Build FormData
     const formData = new FormData();
@@ -394,6 +394,8 @@ function initPaymentView() {
     formData.append("image", imageFile);
     formData.append("deceased_name", deceasedName);
     formData.append("remarks_payer", remarksFull);
+    formData.append("phone_number", contact);
+    formData.append("email", email);
 
     // Submit
     try {

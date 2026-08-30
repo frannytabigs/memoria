@@ -73,7 +73,9 @@ body {
   }
 
   .paymentsTable {
-    width: 100%;
+    /* width: 100%; */
+    width: 1600px;
+    table-layout: fixed;
     border-collapse: collapse;
     text-align: left;
     font-size: 0.875rem;
@@ -92,7 +94,9 @@ body {
       border-bottom: 1px solid #f1f5f9;
       color: #334155;
       vertical-align: middle;
-      white-space: nowrap;
+      /*white-space: nowrap;*/
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     tbody tr:hover {
@@ -163,5 +167,11 @@ body {
     &.textComplete {
       color: #16a34a;
     }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }

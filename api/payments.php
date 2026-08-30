@@ -50,7 +50,7 @@ if ($method === 'GET') {
     if (is_numeric($resourceId)) {
         $sql = "
             SELECT 
-                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose, p.deceased_name,
+                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose, p.deceased_name, p.phone_number, p.email,
                 p.image_link, p.remarks_payer, p.remarks_office, p.remarks_grounds, p.created_at,
                 p.confirmed_office_staff, u1.name AS office_staff_name,
                 p.confirmed_ground_staff, u2.name AS ground_staff_name
@@ -95,7 +95,7 @@ if ($method === 'GET') {
         // 3. Fetch Data
         $sql = "
             SELECT 
-                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose,  p.deceased_name,
+                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose,  p.deceased_name, p.phone_number, p.email,
                 p.image_link, p.remarks_payer, p.remarks_office, p.remarks_grounds, p.created_at,
                 p.confirmed_office_staff, u1.name AS office_staff_name,
                 p.confirmed_ground_staff, u2.name AS ground_staff_name
@@ -143,7 +143,9 @@ if ($method === 'GET') {
                 'amount'        => (float)$row['amount'],
                 'purpose'       => $row['purpose'],
                 'image_link'    => $row['image_link'],
-                'remarks_payer' => $row['remarks_payer']
+                'remarks_payer' => $row['remarks_payer'],
+                'phone_number' => $row['phone_number'],
+                'email'         => $row['email']
             ],
             
             'audit' => [
@@ -182,17 +184,22 @@ if ($method === 'POST') {
     $amount  = trim($rawData['amount'] ?? 0);
     $purpose = trim($rawData['purpose'] ?? '');
     $deceased_name = trim($rawData['deceased_name'] ?? '');
+    $phone_number = trim($rawData['phone_number'] ?? '');
+    $email = trim($rawData['email'] ?? '');
 
     $uploadedFilename = null;
 
-    if (empty($refNum) || empty($channel) || empty($amount) || empty($purpose) || empty($deceased_name)) {
+    if (empty($refNum) || empty($channel) || empty($amount) || empty($purpose) || empty($deceased_name) || empty($email) || empty($phone_number)) {
         Response::error("Reference number, channel, amount, deceased_name, and purpose are required.", 400);
     }
 
     if (!is_numeric($amount) || (float)$amount <= 0) {
         Response::error("Amount must be a number greater than zero.", 400);
     }
-
+    $phone_number= formatPhNumber($phone_number);
+    if (!$phone_number) {
+        Response::error("Invalid Philippines phone number format.", 400); 
+    }
     if (!isset($_FILES['image'])) {
         Response::error('No photo included in the request.', 400);
     }
@@ -216,13 +223,13 @@ if ($method === 'POST') {
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO payments (reference_number, payment_channel, amount, purpose, image_link, remarks_payer, deceased_name) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO payments (reference_number, payment_channel, amount, purpose, image_link, remarks_payer, deceased_name, phone_number, email) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)
         ");
         $stmt->execute([
             $refNum, $channel, $amount, $purpose, $image, 
             trim($rawData['remarks_payer'] ?? ''), 
-            $deceased_name
+            $deceased_name, $phone_number, $email
             //trim($rawData['remarks_office'] ?? '') // Admins can optionally include an office remark immediately
         ]);
         

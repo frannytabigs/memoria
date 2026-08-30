@@ -154,14 +154,13 @@
           <table class="paymentsTable">
             <thead>
               <tr>
-                <th>Full Name</th>
                 <th>Name of Deceased</th>
-                <th>Contact Number</th>
-                <th>Email Address</th>
                 <th>Payment Channel</th>
                 <th>Reference Number</th>
-                <th>Amount Paid (PHP)</th>
-                <th>Purpose of Payment</th>
+                <th>Amount (PHP)</th>
+                <th>Phone Number</th>
+                <th>Email</th>
+                <th>Purpose</th>
                 <th>Proof of Payment</th>
                 <th>Remarks</th>
                 <th>Status</th>
@@ -170,79 +169,23 @@
             </thead>
             <tbody id="paymentsTableBody">
               <tr>
-                <td>Abc Def</td>
-                <td>Abc Def</td>
-                <td>09123456789</td>
-                <td>Abc@example.com</td>
-                <td>GCash</td>
-                <td>REF12345678</td>
-                <td>₱ 5,000.00</td>
-                <td>Purpose 1</td>
-                <td>
-                  <button class="btnView">
-                    <i class="fas fa-image"></i> View Image
-                  </button>
-                </td>
-                <td>-</td>
-                <td class="colStatus">
-                  <span class="statusBadge statusRed"
-                    >Pending Admin Verification</span
+                <td colspan="9" style="text-align: center; padding: 40px 0">
+                  <div
+                    style="
+                      display: inline-block;
+                      width: 40px;
+                      height: 40px;
+                      border: 3px solid rgba(0, 0, 0, 0.1);
+                      border-radius: 50%;
+                      border-top-color: #3b82f6;
+                      animation: spin 1s ease-in-out infinite;
+                    "
+                  ></div>
+                  <div
+                    style="margin-top: 12px; color: #64748b; font-size: 0.9rem"
                   >
-                </td>
-                <td class="colAction">
-                  <button class="btnAction" data-step="1">
-                    Confirm & Forward
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td>Abc Def</td>
-                <td>Abc Def</td>
-                <td>09987654321</td>
-                <td>Abc@example.com</td>
-                <td>Bank Transfer</td>
-                <td>REF87654321</td>
-                <td>₱ 12,000.00</td>
-                <td>Purpose 2</td>
-                <td>
-                  <button class="btnView">
-                    <i class="fas fa-image"></i> View Image
-                  </button>
-                </td>
-                <td>-</td>
-                <td class="colStatus">
-                  <span class="statusBadge statusOrange"
-                    >Pending Grounds Verification</span
-                  >
-                </td>
-                <td class="colAction">
-                  <button class="btnAction" data-step="2">
-                    Awaiting Grounds
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td>Abc Def</td>
-                <td>Abc Def</td>
-                <td>09112223334</td>
-                <td>Abc@example.com</td>
-                <td>PayMaya</td>
-                <td>REF45678912</td>
-                <td>₱ 2,500.00</td>
-                <td>Purpose 3</td>
-                <td>
-                  <button class="btnView">
-                    <i class="fas fa-image"></i> View Image
-                  </button>
-                </td>
-                <td>-</td>
-                <td class="colStatus">
-                  <span class="statusBadge statusGreen">Completed</span>
-                </td>
-                <td class="colAction">
-                  <span class="actionText textComplete"
-                    ><i class="fas fa-check-circle"></i> Verified</span
-                  >
+                    Loading payments...
+                  </div>
                 </td>
               </tr>
             </tbody>
