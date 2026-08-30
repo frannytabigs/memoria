@@ -186,7 +186,7 @@ try {
                                 ON DUPLICATE KEY UPDATE 
                                 setting_value = VALUES(setting_value), 
                                 description = VALUES(description), 
-                                updated_by = :update_user_id";
+                                updated_by = :update_user_id, deleted_at = NULL";
                         
                         $stmt = $pdo->prepare($sql);
                         $stmt->execute([
