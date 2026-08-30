@@ -261,7 +261,9 @@ CREATE TABLE payments(
     reference_number VARCHAR(100) UNIQUE NOT NULL,
     payment_channel VARCHAR(100) NOT NULL, 
     amount DECIMAL(10,2) NOT NULL,
-    deceased_name  VARCHAR(255), 
+    deceased_name  VARCHAR(255),
+    phone_number VARCHAR(20),
+    email VARCHAR(255), 
    
     purpose VARCHAR(100) NOT NULL, 
     image_link VARCHAR(255) NOT NULL, 
