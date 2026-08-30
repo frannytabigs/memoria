@@ -8,24 +8,52 @@ body {
 .mainContent {
   flex: 1;
   padding: 30px;
-  margin-left: 260px; /* Adjust based on sidebar width */
+  margin-left: 260px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* Top controls deck alignment area */
 .controlWorkspaceDeck {
   width: 100%;
   max-width: 816px;
   margin-bottom: 25px;
 }
 
-/* ==================== CUSTOM DRIVEN DROPDOWN SYSTEM ==================== */
-.dropdownWrapper {
+.deckTopBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   margin-bottom: 20px;
   width: 100%;
+}
+
+.printPdfBtn {
+  background-color: #0056b3;
+  color: #fff;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+  height: 48px;
+}
+.printPdfBtn:hover {
+  background-color: #004494;
+  transform: translateY(-1px);
+}
+
+.dropdownWrapper {
+  flex: 1;
   max-width: 450px;
   position: relative;
   user-select: none;
@@ -55,6 +83,8 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease-in-out;
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .customSelectTrigger:hover {
@@ -166,7 +196,6 @@ body {
   color: #0056b3;
 }
 
-/* ==================== ACTIVE FILTERS BAR COMPONENT (OUTSIDE PAPER) ==================== */
 .filterEngineContainer {
   background-color: #fff;
   border: 1px solid #cbd5e1;
@@ -175,7 +204,7 @@ body {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   width: 100%;
   box-sizing: border-box;
-  display: none; /* Controlled dynamically via Javascript based on select view */
+  display: none;
 }
 
 .filterEngineContainer.visible {
@@ -226,7 +255,6 @@ body {
   font-weight: 600;
 }
 
-/* Secondary parameters element select dropdown box */
 .secondaryParamSelector {
   display: none;
   align-items: center;
@@ -259,8 +287,8 @@ body {
   min-width: 180px;
 }
 
-/* ==================== OFFICIAL DOCUMENT PAPER STYLING ==================== */
 .reportCard {
+  padding: 100px 60px 200px 60px;
   display: none;
   background-color: #fff;
   width: 100%;
@@ -270,7 +298,6 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   border: 1px solid #dcdcdc;
   box-sizing: border-box;
-  padding: 140px 60px 120px 60px;
   margin: 0 auto 40px auto;
   animation: fadeIn 0.35s ease-out;
 }
@@ -280,87 +307,41 @@ body {
   flex-direction: column;
 }
 
-/* DYNAMIC HEADER STYLING (Image 1) */
 .docHeader {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 115px;
+  /* min-height: 118px; */
   box-sizing: border-box;
-  border-bottom: 3px solid #0056b3;
   background: #fff;
+  overflow: hidden;
 }
 
-.headerRibbon {
+.reportHeaderImageWrap {
   width: 100%;
-  height: 16px;
-  background: linear-gradient;
-  clip-path: polygon(0 0, 100% 0, 100% 60%, 0% 100%);
-}
-
-.headerBody {
-  display: flex;
-  align-items: center;
-  padding: 12px 45px 0 45px;
-}
-
-.headerLogos {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-right: 18px;
-  border-right: 2px solid #222;
-  height: 55px;
-}
-
-.logoPlaceholder {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: #f0f0f0;
-  border: 1px dashed #999;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
-  color: #666;
-  text-align: center;
-  font-weight: bold;
+  background: #fff;
 }
 
-.headerText {
-  padding-left: 18px;
+.reportHeaderImage,
+.reportFooterImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #fff;
 }
 
-.countryText {
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  color: #555;
-  text-transform: uppercase;
-}
-
-.deptName {
-  font-size: 21px;
-  font-weight: 700;
-  color: #44464a;
-  margin: 2px 0;
-  letter-spacing: -0.5px;
-}
-
-.sectionName {
-  font-size: 11px;
-  color: #666;
-  font-weight: 500;
-}
-
-/* DOCUMENT CONTENT COMPONENTS */
 .docContentTitle {
   font-size: 20px;
   font-weight: 800;
   color: #1e293b;
   text-align: center;
-  margin: 10px 0 5px 0;
+  margin: 0;
   text-transform: uppercase;
 }
 
@@ -368,7 +349,7 @@ body {
   text-align: center;
   font-size: 13px;
   color: #64748b;
-  margin-bottom: 25px;
+  margin: 0;
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 15px;
 }
@@ -421,10 +402,6 @@ body {
   transition: all 0.2s ease;
 }
 
-.bulletItem.hiddenRow {
-  display: none !important;
-}
-
 .noDataFallbackMessage {
   display: none;
   text-align: center;
@@ -444,11 +421,10 @@ body {
   color: #64748b;
 }
 
-/* Signatures block Layout */
 .signatorySection {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 30px 40px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px 34px;
   margin-top: 30px;
   padding-top: 15px;
   border-top: 1px dashed #cbd5e1;
@@ -457,25 +433,91 @@ body {
 .sigContainer {
   display: flex;
   flex-direction: column;
-}
-
-.sigLine {
-  border-bottom: 1px solid #1e293b;
-  width: 85%;
-  margin-top: 35px;
-  margin-bottom: 4px;
+  min-height: 82px;
 }
 
 .sigName {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
   color: #1e293b;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.5;
+  border-bottom: 1px solid #1e293b;
+  width: 85%;
+  margin-top: 28px;
+  margin-bottom: 6px;
+  padding-bottom: 2px;
 }
 
 .sigTitle {
-  font-size: 11px;
+  font-size: 10px;
   color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+}
+
+.docFooter {
+  margin-top: auto;
+  width: 100%;
+  bottom: 0;
+  position: absolute;
+  left: 0;
+}
+
+.reportFooterImageWrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-top: 2px solid #dfe7ef;
+  overflow: hidden;
+}
+
+@media print {
+  @page {
+    margin: 0;
+    size: letter;
+  }
+  body {
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .sidebar,
+  .deckTopBar,
+  .dropdownWrapper,
+  .filterEngineContainer,
+  .customOptionsPanel,
+  .logout,
+  .sidebarFooter,
+  .sidebarNav,
+  .sidebarTop,
+  .printPdfBtn {
+    display: none !important;
+  }
+  .mainContent {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+  }
+  .controlWorkspaceDeck {
+    display: none !important;
+  }
+  .reportCard {
+    display: flex !important;
+    max-width: none !important;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    /* padding: 120px 40px 60px 40px; */
+  }
+  .reportCard:not(.active) {
+    display: none !important;
+  }
 }
 
 @keyframes fadeIn {
