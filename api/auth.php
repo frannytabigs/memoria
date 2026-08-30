@@ -33,7 +33,7 @@ if ($method === 'DELETE') {
 
 if ($method === 'GET') {
    $userData = checkuser(); 
-   Response::success("Logged in", ["user" => $userData]);
+   Response::success("Logged in",  $userData);
 }
 
 
@@ -111,7 +111,7 @@ try {
         ]);
 
         systemLog($user['name'] . " (" . $user['username'] . ") logged in", $user['user_id']);
-        Response::success("Login successful", ["users" => [$user]]);
+        Response::success("Login successful", $user);
 
         // In the future i think to support other than website or web-app
         // Response::success("Login successful", [

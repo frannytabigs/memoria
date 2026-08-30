@@ -294,7 +294,7 @@ if ($method === 'PUT') {
         $updateFields[] = "email = :email"; $queryParams[':email'] = trim($rawData['email']);
     }
     if (!empty($rawData['password'])) {
-        if (!preg_match('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/', $rawData['password'])) Response::error("Invalid password format.", 400);
+        if (!preg_match('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/', $rawData['password'])) Response::error("Password must be at least 6 characters and includes an uppercase, lowercase, and a number.", 400);
         $updateFields[] = "password_hash = :password_hash"; $queryParams[':password_hash'] = password_hash($rawData['password'], PASSWORD_DEFAULT);
     }
 

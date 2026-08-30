@@ -8,8 +8,18 @@ header("Content-type: text/css; charset: UTF-8");
 $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'main_color' LIMIT 1");
 $stmt->execute();
 $mainColor = $stmt->fetchColumn();
-// $mainColor = "pink";
-$hasColor = !empty($mainColor);
+
+// Validate: only allow safe CSS color formats
+$isValidColor = false;
+if (!empty($mainColor)) {
+    $color = trim($mainColor);
+    $isValidColor = preg_match('/^(?:[a-z]+|#[0-9a-f]{3,8}|rgba?\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)|hsla?\s*\(\s*[\d.]+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*(?:,\s*[\d.]+\s*)?\))$/i', $color);
+    if ($isValidColor) {
+        $mainColor = $color; // sanitized
+    }
+}
+
+$hasColor = $isValidColor;
 
 // --- Background image ---
 $bgRelativePath = 'images/cemetery_background.png';

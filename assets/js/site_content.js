@@ -1,4 +1,9 @@
-// Map specific HTML element IDs to database setting_keys
+// ============================================================
+//  ADMIN SETTINGS – MANAGE SITE CONTENT & IMAGES
+// ============================================================
+
+// ---------- Mappings ----------
+// Database key → HTML element ID (for text inputs, textareas, selects)
 const TEXT_SETTINGS_MAP = {
   main_title: "deptTitle",
   cemetery_title: "cemeteryTitle",
@@ -11,6 +16,7 @@ const TEXT_SETTINGS_MAP = {
   requirements_for_burial: "requirements_for_burial",
 };
 
+// Database key → configuration for image inputs/previews
 const IMAGE_SETTINGS_MAP = {
   logo1: { previewId: "logo1", inputId: "uploadlogo1", desc: "Header Logo 1" },
   logo2: { previewId: "logo2", inputId: "uploadlogo2", desc: "Header Logo 2" },
@@ -31,85 +37,103 @@ const IMAGE_SETTINGS_MAP = {
   },
 };
 
-// 1. Fetch Settings on Page Load
-document.addEventListener("DOMContentLoaded", loadSiteContent);
+// ---------- Helpers ----------
+// Create a DOM element from a string, but safer than innerHTML
+function createElementFromHTML(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html.trim();
+  return template.content.firstElementChild;
+}
 
+// Rebuild a list of option items from an array (for payment channels / permit types)
+function rebuildDropdownList(containerId, itemsArray, inputClass) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.innerHTML = ""; // Clear existing
+
+  for (const item of itemsArray) {
+    const div = document.createElement("div");
+    div.className = "optionItem";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = inputClass;
+    input.value = item; // safe – no need to escape for attribute when using .value
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btnRemove";
+    btn.innerHTML = '<i class="fas fa-trash"></i>';
+    btn.addEventListener("click", () => {
+      div.remove(); // modern removal
+    });
+
+    div.appendChild(input);
+    div.appendChild(btn);
+    container.appendChild(div);
+  }
+}
+
+// ---------- Load Settings ----------
 function loadSiteContent() {
   fetch("/api/settings", { cache: "no-store" })
-    .then(function (response) {
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();
     })
-    .then(function (result) {
-      // Check if result has the expected structure
-      if (!result || !result.data) {
-        console.error("Unexpected response structure:", result);
-        showAlertTOP(
-          "Failed to load settings: Invalid response format",
-          "error",
-        );
+    .then((result) => {
+      if (!result?.data) {
+        console.error("Invalid settings response:", result);
+        showAlertTOP("Failed to load settings: invalid response", "error");
         return;
       }
 
-      // Create a Set to track which keys we've already processed
-      var processedKeys = new Set();
+      const processedKeys = new Set();
 
-      result.data.forEach(function (setting) {
-        var key = setting.setting_key;
-
-        // Because PHP returns newest first, if we've already seen this key,
-        // the current row is an old duplicate. Skip it!
-        if (processedKeys.has(key)) return;
+      for (const setting of result.data) {
+        const key = setting.setting_key;
+        if (processedKeys.has(key)) continue; // skip duplicates (newest first)
         processedKeys.add(key);
 
-        var val = setting.setting_value;
-        //console.log(key);
-        if (key.startsWith("requirements_for_burial")) {
-          // 5. Convert the Markdown to raw HTML
-          const rawHtml = marked.parse(val);
+        const val = setting.setting_value;
 
-          // 6. Sanitize the HTML to remove any potential malicious scripts
-          const cleanHtml = DOMPurify.sanitize(rawHtml);
-
-          // 7. Inject the clean HTML into your webpage container
-          document.getElementById("burialRequirements").innerHTML = cleanHtml;
-          // console.log(cleanHtml);
-        }
-
-        // Populate Text Fields & Textareas
-        if (
-          TEXT_SETTINGS_MAP[key] &&
-          document.getElementById(TEXT_SETTINGS_MAP[key])
-        ) {
-          var el = document.getElementById(TEXT_SETTINGS_MAP[key]);
-
-          // Use .value for inputs/textareas/selects, otherwise .textContent
-          if (
-            el.tagName === "INPUT" ||
-            el.tagName === "TEXTAREA" ||
-            el.tagName === "SELECT"
-          ) {
-            el.value = val;
-          } else {
-            el.textContent = val;
+        // ---- Special case: Burial Requirements (Markdown → sanitised HTML) ----
+        if (key === "requirements_for_burial") {
+          const el = document.getElementById("burialRequirements");
+          if (el) {
+            const rawHtml = marked.parse(val || "");
+            const cleanHtml = DOMPurify.sanitize(rawHtml);
+            el.innerHTML = cleanHtml;
           }
+          continue;
         }
-        // Populate Image Previews
-        if (
-          IMAGE_SETTINGS_MAP[key] &&
-          document.getElementById(IMAGE_SETTINGS_MAP[key].previewId)
-        ) {
-          if (val) {
-            var imgElement = document.getElementById(
-              IMAGE_SETTINGS_MAP[key].previewId,
-            );
 
-            var timestamp = new Date().getTime();
-            imgElement.src = "/api/images/" + val + "?t=" + timestamp;
-            imgElement.dataset.existingFilename = val;
+        // ---- Text fields (including map_embed_url, contact, etc.) ----
+        const targetId = TEXT_SETTINGS_MAP[key];
+        if (targetId) {
+          const el = document.getElementById(targetId);
+          if (el) {
+            if (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
+              el.value = val;
+            } else {
+              el.textContent = val; // safe
+            }
           }
         }
 
-        // Populate Arrays (Dropdowns)
+        // ---- Image previews ----
+        const imageConfig = IMAGE_SETTINGS_MAP[key];
+        if (imageConfig && val) {
+          const img = document.getElementById(imageConfig.previewId);
+          if (img) {
+            // Add cache‑busting timestamp
+            img.src = `/api/images/${val}?t=${Date.now()}`;
+            img.dataset.existingFilename = val;
+          }
+        }
+
+        // ---- Dropdown lists (JSON arrays) ----
         try {
           if (key === "payment_channels" && val) {
             rebuildDropdownList(
@@ -125,183 +149,152 @@ function loadSiteContent() {
               "purposeInput",
             );
           }
-        } catch (jsonError) {
-          console.warn("Could not parse JSON for " + key + ":", val);
-          // This prevents the page from breaking if one DB row is formatted incorrectly!
+        } catch {
+          // Silently ignore invalid JSON – won't break the page
         }
-      });
+      }
     })
-    .catch(function (error) {
-      console.error(error);
-      showAlertTOP("Too many requests. Please try again later.", "error");
+    .catch((error) => {
+      console.error("Error loading settings:", error);
+      showAlertTOP("Failed to load settings. Please refresh.", "error");
     });
 }
 
-// Helper: Rebuild HTML lists from JSON arrays
-function rebuildDropdownList(containerId, itemsArray, inputClass) {
-  var container = document.getElementById(containerId);
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  itemsArray.forEach(function (item) {
-    var newItem = document.createElement("div");
-    newItem.className = "optionItem";
-    newItem.innerHTML = `
-            <input type="text" class="${inputClass}" value="${item}">
-            <button type="button" class="btnRemove" onclick="removeOption(this)"><i class="fas fa-trash"></i></button>
-        `;
-    container.appendChild(newItem);
-  });
-}
-
-// 2. Save Settings to Database
+// ---------- Save Settings ----------
 function saveSiteContent() {
-  var formData = new FormData();
-  var index = 0;
+  const formData = new FormData();
+  let index = 0;
 
-  // Helper to structure bulk data for PHP
-  var appendToForm = function (key, value, desc, fileInputId) {
-    formData.append("bulk_settings[" + index + "][setting_key]", key);
-    formData.append("bulk_settings[" + index + "][setting_value]", value);
-    formData.append("bulk_settings[" + index + "][description]", desc);
+  // Helper to append a setting entry
+  const appendToForm = (key, value, desc, fileInputId) => {
+    formData.append(`bulk_settings[${index}][setting_key]`, key);
+    formData.append(`bulk_settings[${index}][setting_value]`, value);
+    formData.append(`bulk_settings[${index}][description]`, desc);
 
     if (fileInputId) {
-      var fileInput = document.getElementById(fileInputId);
-      if (fileInput && fileInput.files.length > 0) {
-        var file = fileInput.files[0];
-
-        // Strict Frontend PNG Check
+      const fileInput = document.getElementById(fileInputId);
+      if (fileInput?.files?.length > 0) {
+        const file = fileInput.files[0];
         if (file.type !== "image/png") {
-          showAlertTOP("Image file should be a PNG", "error");
-          throw new Error("The image for " + desc + " MUST be a PNG file.");
+          showAlertTOP("Image file must be a PNG", "error");
+          throw new Error(`Invalid file type for ${desc}`);
         }
-
-        formData.append("bulk_images[" + index + "]", file);
+        formData.append(`bulk_images[${index}]`, file);
       }
     }
     index++;
   };
 
-  // Append Text Fields
-  for (var textKey in TEXT_SETTINGS_MAP) {
-    if (TEXT_SETTINGS_MAP.hasOwnProperty(textKey)) {
-      var elementId = TEXT_SETTINGS_MAP[textKey];
-      var el = document.getElementById(elementId);
-      if (el) {
-        // Check for defaultValue (textareas) OR placeholder (inputs)
-        var valToSave = el.value.trim();
-        if (!valToSave) {
-          valToSave = el.defaultValue
-            ? el.defaultValue.trim()
-            : el.placeholder
-              ? el.placeholder.trim()
-              : "";
-        }
+  // ---- 1. Text fields ----
+  for (const [key, elementId] of Object.entries(TEXT_SETTINGS_MAP)) {
+    const el = document.getElementById(elementId);
+    if (!el) continue;
 
-        appendToForm(textKey, valToSave, "System content for " + textKey);
-      }
+    // For inputs/textareas, use .value; fallback to placeholder if empty
+    let value = el.value?.trim() || "";
+    if (!value) {
+      value = el.placeholder?.trim() || "";
     }
+    appendToForm(key, value, `System content for ${key}`);
   }
 
-  // Append Image Fields
-  for (var imageKey in IMAGE_SETTINGS_MAP) {
-    if (IMAGE_SETTINGS_MAP.hasOwnProperty(imageKey)) {
-      var config = IMAGE_SETTINGS_MAP[imageKey];
-      var imgElement = document.getElementById(config.previewId);
-
-      // If no file is saved yet (empty DB), force the standard PNG name
-      var existingVal =
-        imgElement && imgElement.dataset.existingFilename
-          ? imgElement.dataset.existingFilename
-          : imageKey + ".png";
-
-      appendToForm(imageKey, existingVal, config.desc, config.inputId);
-    }
+  // ---- 2. Image fields ----
+  for (const [key, config] of Object.entries(IMAGE_SETTINGS_MAP)) {
+    const img = document.getElementById(config.previewId);
+    const existingVal = img?.dataset?.existingFilename || `${key}.png`;
+    appendToForm(key, existingVal, config.desc, config.inputId);
   }
 
-  // Append Arrays (Dropdowns)
-  var channels = [];
-  var channelInputs = document.querySelectorAll("#paymentChannelsList input");
-  for (var i = 0; i < channelInputs.length; i++) {
-    var val = channelInputs[i].value;
-    if (val.trim() !== "") {
-      channels.push(val);
+  // ---- 3. Dropdown lists (collect from UI) ----
+  const collectItems = (containerId) => {
+    const inputs = document.querySelectorAll(`#${containerId} input`);
+    const items = [];
+    for (const inp of inputs) {
+      const val = inp.value.trim();
+      if (val) items.push(val);
     }
-  }
+    return items;
+  };
 
-  var purposes = [];
-  var purposeInputs = document.querySelectorAll("#paymentPurposesList input");
-  for (var j = 0; j < purposeInputs.length; j++) {
-    var val2 = purposeInputs[j].value;
-    if (val2.trim() !== "") {
-      purposes.push(val2);
-    }
-  }
+  const channels = collectItems("paymentChannelsList");
+  const purposes = collectItems("paymentPurposesList");
 
-  // Convert arrays to JSON strings before appending
   appendToForm(
     "payment_channels",
     JSON.stringify(channels),
-    "Dropdown list for notification types",
+    "Dropdown list for payment channels",
   );
   appendToForm(
     "permit_types",
     JSON.stringify(purposes),
-    "Dropdown list for permit classifications",
+    "Dropdown list for permit types",
   );
 
-  // Transmit to API
+  // ---- 4. Send to server ----
   fetch("/api/settings.php", {
     method: "POST",
     body: formData,
   })
-    .then(function (response) {
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();
     })
-    .then(function (result) {
-      // Check if result has status property
-      if (result && result.status === 200) {
+    .then((result) => {
+      if (result?.status === 200) {
         showAlertTOP("Site content saved successfully!", "success");
         setTimeout(() => location.reload(true), 2000);
       } else {
-        var errorMsg =
-          result && result.message
-            ? result.message
-            : "Failed to save site content.";
-        showAlertTOP(errorMsg, "error");
+        const msg = result?.message || "Failed to save site content.";
+        showAlertTOP(msg, "error");
       }
     })
-    .catch(function (error) {
-      console.error(error);
-      showAlertTOP("Too many requests. Please try again later.", "error");
+    .catch((error) => {
+      console.error("Save error:", error);
+      showAlertTOP(
+        "Too many requests or server error. Please try again.",
+        "error",
+      );
     });
 }
 
-// 3. Existing UI Helpers
-function previewImage(input, previewId) {
-  if (input.files && input.files[0]) {
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      document.getElementById(previewId).src = e.target.result;
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
-}
-
+// ---------- UI Helpers (for add/remove options) ----------
 function addOption(containerId) {
-  var container = document.getElementById(containerId);
-  var inputClass =
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const inputClass =
     containerId === "paymentChannelsList" ? "channelInput" : "purposeInput";
-  var newItem = document.createElement("div");
-  newItem.className = "optionItem";
-  newItem.innerHTML = `
-        <input type="text" class="${inputClass}" value="">
-        <button type="button" class="btnRemove" onclick="removeOption(this)"><i class="fas fa-trash"></i></button>
-    `;
-  container.appendChild(newItem);
+  const div = document.createElement("div");
+  div.className = "optionItem";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = inputClass;
+  input.value = "";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btnRemove";
+  btn.innerHTML = '<i class="fas fa-trash"></i>';
+  btn.addEventListener("click", () => div.remove());
+
+  div.appendChild(input);
+  div.appendChild(btn);
+  container.appendChild(div);
 }
 
-function removeOption(button) {
-  button.parentElement.remove();
+// (removeOption is no longer needed, as we use event listeners)
+
+// ---------- Image Preview Helpers ----------
+function previewImage(input, previewId) {
+  if (!input?.files?.length) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = document.getElementById(previewId);
+    if (img) img.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
 }
+
+// ---------- Initialisation ----------
+document.addEventListener("DOMContentLoaded", loadSiteContent);

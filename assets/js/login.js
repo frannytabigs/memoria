@@ -26,7 +26,7 @@ form.addEventListener("submit", function (e) {
           //console.log("User data:", data.data.users[0]);
           showAlertTOP(
             "Login successful! Hello " +
-              data.data.users[0].name +
+              data.data.name +
               "! Redirecting to dashboard...",
             "success",
           );

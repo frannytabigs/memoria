@@ -169,6 +169,11 @@
               <input type="text" id="profileUsername" />
             </div>
 
+            <div class="formGroup" style="display: none">
+              <label for="userid">User ID</label>
+              <input type="text" id="userid" />
+            </div>
+
             <div class="formGroup">
               <label for="profileEmail">Email Address</label>
               <input type="email" id="profileEmail" />
@@ -211,13 +216,19 @@
           </div>
 
           <div class="saveRow">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="resetForm('profileForm')"
+            <p
+              style="
+                color: #b91c1c;
+                background: #fef2f2;
+                border-left: 4px solid #b91c1c;
+                padding: 10px 14px;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                border-radius: 6px;
+              "
             >
-              <i class="fas fa-undo"></i> Reset
-            </button>
+              Changing your password will log you out afterward.
+            </p>
             <button type="submit" class="btn btn-primary">
               <i class="fas fa-save"></i> Save Changes
             </button>
@@ -225,7 +236,7 @@
         </form>
       </div>
 
-      <div class="settingCard">
+      <div class="settingCard" id="hideadmin">
         <div class="sectionTitle system-title">
           <i class="fas fa-cogs"></i>
           <div>
@@ -236,119 +247,6 @@
 
         <form id="systemForm" autocomplete="off">
           <div class="systemGrid">
-            <div class="systemItem" style="grid-column: 1/-1">
-              <label>System Icon</label>
-              <div class="iconUploadRow">
-                <div class="iconUploadBox">
-                  <div class="uploadPreview" id="iconPreview1">
-                    <i class="fas fa-image"></i>
-                  </div>
-                  <div class="iconUploadMeta">
-                    <span class="iconUploadName">Icon 1</span>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap">
-                      <label class="btn btn-secondary" style="cursor: pointer">
-                        <i class="fas fa-upload"></i> Upload Icon 1
-                        <input
-                          type="file"
-                          id="iconUpload1"
-                          accept="image/*"
-                          style="display: none"
-                          onchange="previewIcon(this, 'iconPreview1')"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        class="btn btn-danger"
-                        onclick="deleteIcon('iconPreview1', 'iconUpload1')"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                    <span>PNG or ICO, recommended 32×32px</span>
-                  </div>
-                </div>
-
-                <div class="iconUploadBox">
-                  <div class="uploadPreview" id="iconPreview2">
-                    <i class="fas fa-image"></i>
-                  </div>
-                  <div class="iconUploadMeta">
-                    <span class="iconUploadName">Icon 2</span>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap">
-                      <label class="btn btn-secondary" style="cursor: pointer">
-                        <i class="fas fa-upload"></i> Upload Icon 2
-                        <input
-                          type="file"
-                          id="iconUpload2"
-                          accept="image/*"
-                          style="display: none"
-                          onchange="previewIcon(this, 'iconPreview2')"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        class="btn btn-danger"
-                        onclick="deleteIcon('iconPreview2', 'iconUpload2')"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                    <span>PNG or ICO, recommended 32×32px</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="systemItem">
-              <label>Cemetery Logo</label>
-              <div class="uploadRow">
-                <div class="uploadPreview" id="logoPreview">
-                  <i class="fas fa-image"></i>
-                </div>
-                <div class="uploadInfo">
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap">
-                    <label class="btn btn-secondary" style="cursor: pointer">
-                      <i class="fas fa-upload"></i> Upload Logo
-                      <input
-                        type="file"
-                        id="logoUpload"
-                        accept="image/*"
-                        style="display: none"
-                        onchange="previewLogo(this)"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      class="btn btn-danger"
-                      onclick="deleteLogo()"
-                    >
-                      <i class="fas fa-trash"></i> Delete
-                    </button>
-                  </div>
-                  <span>PNG or SVG, recommended 200×60px</span>
-                </div>
-              </div>
-            </div>
-
-            <hr class="formDivider" style="grid-column: 1/-1" />
-
-            <div class="systemItem">
-              <label for="pageHeading">Page Heading</label>
-              <input type="text" id="pageHeading" />
-            </div>
-
-            <div class="systemItem">
-              <label for="cemeteryName">Cemetery Name</label>
-              <input type="text" id="cemeteryName" />
-            </div>
-
-            <div class="systemItem" style="grid-column: 1/-1">
-              <label for="cemeteryAddress">Cemetery Address</label>
-              <input type="text" id="cemeteryAddress" />
-            </div>
-
-            <hr class="formDivider" style="grid-column: 1/-1" />
-
             <div class="systemItem">
               <label>UI Primary Color</label>
               <div class="colorRow">
@@ -356,31 +254,26 @@
                   type="color"
                   id="uiColor"
                   value="#4a7cfe"
-                  oninput="updateColorHex(this)"
+                  oninput="
+                    updateColorHex(this);
+                    applyUIColor();
+                  "
                 />
                 <div>
                   <div class="colorLabel">Primary Color</div>
                   <div class="colorHex" id="uiColorHex">#4a7cfe</div>
                 </div>
-                <button
-                  type="button"
-                  class="btn btn-ghost"
-                  onclick="applyUIColor()"
-                  style="margin-left: auto"
-                >
-                  <i class="fas fa-paint-brush"></i> Apply
-                </button>
               </div>
             </div>
 
             <div class="systemItem">
-              <label for="textbeeKey">Textbee API Key</label>
+              <label for="textbeeapiKey">Textbee API Key</label>
               <div class="passwordWrapper">
-                <input type="password" id="textbeeKey" />
+                <input type="password" id="textbeeapiKey" />
                 <button
                   type="button"
                   class="togglePassword"
-                  onclick="togglePass('textbeeKey', this)"
+                  onclick="togglePass('textbeeapiKey', this)"
                 >
                   <i class="fas fa-eye"></i>
                 </button>
@@ -388,8 +281,17 @@
             </div>
 
             <div class="systemItem">
-              <label for="deviceId">Textbee Device ID</label>
-              <input type="text" id="deviceId" />
+              <label for="textbeeDevice">Textbee Device ID</label>
+              <div class="passwordWrapper">
+                <input type="password" id="textbeeDevice" />
+                <button
+                  type="button"
+                  class="togglePassword"
+                  onclick="togglePass('textbeeDevice', this)"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
             </div>
 
             <hr class="formDivider" style="grid-column: 1/-1" />
@@ -399,8 +301,17 @@
               <div class="reportUploadRow">
                 <div class="reportUploadBox">
                   <div class="reportPreview" id="reportHeaderPreview">
-                    <i class="fas fa-file-image"></i>
-                    <span>No header uploaded</span>
+                    <img
+                      id="headerlogo"
+                      src="api/images/header.png"
+                      onerror="
+                        this.onerror = null;
+                        this.src = 'assets/images/header.png';
+                      "
+                      alt="Header Logo Preview"
+                    />
+                    <!-- <i class="fas fa-file-image"></i>
+                    <span>No header uploaded</span> -->
                   </div>
                   <div class="reportUploadMeta">
                     <span class="reportUploadName">Report Header</span>
@@ -415,18 +326,6 @@
                           onchange="previewReport(this, 'reportHeaderPreview')"
                         />
                       </label>
-                      <button
-                        type="button"
-                        class="btn btn-danger"
-                        onclick="
-                          deleteReport(
-                            'reportHeaderPreview',
-                            'reportHeaderUpload',
-                          )
-                        "
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
                     </div>
                     <span>PNG or JPG, recommended 800×120px</span>
                   </div>
@@ -434,8 +333,17 @@
 
                 <div class="reportUploadBox">
                   <div class="reportPreview" id="reportFooterPreview">
-                    <i class="fas fa-file-image"></i>
-                    <span>No footer uploaded</span>
+                    <img
+                      id="headerlogo"
+                      src="api/images/footer.png"
+                      onerror="
+                        this.onerror = null;
+                        this.src = 'assets/images/footer.png';
+                      "
+                      alt="Footer Logo Preview"
+                    />
+                    <!-- <i class="fas fa-file-image"></i>
+                    <span>No footer uploaded</span> -->
                   </div>
                   <div class="reportUploadMeta">
                     <span class="reportUploadName">Report Footer</span>
@@ -450,18 +358,6 @@
                           onchange="previewReport(this, 'reportFooterPreview')"
                         />
                       </label>
-                      <button
-                        type="button"
-                        class="btn btn-danger"
-                        onclick="
-                          deleteReport(
-                            'reportFooterPreview',
-                            'reportFooterUpload',
-                          )
-                        "
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
                     </div>
                     <span>PNG or JPG, recommended 800×80px</span>
                   </div>
@@ -473,19 +369,49 @@
 
             <div class="systemItem" style="grid-column: 1/-1">
               <label style="font-size: 13px; color: black"
-                >Reports Name, Title, and Signature</label
+                >Reports Names and Title</label
               >
+              <div class="formGrid">
+                <div class="systemItem">
+                  <label for="name1">Name 1</label>
+                  <input id="name1" />
+                </div>
+                <div class="systemItem">
+                  <label for="title1">Title 1</label>
+                  <input id="title1" />
+                </div>
+
+                <div class="systemItem">
+                  <label for="name2">Name 2</label>
+                  <input id="name2" />
+                </div>
+                <div class="systemItem">
+                  <label for="title2">Title 2</label>
+                  <input id="title2" />
+                </div>
+
+                <div class="systemItem">
+                  <label for="name3">Name 3</label>
+                  <input id="name3" />
+                </div>
+                <div class="systemItem">
+                  <label for="title3">Title 3</label>
+                  <input id="title3" />
+                </div>
+
+                <div class="systemItem">
+                  <label for="name4">Name 4</label>
+                  <input id="name4" />
+                </div>
+                <div class="systemItem">
+                  <label for="title4">Title 4</label>
+                  <input id="title4" />
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="saveRow">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="resetForm('systemForm')"
-            >
-              <i class="fas fa-undo"></i> Reset
-            </button>
             <button type="submit" class="btn btn-primary">
               <i class="fas fa-save"></i> Save Configuration
             </button>
@@ -493,7 +419,7 @@
         </form>
       </div>
 
-      <div class="excelCard">
+      <div class="excelCard" id="hideadmin1">
         <div class="sectionTitle system-title">
           <div>
             <h2>Excel Import / Export</h2>
@@ -518,6 +444,7 @@
     </div>
 
     <script src="assets/js/alert.js"></script>
+    <script src="assets/js/modal.js"></script>
     <script src="assets/js/settings.js"></script>
     <script src="assets/js/sidebar.js"></script>
     <script>

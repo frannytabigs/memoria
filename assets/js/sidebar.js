@@ -262,7 +262,7 @@ function initAuth(allowedRoles = []) {
       return response.json();
     })
     .then(function (responseData) {
-      const user = responseData.data.user;
+      const user = responseData.data;
 
       // Double check role requirement against the TRUE server response
       if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
