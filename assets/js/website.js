@@ -147,7 +147,7 @@ function loadSiteContent() {
             } else {
               el.textContent = val; // safe
             }
-            console.log("Changed to: " + val);
+            //console.log("Changed to: " + val);
           }
         }
 
