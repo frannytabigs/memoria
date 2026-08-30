@@ -66,3 +66,17 @@ users.php - the roles and statuses are in constant
 blocks.php - roles as well
 
 Co interments - in the records.html + or we can merge it using IDs
+
+
+HUHUHU TO BE SOON I GUESS:
+
+reports - no payments included because its just for simple ledger and not counted huhuhuhuhuhuhu no payments statistics
+
+map
+reserve
+monitor
+records
+YAWA KA LISOD HUHUHUHUHUHUHUHUHU
+
+first, will they even use this? regardless, papasara lang unta mi sir huhu bahala nana sila hahauhuhuhuhuhuhuhhuhu
+this is pure our own logic i guess. i hope we are fine soon.... tabanggg
