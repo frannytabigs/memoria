@@ -57,7 +57,7 @@ setTimeout(() => {
           btn.className = "btnAction";
           btn.dataset.id = payment.payment_id;
           btn.dataset.action = "confirm_office";
-          btn.textContent = "Verify (Office)";
+          btn.textContent = "Verify";
           actionElement = btn;
         } else {
           const span = document.createElement("span");
@@ -71,7 +71,7 @@ setTimeout(() => {
           btn.className = "btnAction";
           btn.dataset.id = payment.payment_id;
           btn.dataset.action = "confirm_grounds";
-          btn.textContent = "Verify (Grounds)";
+          btn.textContent = "Verify";
           actionElement = btn;
         } else {
           const span = document.createElement("span");
@@ -82,7 +82,6 @@ setTimeout(() => {
       } else if (payment.overall_status === "Completed") {
         const span = document.createElement("span");
         span.className = "actionText textComplete";
-        // Icon is static, so innerHTML is fine here
         span.innerHTML = '<i class="fas fa-check-circle"></i> Verified';
         actionElement = span;
       }
@@ -92,7 +91,7 @@ setTimeout(() => {
         payment.details?.amount ?? 0,
       ).toLocaleString("en-US", { minimumFractionDigits: 2 });
 
-      // Row cells (all text inserted safely via textContent)
+      // Row cells
       tr.appendChild(createCell(payment.deceased_name));
       tr.appendChild(createCell(payment.payers_name));
       tr.appendChild(createCell(payment.details?.channel));
@@ -101,9 +100,9 @@ setTimeout(() => {
       const amountTd = document.createElement("td");
       amountTd.textContent = `₱ ${formattedAmount}`;
       tr.appendChild(amountTd);
+
       // Create the SMS button cell
       const smsTd = document.createElement("td");
-
       const smsBtn = document.createElement("button");
       smsBtn.type = "button";
       smsBtn.style.display = "inline-flex";
@@ -123,21 +122,19 @@ setTimeout(() => {
         );
       };
 
-      // Icon
       const iconsms = document.createElement("i");
       iconsms.className = "fas fa-comment-sms";
       smsBtn.appendChild(iconsms);
 
-      // Phone number text
       const phoneText = document.createTextNode(payment.details.phone_number);
       smsBtn.appendChild(phoneText);
-
       smsTd.appendChild(smsBtn);
       tr.appendChild(smsTd);
+
       tr.appendChild(createCell(payment.details.email));
       tr.appendChild(createCell(payment.details?.purpose));
 
-      // Image button – sanitize link by not injecting it into HTML string
+      // Image button
       const imageTd = document.createElement("td");
       const viewBtn = document.createElement("button");
       viewBtn.className = "btnView";
@@ -151,7 +148,6 @@ setTimeout(() => {
       const labelText = document.createTextNode(" View");
       viewBtn.appendChild(labelText);
 
-      // Use a data attribute + event listener instead of inline onclick
       viewBtn.dataset.imageLink = payment.details?.image_link ?? "";
       viewBtn.addEventListener("click", () => {
         showpreviewimage(viewBtn.dataset.imageLink);
@@ -171,11 +167,48 @@ setTimeout(() => {
       statusTd.appendChild(badge);
       tr.appendChild(statusTd);
 
-      // Action cell
+      // -------------------------------------------------------------
+      // ACTION CELL: Wrapper for both Verify and Delete buttons
+      // -------------------------------------------------------------
       const actionTd = document.createElement("td");
       actionTd.className = "colAction";
-      actionTd.appendChild(actionElement);
+
+      const actionWrapper = document.createElement("div");
+      actionWrapper.style.display = "flex";
+      actionWrapper.style.alignItems = "center";
+      actionWrapper.style.gap = "8px";
+
+      // Append the existing verify logic element
+      if (actionElement) actionWrapper.appendChild(actionElement);
+
+      // Create Delete Button
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+      deleteBtn.style.padding = "6px 12px";
+      deleteBtn.style.border = "none";
+      deleteBtn.style.borderRadius = "4px";
+      deleteBtn.style.background = "#ef4444";
+      deleteBtn.style.color = "#fff";
+      deleteBtn.style.cursor = "pointer";
+      deleteBtn.style.fontSize = "13px";
+      deleteBtn.style.display = "inline-flex";
+      deleteBtn.style.alignItems = "center";
+      deleteBtn.style.gap = "6px";
+      deleteBtn.style.transition = "background 0.2s";
+
+      // Hover effect for inline styling
+      deleteBtn.onmouseover = () => (deleteBtn.style.background = "#dc2626");
+      deleteBtn.onmouseout = () => (deleteBtn.style.background = "#ef4444");
+
+      // Trigger the independent modal, passing fetchPayments to refresh the table
+      deleteBtn.onclick = () =>
+        showDeleteConfirmModal(payment.payment_id, fetchPayments);
+
+      actionWrapper.appendChild(deleteBtn);
+      actionTd.appendChild(actionWrapper);
       tr.appendChild(actionTd);
+      // -------------------------------------------------------------
 
       tableBody.appendChild(tr);
     });
@@ -208,16 +241,24 @@ setTimeout(() => {
       if (result.status === 200) {
         fetchPayments(); // Refresh the table
       } else {
-        showAlertTOP(
-          "Cannot procces the action. This failed: " + result.message,
-          "error",
-        );
+        if (typeof showAlertTOP === "function") {
+          showAlertTOP(
+            "Cannot process the action. This failed: " + result.message,
+            "error",
+          );
+        } else {
+          alert("Cannot process the action. This failed: " + result.message);
+        }
         target.disabled = false;
         target.textContent = "Retry";
       }
     } catch (error) {
       console.error("Error updating payment:", error);
-      showAlertTOP("A network error occurred while verifying.", "error");
+      if (typeof showAlertTOP === "function") {
+        showAlertTOP("A network error occurred while verifying.", "error");
+      } else {
+        alert("A network error occurred while verifying.");
+      }
       target.disabled = false;
       target.textContent = "Retry";
     }
@@ -227,6 +268,123 @@ setTimeout(() => {
   fetchPayments();
 }, 1000);
 
+// ------------------------------------------------------------------
+// Delete Confirmation Modal Logic (Completely Independent)
+// ------------------------------------------------------------------
+function showDeleteConfirmModal(paymentId, refreshCallback) {
+  injectDeleteStyles();
+
+  // Create overlay
+  const overlay = document.createElement("div");
+  overlay.id = "deleteConfirmOverlay";
+  overlay.className = "memoria-delete-overlay";
+
+  // Create modal box
+  const box = document.createElement("div");
+  box.className = "memoria-delete-box";
+  box.innerHTML = `
+    <div style="font-weight: 600; font-size: 1.25rem; margin-bottom: 8px; color: #1e293b;">Delete Payment</div>
+    <div style="color: #64748b; font-size: 0.95rem; margin-bottom: 24px;">Are you sure you want to delete this payment record? This action cannot be undone.</div>
+    <div class="memoria-delete-actions">
+      <button class="memoria-btn-cancel" id="btnCancelDelete">Cancel</button>
+      <button class="memoria-btn-confirm" id="btnConfirmDelete">Delete</button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  // Close function
+  const closeModal = () => {
+    overlay.style.animation = "fadeOut 0.2s ease forwards";
+    setTimeout(() => overlay.remove(), 200);
+  };
+
+  document.getElementById("btnCancelDelete").onclick = closeModal;
+
+  // Close if clicking outside the box
+  overlay.onclick = (e) => {
+    if (e.target === overlay) closeModal();
+  };
+
+  // Confirm function
+  document.getElementById("btnConfirmDelete").onclick = async (e) => {
+    const btn = e.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+      const response = await fetch(`api/payments/${paymentId}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json" },
+      });
+      const result = await response.json();
+
+      if (result.status === 200) {
+        closeModal();
+        if (refreshCallback) refreshCallback(); // refresh table
+      } else {
+        if (typeof showAlertTOP === "function") {
+          showAlertTOP("Failed to delete: " + result.message, "error");
+        } else {
+          alert("Failed to delete: " + result.message);
+        }
+        btn.disabled = false;
+        btn.textContent = "Delete";
+      }
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      if (typeof showAlertTOP === "function") {
+        showAlertTOP("Network error during deletion.", "error");
+      } else {
+        alert("Network error during deletion.");
+      }
+      btn.disabled = false;
+      btn.textContent = "Delete";
+    }
+  };
+}
+
+function injectDeleteStyles() {
+  if (document.getElementById("memoriaDeleteStyles")) return;
+  const style = document.createElement("style");
+  style.id = "memoriaDeleteStyles";
+  style.textContent = `
+    .memoria-delete-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10000; animation: fadeIn 0.2s ease forwards;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .memoria-delete-box {
+      background: #ffffff; padding: 24px; border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      max-width: 400px; width: 90%; text-align: center;
+    }
+    .memoria-delete-actions {
+      display: flex; gap: 12px; justify-content: center;
+    }
+    .memoria-btn-cancel {
+      padding: 8px 16px; border-radius: 6px; border: 1px solid #e2e8f0;
+      background: #f8fafc; color: #475569; cursor: pointer; font-weight: 500; font-size: 14px;
+      transition: all 0.2s;
+    }
+    .memoria-btn-cancel:hover { background: #f1f5f9; }
+    .memoria-btn-confirm {
+      padding: 8px 16px; border-radius: 6px; border: none; font-size: 14px;
+      background: #ef4444; color: white; cursor: pointer; font-weight: 500;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .memoria-btn-confirm:hover { background: #dc2626; }
+    .memoria-btn-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
+  `;
+  document.head.appendChild(style);
+}
+
+// ------------------------------------------------------------------
+// (Your existing preview image code remains below)
+// ------------------------------------------------------------------
 function showpreviewimage(link) {
   if (!link || typeof link !== "string") {
     showErrorPopup("No image link provided.");
