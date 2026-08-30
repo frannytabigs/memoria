@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 define('ITS_ME_JUSTTOVERIFY', true);
 
@@ -25,41 +25,39 @@ if ( !in_array( $role , [ ROLE_ADMIN, ROLE_OFFICE ] ) ){
 }
 
 if ($method === 'POST') {
-    
-    // Default to true if not provided
-    $includeCemeteryName = $rawData['include_cemetery_name'] ?? true;
 
-    if (
-        !isset($rawData['phone_number']) ||
-        !isset($rawData['message'])
-    ) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "phone_number and message are required."
-        ]);
-        exit;
+    $phoneNumber = trim((string)($rawData['phone_number'] ?? ''));
+    $message     = trim((string)($rawData['message'] ?? ''));
+
+    if ($phoneNumber === '' || $message === '') {
+        Response::error("phone_number and message are both required and cannot be empty.", 400);
     }
-    
-    $smsStatus = sendSmsViaTextBee($rawData['phone_number'], $rawData['message'], $rawData['include_cemetery_name']);
-    
+
+    // Guard the gateway: a runaway template should not turn into a 40-part SMS.
+    if (mb_strlen($message) > 1000) {
+        Response::error("Message is too long (" . mb_strlen($message) . " characters). Keep it under 1000.", 400);
+    }
+
+    // Default to true when the client omits the flag entirely.
+    $includeCemeteryName = array_key_exists('include_cemetery_name', $rawData)
+        ? filter_var($rawData['include_cemetery_name'], FILTER_VALIDATE_BOOLEAN)
+        : true;
+
+    // textbee.php appends "- From <cemetery_name>" itself when this is true,
+    // so the message body must never carry the cemetery name already.
+    $smsStatus = sendSmsViaTextBee($phoneNumber, $message, $includeCemeteryName);
+
     if (!$smsStatus['success']) {
-        systemLog("Failed to send SMS to {$rawData['phone_number']}. Error: {$smsStatus['error']}. Content: {$rawData['message']}", $userData['user_id']);
-        http_response_code(500);
-        echo json_encode([
-            "success" => false, 
-            "message" => "Failed to send SMS: " . $smsStatus['error'] . ". Recheck your API KEYS and DEVICE ID"
-        ]);
-        exit; 
+        $reason = $smsStatus['error'] ?? 'Unknown gateway error';
+        systemLog("Failed to send SMS to {$phoneNumber}. Error: {$reason}. Content: {$message}", $userData['user_id']);
+        Response::error("Failed to send SMS: " . $reason . ". Recheck your API KEYS and DEVICE ID", 500);
     }
 
-    http_response_code(200);
-    echo json_encode([
-        "success" => true,
-        "message" => "SMS sent successfully to " . $rawData['phone_number'] . " with the message content: " . $rawData['message']
+    systemLog("SMS sent to {$phoneNumber}. Content: {$message}", $userData['user_id']);
+    Response::success("SMS sent successfully to " . $phoneNumber, [
+        "phone_number"          => $phoneNumber,
+        "include_cemetery_name" => $includeCemeteryName
     ]);
-    systemLog("SMS sent to {$rawData['phone_number']}. Content: {$rawData['message']}", $userData['user_id']);
-    exit;
 }
 
 Response::error("Method Not Allowed", 405);
