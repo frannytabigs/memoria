@@ -94,13 +94,46 @@ setTimeout(() => {
 
       // Row cells (all text inserted safely via textContent)
       tr.appendChild(createCell(payment.deceased_name));
+      tr.appendChild(createCell(payment.payers_name));
       tr.appendChild(createCell(payment.details?.channel));
       tr.appendChild(createCell(payment.reference_number));
 
       const amountTd = document.createElement("td");
       amountTd.textContent = `₱ ${formattedAmount}`;
       tr.appendChild(amountTd);
-      tr.appendChild(createCell(payment.details.phone_number));
+      // Create the SMS button cell
+      const smsTd = document.createElement("td");
+
+      const smsBtn = document.createElement("button");
+      smsBtn.type = "button";
+      smsBtn.style.display = "inline-flex";
+      smsBtn.style.alignItems = "center";
+      smsBtn.style.gap = "6px";
+      smsBtn.style.padding = "6px 10px";
+      smsBtn.style.border = "1px solid #ccc";
+      smsBtn.style.borderRadius = "4px";
+      smsBtn.style.background = "#f9f9f9";
+      smsBtn.style.color = "#333";
+      smsBtn.style.fontSize = "13px";
+      smsBtn.style.cursor = "pointer";
+      smsBtn.onclick = function () {
+        makeSmsHandler(
+          payment.details.phone_number,
+          `Hello ${payment.payers_name}, your payment with the reference number: ${payment.reference_number} is now verified.`,
+        );
+      };
+
+      // Icon
+      const iconsms = document.createElement("i");
+      iconsms.className = "fas fa-comment-sms";
+      smsBtn.appendChild(iconsms);
+
+      // Phone number text
+      const phoneText = document.createTextNode(payment.details.phone_number);
+      smsBtn.appendChild(phoneText);
+
+      smsTd.appendChild(smsBtn);
+      tr.appendChild(smsTd);
       tr.appendChild(createCell(payment.details.email));
       tr.appendChild(createCell(payment.details?.purpose));
 

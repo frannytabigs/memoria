@@ -323,8 +323,8 @@ function initPaymentView() {
   const paymentForm = document.getElementById("paymentForm");
   if (!paymentForm) return;
 
-  const otherWrapper = document.getElementById("otherPurposeWrapper");
-  const otherInput = document.getElementById("payOtherPurpose");
+  //const otherWrapper = document.getElementById("otherPurposeWrapper");
+  // /const otherInput = document.getElementById("payOtherPurpose");
 
   paymentForm.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -377,14 +377,6 @@ function initPaymentView() {
         message: "Please upload a proof of payment image.",
       });
 
-    // Combine extra info into remarks
-    const extra = [];
-    if (fullName) extra.push(`Name: ${fullName}`);
-    if (deceasedName) extra.push(`Deceased: ${deceasedName}`);
-    if (contact) extra.push(`Contact: ${contact}`);
-    if (email) extra.push(`Email: ${email}`);
-    const remarksFull = remarks;
-
     // Build FormData
     const formData = new FormData();
     formData.append("reference_number", reference);
@@ -393,9 +385,10 @@ function initPaymentView() {
     formData.append("purpose", purpose);
     formData.append("image", imageFile);
     formData.append("deceased_name", deceasedName);
-    formData.append("remarks_payer", remarksFull);
+    formData.append("remarks_payer", remarks);
     formData.append("phone_number", contact);
     formData.append("email", email);
+    formData.append("payers_name", fullName);
 
     // Submit
     try {
@@ -440,8 +433,8 @@ function initPaymentView() {
       });
 
       paymentForm.reset();
-      if (otherWrapper) otherWrapper.classList.add("hidden");
-      if (otherInput) otherInput.value = "";
+      //if (otherWrapper) otherWrapper.classList.add("hidden");
+      //if (otherInput) otherInput.value = "";
     } catch (error) {
       console.error("Payment error:", error);
       showModal({

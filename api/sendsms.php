@@ -48,7 +48,7 @@ if ($method === 'POST') {
         http_response_code(500);
         echo json_encode([
             "success" => false, 
-            "message" => "Failed to send SMS: " . $smsStatus['error']
+            "message" => "Failed to send SMS: " . $smsStatus['error'] . ". Recheck your API KEYS and DEVICE ID"
         ]);
         exit; 
     }

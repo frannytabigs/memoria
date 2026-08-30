@@ -50,7 +50,7 @@ if ($method === 'GET') {
     if (is_numeric($resourceId)) {
         $sql = "
             SELECT 
-                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose, p.deceased_name, p.phone_number, p.email,
+                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose, p.deceased_name, p.phone_number, p.email, p.payers_name,
                 p.image_link, p.remarks_payer, p.remarks_office, p.remarks_grounds, p.created_at,
                 p.confirmed_office_staff, u1.name AS office_staff_name,
                 p.confirmed_ground_staff, u2.name AS ground_staff_name
@@ -95,7 +95,7 @@ if ($method === 'GET') {
         // 3. Fetch Data
         $sql = "
             SELECT 
-                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose,  p.deceased_name, p.phone_number, p.email,
+                p.payment_id, p.reference_number, p.payment_channel, p.amount, p.purpose,  p.deceased_name, p.phone_number, p.email, p.payers_name,
                 p.image_link, p.remarks_payer, p.remarks_office, p.remarks_grounds, p.created_at,
                 p.confirmed_office_staff, u1.name AS office_staff_name,
                 p.confirmed_ground_staff, u2.name AS ground_staff_name
@@ -138,6 +138,7 @@ if ($method === 'GET') {
             'created_at'       => $row['created_at'],
             'overall_status'   => $status,
             'deceased_name' =>  $row['deceased_name'],
+            'payers_name' => $row['payers_name'],
             'details' => [
                 'channel'       => $row['payment_channel'],
                 'amount'        => (float)$row['amount'],
@@ -186,11 +187,12 @@ if ($method === 'POST') {
     $deceased_name = trim($rawData['deceased_name'] ?? '');
     $phone_number = trim($rawData['phone_number'] ?? '');
     $email = trim($rawData['email'] ?? '');
+    $payers_name = trim($rawData['payers_name'] ?? '');
 
     $uploadedFilename = null;
 
-    if (empty($refNum) || empty($channel) || empty($amount) || empty($purpose) || empty($deceased_name) || empty($email) || empty($phone_number)) {
-        Response::error("Reference number, channel, amount, deceased_name, and purpose are required.", 400);
+    if (empty($payers_name) || empty($refNum) || empty($channel) || empty($amount) || empty($purpose) || empty($deceased_name) || empty($email) || empty($phone_number)) {
+        Response::error("Reference number, channel, amount, deceased_name, payers_name, deceased_name, phone_number, email, and purpose are required.", 400);
     }
 
     if (!is_numeric($amount) || (float)$amount <= 0) {
@@ -223,13 +225,13 @@ if ($method === 'POST') {
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO payments (reference_number, payment_channel, amount, purpose, image_link, remarks_payer, deceased_name, phone_number, email) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)
+            INSERT INTO payments (reference_number, payment_channel, amount, purpose, image_link, remarks_payer, deceased_name, phone_number, email, payers_name) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $refNum, $channel, $amount, $purpose, $image, 
             trim($rawData['remarks_payer'] ?? ''), 
-            $deceased_name, $phone_number, $email
+            $deceased_name, $phone_number, $email, $payers_name
             //trim($rawData['remarks_office'] ?? '') // Admins can optionally include an office remark immediately
         ]);
         

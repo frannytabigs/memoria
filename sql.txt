@@ -22,7 +22,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     phone_number VARCHAR(20) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -264,6 +264,7 @@ CREATE TABLE payments(
     deceased_name  VARCHAR(255),
     phone_number VARCHAR(20),
     email VARCHAR(255), 
+    payers_name VARCHAR(255),
    
     purpose VARCHAR(100) NOT NULL, 
     image_link VARCHAR(255) NOT NULL, 
