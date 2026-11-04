@@ -1,0 +1,31 @@
+<?php
+
+require_once 'notallowed.php';
+require_once 'reusable_functions.php';
+
+// api/config.example.php
+define('DB_HOST', env('DB_HOST', 'localhost'));
+define('DB_NAME', env('DB_NAME', 'memoria_db'));
+define('DB_USER', env('DB_USER', 'root'));
+define('DB_PASS', env('DB_PASS', ''));
+define('DB_CHARSET', 'utf8mb4');
+define('DB_TIMEZONE',  env('DB_TIMEZONE', '+08:00'));
+
+define('JWT_SECRET',  env('JWT_SECRET', 'SIR_PAPASARAMIINTAWNPLEASEHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHU'));
+define('JWT_ALGO', 'HS256');
+define('JWT_EXPIRATION', 18000); //in seconds
+define('APP_URL',  env('APP_URL', 'http://yourdomain.com'));
+define('LOG_SECRET_KEY',  env('LOG_SECRET_KEY', 'your_log_secret_key'));
+define('ENCRYPTION_KEY',  env('ENCRYPTION_KEY', 'SIR_PAPASARAMIINTAWNPLEASEHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHUHU!')); //textbee used to encrypt
+
+// --- ENUM CONSTANTS ---
+// Manually update these if the database schema ever changes
+const ROLE_ADMIN = 'Administrator';
+const ROLE_OFFICE = 'Office Staff';
+const ROLE_GROUNDS = 'Grounds Staff'; // Default Role I guess
+
+const STATUS_VERIFIED = 'Verified';
+const STATUS_UNVERIFIED = 'Unverified'; // Default Status I guess
+
+const ALLOWED_ROLES = [ROLE_ADMIN, ROLE_OFFICE, ROLE_GROUNDS]; //database
+const ALLOWED_STATUSES = [STATUS_VERIFIED, STATUS_UNVERIFIED]; //database
