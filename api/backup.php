@@ -190,6 +190,73 @@ function releaseOperationLock($fp): void
     fclose($fp);
 }
 
+/**
+ * Return the columns in $table that have a foreign key pointing back to
+ * $table itself. For the current schema, this is ['created_by','updated_by']
+ * for `users`, and [] for every other table.
+ *
+ * Uses pg_catalog (more reliable than information_schema for composite
+ * multi-column FKs).
+ */
+function getSelfReferencingForeignKeys(PDO $pdo, string $table): array
+{
+    $stmt = $pdo->prepare("
+        SELECT a.attname AS column_name
+        FROM pg_constraint con
+        JOIN pg_class     rel   ON rel.oid  = con.conrelid
+        JOIN pg_class     frel  ON frel.oid = con.confrelid
+        JOIN pg_namespace n     ON n.oid    = rel.relnamespace
+        JOIN unnest(con.conkey) AS col(attnum) ON true
+        JOIN pg_attribute a     ON a.attrelid = rel.oid AND a.attnum = col.attnum
+        WHERE con.contype = 'f'
+          AND n.nspname = current_schema()
+          AND rel.relname  = :t
+          AND frel.relname = :t2
+        ORDER BY array_position(con.conkey, col.attnum)
+    ");
+    $stmt->execute([':t' => $table, ':t2' => $table]);
+    return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+}
+
+/**
+ * Return the primary-key columns of $table in declared order.
+ * Used by the two-pass restore path to emit the phase-2 UPDATEs.
+ */
+function getPrimaryKeyColumns(PDO $pdo, string $table): array
+{
+    $stmt = $pdo->prepare("
+        SELECT a.attname AS column_name
+        FROM pg_constraint con
+        JOIN pg_class     rel ON rel.oid = con.conrelid
+        JOIN pg_namespace n   ON n.oid   = rel.relnamespace
+        JOIN unnest(con.conkey) AS col(attnum) ON true
+        JOIN pg_attribute a   ON a.attrelid = rel.oid AND a.attnum = col.attnum
+        WHERE con.contype = 'p'
+          AND n.nspname = current_schema()
+          AND rel.relname = :t
+        ORDER BY array_position(con.conkey, col.attnum)
+    ");
+    $stmt->execute([':t' => $table]);
+    return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+}
+
+/**
+ * Emit a single INSERT statement for one row, honouring generated columns
+ * (already stripped from $row by the caller) and identity-always tables.
+ */
+function buildInsertStatement(string $quotedTable, array $row, string $overriding, PDO $pdo): string
+{
+    $columns = implode(', ', array_map(
+        static fn(string $c): string => sqlIdentifier($c),
+        array_keys($row)
+    ));
+    $values = implode(', ', array_map(
+        static fn(mixed $v): string => sqlLiteral($pdo, $v),
+        array_values($row)
+    ));
+    return "INSERT INTO {$quotedTable} ({$columns}){$overriding} VALUES ({$values});\n";
+}
+
 function createBackup(PDO $pdo, string $backupDir): string
 {
     // PostgreSQL: TO_CHAR replaces DATE_FORMAT (%i -> MI, %H -> HH24)
@@ -204,8 +271,6 @@ function createBackup(PDO $pdo, string $backupDir): string
     }
 
     try {
-        // Snapshot transaction. Postgres REPEATABLE READ is the closest analogue
-        // to MySQL's WITH CONSISTENT SNAPSHOT.
         $inTx = $pdo->inTransaction();
         if (!$inTx) {
             $pdo->exec("BEGIN ISOLATION LEVEL REPEATABLE READ");
@@ -217,8 +282,9 @@ function createBackup(PDO $pdo, string $backupDir): string
 
             fwrite($handle, "-- Data-only backup generated {$headerTime} (timezone: {$sessionTz})\n");
             fwrite($handle, "-- Restore order respects foreign-key dependencies.\n");
-            fwrite($handle, "-- No session_replication_role is used, so this restore works\n");
-            fwrite($handle, "-- on managed PostgreSQL services (Render, RDS, Azure, etc.).\n");
+            fwrite($handle, "-- Self-referencing FKs (e.g. users.created_by / users.updated_by)\n");
+            fwrite($handle, "-- are inserted with NULL first, then UPDATEd back into place.\n");
+            fwrite($handle, "-- No session_replication_role is used.\n");
             fwrite($handle, "SET timezone = " . $pdo->quote($sessionTz) . ";\n\n");
 
             // ── Table dependency order ──────────────────────────────────────
@@ -235,7 +301,6 @@ function createBackup(PDO $pdo, string $backupDir): string
                 'payments',
             ];
 
-            // Verify which of these tables actually exist in the current schema
             $existingTables = $pdo->query("
                 SELECT table_name
                 FROM information_schema.tables
@@ -249,14 +314,11 @@ function createBackup(PDO $pdo, string $backupDir): string
                 static fn(string $t): bool => isset($existingSet[$t])
             ));
 
-            // Any table not in the explicit list (future additions) goes at the end,
-            // alphabetically. This keeps the backup functional even if someone adds
-            // a new table without updating the dependency list above.
             $extraTables = array_values(array_diff($existingTables, $orderedTables));
             sort($extraTables);
             $tables = array_merge($tables, $extraTables);
 
-            // Which tables have GENERATED ALWAYS AS IDENTITY columns.
+            // Which tables have GENERATED ALWAYS AS IDENTITY columns
             $alwaysIdent = [];
             $aiStmt = $pdo->query("
                 SELECT DISTINCT table_name
@@ -296,33 +358,95 @@ function createBackup(PDO $pdo, string $backupDir): string
                     ? ' OVERRIDING SYSTEM VALUE'
                     : '';
 
-                $stmt = $pdo->query("SELECT * FROM {$quotedTable}");
+                $selfFks = getSelfReferencingForeignKeys($pdo, $table);
 
-                while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-                    $row = array_filter(
-                        $row,
-                        static fn(string $col): bool => !isset($skip[$col]),
-                        ARRAY_FILTER_USE_KEY
-                    );
+                if (empty($selfFks)) {
+                    // ── Simple pass: no self-references, stream and insert ──
+                    $stmt = $pdo->query("SELECT * FROM {$quotedTable}");
 
-                    if ($row === []) {
-                        continue;
+                    while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+                        $row = array_filter(
+                            $row,
+                            static fn(string $col): bool => !isset($skip[$col]),
+                            ARRAY_FILTER_USE_KEY
+                        );
+
+                        if ($row === []) {
+                            continue;
+                        }
+
+                        fwrite($handle, buildInsertStatement($quotedTable, $row, $overriding, $pdo));
+                    }
+                } else {
+                    // ── Two-pass: table has self-referencing FKs ────────────
+                    // (1) INSERT every row with self-FK columns NULLed out.
+                    // (2) UPDATE those columns back to their original values.
+                    // By the time step (2) runs, every referenced row exists,
+                    // so the FK is satisfiable — even for mutual references.
+                    $pkCols = getPrimaryKeyColumns($pdo, $table);
+                    if (empty($pkCols)) {
+                        throw new RuntimeException(
+                            "Cannot restore '$table': it has self-referencing FKs but no primary key."
+                        );
                     }
 
-                    $columns = implode(', ', array_map(
-                        static fn(string $c): string => sqlIdentifier($c),
-                        array_keys($row)
-                    ));
+                    $rows = $pdo->query("SELECT * FROM {$quotedTable}")->fetchAll(PDO::FETCH_ASSOC);
 
-                    $values = implode(', ', array_map(
-                        static fn(mixed $v): string => sqlLiteral($pdo, $v),
-                        array_values($row)
-                    ));
+                    $pendingUpdates = [];
 
-                    fwrite(
-                        $handle,
-                        "INSERT INTO {$quotedTable} ({$columns}){$overriding} VALUES ({$values});\n"
-                    );
+                    // Phase 1: INSERT with NULL self-FKs
+                    foreach ($rows as $row) {
+                        $originalSelfFks = [];
+                        foreach ($selfFks as $col) {
+                            $originalSelfFks[$col] = $row[$col] ?? null;
+                            $row[$col] = null;
+                        }
+
+                        $row = array_filter(
+                            $row,
+                            static fn(string $col): bool => !isset($skip[$col]),
+                            ARRAY_FILTER_USE_KEY
+                        );
+
+                        if ($row === []) {
+                            continue;
+                        }
+
+                        fwrite($handle, buildInsertStatement($quotedTable, $row, $overriding, $pdo));
+
+                        // Remember the PK + the FK values we NULLed so phase 2
+                        // can restore them.
+                        $pkValues = [];
+                        foreach ($pkCols as $pkCol) {
+                            $pkValues[$pkCol] = $row[$pkCol];
+                        }
+                        $pendingUpdates[] = ['pk' => $pkValues, 'fks' => $originalSelfFks];
+                    }
+
+                    // Phase 2: UPDATE the self-FKs back into place
+                    foreach ($pendingUpdates as $upd) {
+                        $setParts = [];
+                        foreach ($upd['fks'] as $col => $val) {
+                            if ($val === null) {
+                                continue;   // Was NULL originally — nothing to restore
+                            }
+                            $setParts[] = sqlIdentifier($col) . ' = ' . sqlLiteral($pdo, $val);
+                        }
+                        if (empty($setParts)) {
+                            continue;
+                        }
+
+                        $whereParts = [];
+                        foreach ($upd['pk'] as $col => $val) {
+                            $whereParts[] = sqlIdentifier($col) . ' = ' . sqlLiteral($pdo, $val);
+                        }
+
+                        fwrite(
+                            $handle,
+                            "UPDATE {$quotedTable} SET " . implode(', ', $setParts)
+                                . " WHERE " . implode(' AND ', $whereParts) . ";\n"
+                        );
+                    }
                 }
 
                 fwrite($handle, "\n");
