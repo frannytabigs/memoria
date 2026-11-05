@@ -158,13 +158,24 @@ function saveTextBeeCredentials($plainTextApiKey, $plainTextDeviceId, $userId = 
     try {
         $pdo->beginTransaction();
 
-        // Converted from MySQL ON DUPLICATE KEY UPDATE to PostgreSQL ON CONFLICT DO UPDATE
-        // Note: Assumes there is a unique constraint or index on setting_key (which matches your unique index setup_db.php)
+        // Converted from MySQL ON DUPLICATE KEY UPDATE to PostgreSQL ON CONFLICT DO UPDATE.
+        //
+        // IMPORTANT: the conflict target must reference the actual unique constraint.
+        // The schema defines `CONSTRAINT uk_active_setting_key UNIQUE (active_setting_key)`,
+        // where active_setting_key is a GENERATED column equal to setting_key for active
+        // rows and NULL for soft-deleted rows. There is NO unique constraint on
+        // setting_key itself, so `ON CONFLICT (setting_key)` would fail with
+        // "there is no unique or exclusion constraint matching the ON CONFLICT
+        // specification". Targeting active_setting_key reproduces MySQL's
+        // ON DUPLICATE KEY UPDATE behavior exactly:
+        //   - existing ACTIVE key   -> DO UPDATE runs on that row
+        //   - existing SOFT-DELETED key -> active_setting_key is NULL -> no conflict
+        //                                  -> a fresh row is inserted (history preserved)
         $stmt = $pdo->prepare("
             INSERT INTO settings
             (setting_key, setting_value, description, created_at, updated_at, created_by, updated_by)
             VALUES (:key, :value, :desc, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :created_by, :updated_by)
-            ON CONFLICT (setting_key) 
+            ON CONFLICT (active_setting_key)
             DO UPDATE SET
             setting_value = EXCLUDED.setting_value,
             description   = EXCLUDED.description,
