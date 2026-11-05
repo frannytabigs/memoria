@@ -1,6 +1,5 @@
 <?php
-define('ITS_ME_JUSTTOVERIFY', true);
-
+require_once 'notallowed.php';
 require_once 'database.php'; // Make sure this path points to your database connection file
 $sql = <<<'SQL'
 -- USERS

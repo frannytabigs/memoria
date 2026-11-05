@@ -37,10 +37,10 @@ $stmt = $pdo->query("
             WHEN active_occupant_count = 0 AND grave_status = 'Vacant' THEN 'Vacant'
             WHEN active_occupant_count = 1 
                  AND min_exp_date IS NOT NULL 
-                 AND min_exp_date < CURDATE() THEN 'Expired'
+                 AND min_exp_date < CURRENT_DATE THEN 'Expired'
             WHEN active_occupant_count = 1 
                  AND min_exp_date IS NOT NULL 
-                 AND min_exp_date <= DATE_ADD(CURDATE(), INTERVAL 1 MONTH) THEN 'Expiring'
+                 AND min_exp_date <= (CURRENT_DATE + INTERVAL '1 MONTH') THEN 'Expiring'
             WHEN active_occupant_count = 1 THEN 'Occupied'
             WHEN active_occupant_count >= 2 THEN 'Occupied'
             ELSE 'Other'
@@ -93,17 +93,17 @@ $dashboardData['available_graves'] = $graveDistribution['Vacant'];
 $stmt = $pdo->query("
     SELECT 
         SUM(CASE 
-            WHEN lease_expiration_date < CURDATE() AND is_eligible = 1 
+            WHEN lease_expiration_date < CURRENT_DATE AND is_eligible = 1 
             THEN 1 ELSE 0 
         END) AS expired,
         SUM(CASE 
-            WHEN lease_expiration_date >= CURDATE() 
-             AND lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 1 MONTH) 
+            WHEN lease_expiration_date >= CURRENT_DATE 
+             AND lease_expiration_date <= (CURRENT_DATE + INTERVAL '1 MONTH') 
              AND is_eligible = 1 
             THEN 1 ELSE 0 
         END) AS expiring,
         SUM(CASE 
-            WHEN lease_expiration_date > DATE_ADD(CURDATE(), INTERVAL 1 MONTH) 
+            WHEN lease_expiration_date > (CURRENT_DATE + INTERVAL '1 MONTH') 
             THEN 1 ELSE 0 
         END) AS occupied,
         SUM(CASE 
@@ -112,7 +112,7 @@ $stmt = $pdo->query("
         END) AS unknown,
         SUM(CASE 
             WHEN lease_expiration_date IS NOT NULL 
-             AND lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 1 MONTH) 
+             AND lease_expiration_date <= (CURRENT_DATE + INTERVAL '1 MONTH') 
              AND is_eligible = 0 
             THEN 1 ELSE 0 
         END) AS ineligible,
@@ -162,8 +162,8 @@ $stmt = $pdo->query("
         AND g.deleted_at IS NULL
     WHERE i.status = 'Active' 
       AND i.deleted_at IS NULL
-      AND i.lease_expiration_date >= CURDATE()
-      AND i.lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 1 MONTH)
+      AND i.lease_expiration_date >= CURRENT_DATE
+      AND i.lease_expiration_date <= (CURRENT_DATE + INTERVAL '1 MONTH')
       AND (SELECT COUNT(*) FROM interments i2
            WHERE i2.current_grave_id = g.grave_id
              AND i2.status = 'Active'
@@ -190,7 +190,7 @@ $stmt = $pdo->query("
         AND g.deleted_at IS NULL
     WHERE i.status = 'Active' 
       AND i.deleted_at IS NULL
-      AND i.lease_expiration_date < CURDATE()
+      AND i.lease_expiration_date < CURRENT_DATE
       AND (SELECT COUNT(*) FROM interments i2
            WHERE i2.current_grave_id = g.grave_id
              AND i2.status = 'Active'
@@ -232,14 +232,14 @@ $dashboardData['active_reservations_count'] = (int)$stmt->fetchColumn();
 // Payment confirmation queue
 $stmt = $pdo->query("
     SELECT 
-        COALESCE(SUM(confirmed_office_staff IS NULL), 0)  AS awaiting_office,
-        COALESCE(SUM(confirmed_ground_staff IS NULL), 0)  AS awaiting_grounds
+        COALESCE(SUM(CASE WHEN confirmed_office_staff IS NULL THEN 1 ELSE 0 END), 0) AS awaiting_office,
+        COALESCE(SUM(CASE WHEN confirmed_ground_staff IS NULL THEN 1 ELSE 0 END), 0) AS awaiting_grounds
     FROM payments
     WHERE deleted_at IS NULL
 ");
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-$awaitingOffice   = (int)$row['awaiting_office'];
-$awaitingGrounds  = (int)$row['awaiting_grounds'];
+$awaitingOffice  = (int)$row['awaiting_office'];
+$awaitingGrounds = (int)$row['awaiting_grounds'];
 
 $dashboardData['payments_awaiting_my_confirmation'] =
     $userRole === ROLE_OFFICE  ? $awaitingOffice  : ($userRole === ROLE_GROUNDS ? $awaitingGrounds : 0);
@@ -247,12 +247,12 @@ $dashboardData['payments_awaiting_my_confirmation'] =
 // Monthly Lease Expiration (grouped by month for the current year)
 // This is intentionally raw — it's a calendar chart, not a "reservable" count.
 $stmt = $pdo->query("
-    SELECT DATE_FORMAT(lease_expiration_date, '%Y-%m') AS exp_month, 
+    SELECT TO_CHAR(lease_expiration_date, 'YYYY-MM') AS exp_month, 
            COUNT(*) AS count 
     FROM interments 
     WHERE status = 'Active' 
       AND deleted_at IS NULL
-      AND YEAR(lease_expiration_date) = YEAR(CURDATE())
+      AND EXTRACT(YEAR FROM lease_expiration_date) = EXTRACT(YEAR FROM CURRENT_DATE)
     GROUP BY exp_month 
     ORDER BY exp_month ASC
 ");
@@ -277,24 +277,12 @@ if (in_array($userRole, [ROLE_ADMIN, ROLE_OFFICE])) {
     $stmt = $pdo->query("
         SELECT 
             COUNT(*) AS total_count,
-            COALESCE(SUM(
-                confirmed_office_staff IS NOT NULL 
-                AND confirmed_ground_staff IS NOT NULL
-            ), 0) AS fully_confirmed_count,
-            COALESCE(SUM(confirmed_office_staff IS NULL), 0)  AS unconfirmed_by_office_count,
-            COALESCE(SUM(confirmed_ground_staff IS NULL), 0)  AS unconfirmed_by_grounds_count,
-            COALESCE(SUM(
-                confirmed_office_staff IS NULL 
-                AND confirmed_ground_staff IS NULL
-            ), 0) AS unconfirmed_by_both_count,
-            COALESCE(SUM(CASE 
-                WHEN confirmed_office_staff IS NOT NULL 
-                 AND confirmed_ground_staff IS NOT NULL 
-                THEN amount ELSE 0 END), 0) AS confirmed_amount,
-            COALESCE(SUM(CASE 
-                WHEN confirmed_office_staff IS NULL 
-                  OR confirmed_ground_staff IS NULL 
-                THEN amount ELSE 0 END), 0) AS unconfirmed_amount
+            COALESCE(SUM(CASE WHEN confirmed_office_staff IS NOT NULL AND confirmed_ground_staff IS NOT NULL THEN 1 ELSE 0 END), 0) AS fully_confirmed_count,
+            COALESCE(SUM(CASE WHEN confirmed_office_staff IS NULL THEN 1 ELSE 0 END), 0) AS unconfirmed_by_office_count,
+            COALESCE(SUM(CASE WHEN confirmed_ground_staff IS NULL THEN 1 ELSE 0 END), 0) AS unconfirmed_by_grounds_count,
+            COALESCE(SUM(CASE WHEN confirmed_office_staff IS NULL AND confirmed_ground_staff IS NULL THEN 1 ELSE 0 END), 0) AS unconfirmed_by_both_count,
+            COALESCE(SUM(CASE WHEN confirmed_office_staff IS NOT NULL AND confirmed_ground_staff IS NOT NULL THEN amount ELSE 0 END), 0) AS confirmed_amount,
+            COALESCE(SUM(CASE WHEN confirmed_office_staff IS NULL OR confirmed_ground_staff IS NULL THEN amount ELSE 0 END), 0) AS unconfirmed_amount
         FROM payments
         WHERE deleted_at IS NULL
     ");
@@ -304,15 +292,15 @@ if (in_array($userRole, [ROLE_ADMIN, ROLE_OFFICE])) {
     $fullyConfirmedCount = (int)$row['fully_confirmed_count'];
 
     $dashboardData['payments'] = [
-        'total_count'               => $totalCount,
-        'fully_confirmed_count'     => $fullyConfirmedCount,
-        'unconfirmed_count'         => $totalCount - $fullyConfirmedCount,
+        'total_count'                  => $totalCount,
+        'fully_confirmed_count'        => $fullyConfirmedCount,
+        'unconfirmed_count'            => $totalCount - $fullyConfirmedCount,
         'unconfirmed_by_office_count'  => (int)$row['unconfirmed_by_office_count'],
         'unconfirmed_by_grounds_count' => (int)$row['unconfirmed_by_grounds_count'],
         'unconfirmed_by_both_count'    => (int)$row['unconfirmed_by_both_count'],
-        'confirmed_amount'          => (float)$row['confirmed_amount'],
-        'unconfirmed_amount'        => (float)$row['unconfirmed_amount'],
-        'total_amount'              => (float)$row['confirmed_amount'] + (float)$row['unconfirmed_amount'],
+        'confirmed_amount'             => (float)$row['confirmed_amount'],
+        'unconfirmed_amount'           => (float)$row['unconfirmed_amount'],
+        'total_amount'                 => (float)$row['confirmed_amount'] + (float)$row['unconfirmed_amount'],
     ];
 }
 
