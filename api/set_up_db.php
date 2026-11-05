@@ -4295,9 +4295,6 @@ INSERT INTO settings (setting_id, setting_key, setting_value, description, delet
 INSERT INTO settings (setting_id, setting_key, setting_value, description, deleted_at, created_by, updated_by) VALUES (35, 'people_title_2', 'Admin Division Chief', 'Report Signatory 2 Title', NULL, 1, 1);
 INSERT INTO settings (setting_id, setting_key, setting_value, description, deleted_at, created_by, updated_by) VALUES (36, 'cemetery_map_images', 'cemetery_map_image.png', 'For the cemetery map backgound image', NULL, 1, 1);
 
-SET FOREIGN_KEY_CHECKS=1;
-COMMIT;
-
 SQL;
 
 try {
