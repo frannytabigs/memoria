@@ -20,9 +20,9 @@ const LIST_INPUT_CONFIG = {
         inputClass: "purposeInput",
         inputName: "payment_purposes[]",
     },
-    barangay_options: {
+    barangay_options_list: {
         inputClass: "barangayInput",
-        inputName: "barangay_options[]",
+        inputName: "barangay_options_list[]",
     },
 };
 
@@ -202,7 +202,7 @@ const SETTINGS_SPEC = {
 
     payment_channels_list: { description: "Payment Channels", kind: "list" },
     payment_purposes_list: { description: "Purposes of Payment", kind: "list" },
-    barangay_options: { description: "Barangay Dropdowns", kind: "list" },
+    barangay_options_list: { description: "Barangay Dropdowns", kind: "list" },
 };
 
 // Fields that must not be empty before the form can be saved
@@ -561,7 +561,7 @@ async function saveSiteContent(event) {
 // Shorten long values for display in the summary dialog
 function prettySettingValue(key, value) {
     const v = String(value ?? "");
-    if (key.endsWith("_list") || key === "barangay_options") {
+    if (key.endsWith("_list") || key === "barangay_options_list") {
         try {
             const arr = JSON.parse(v);
             if (Array.isArray(arr)) {
@@ -616,9 +616,9 @@ function wireSiteContentUI() {
     const addBarangay =
         document.getElementById("add_barangay_option") ||
         document.getElementById("add_barangay") ||
-        document.getElementById("add_barangay_options");
+        document.getElementById("add_barangay_options_list");
     if (addBarangay) {
-        addBarangay.addEventListener("click", () => addOption("barangay_options"));
+        addBarangay.addEventListener("click", () => addOption("barangay_options_list"));
     }
 
     const form = document.getElementById("site_content_form");
