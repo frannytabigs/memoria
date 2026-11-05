@@ -168,9 +168,10 @@ $vacantSelect = "
       )
 ";
 
+// PostgreSQL: CURRENT_DATE instead of CURDATE(); CURRENT_DATE + INTERVAL '1 MONTH' instead of DATE_ADD(...)
 $expiringSelect = "
     SELECT
-        CASE WHEN i.lease_expiration_date < CURDATE() THEN 'expired' ELSE 'expiring' END AS type,
+        CASE WHEN i.lease_expiration_date < CURRENT_DATE THEN 'expired' ELSE 'expiring' END AS type,
         g.grave_id, g.grave_code, g.row_num, g.col_num,
         g.status AS grave_status, g.remarks AS grave_remarks,
         b.block_id, b.block_name, b.block_type,
@@ -196,7 +197,7 @@ $expiringSelect = "
     WHERE i.status = 'Active'
       AND i.deleted_at IS NULL
       AND i.lease_expiration_date IS NOT NULL
-      AND i.lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 1 MONTH)
+      AND i.lease_expiration_date <= (CURRENT_DATE + INTERVAL '1 MONTH')
       AND (
           SELECT COUNT(*) FROM interments i2
           WHERE i2.current_grave_id = g.grave_id
@@ -218,6 +219,13 @@ $expiringSelect = "
 if ($method === 'GET') {
 
     if ($resourceId) {
+        // PostgreSQL compatibility: a non-numeric id would trigger 22P02
+        // (invalid_text_representation) -> uncaught 500. MySQL silently
+        // cast 'abc' to 0 and returned "not found", so preserve that 404.
+        if (!is_numeric($resourceId)) {
+            Response::error('Grave not found or not eligible for a reservation.', 404);
+        }
+
         $combinedSQL = "($expiringSelect AND g.grave_id = :id1) UNION ALL ($vacantSelect AND g.grave_id = :id2)";
         $stmt = $pdo->prepare($combinedSQL);
         $stmt->execute(['id1' => $resourceId, 'id2' => $resourceId]);
@@ -270,9 +278,9 @@ if ($method === 'GET') {
         $hasExpired  = in_array('expired',  $wantedStatuses);
         $hasExpiring = in_array('expiring', $wantedStatuses);
         if ($hasExpired && !$hasExpiring) {
-            $expiringDateClause = " AND i.lease_expiration_date < CURDATE()";
+            $expiringDateClause = " AND i.lease_expiration_date < CURRENT_DATE";
         } elseif ($hasExpiring && !$hasExpired) {
-            $expiringDateClause = " AND i.lease_expiration_date >= CURDATE()";
+            $expiringDateClause = " AND i.lease_expiration_date >= CURRENT_DATE";
         }
     }
 
@@ -308,7 +316,9 @@ if ($method === 'GET') {
             ];
             $parts = [];
             foreach ($cols as $c) {
-                $parts[] = "$c LIKE ?";
+                // PostgreSQL LIKE is case-sensitive; MySQL's default was not.
+                // ILIKE preserves the previous, expected behavior.
+                $parts[] = "$c ILIKE ?";
                 $searchParams[] = $like;
             }
 
@@ -328,29 +338,31 @@ if ($method === 'GET') {
                 'i.created_at',
                 'i.updated_at',
             ];
+            // PostgreSQL: DATE($col) -> $col::date; MONTH/DAY/YEAR -> EXTRACT(...)
+            // Explicit ::int / ::date casts keep param types unambiguous.
             foreach ($dateCriteria['exact_dates'] as $d) {
                 foreach ($expiringDateCols as $col) {
-                    $parts[] = "DATE($col) = ?";
+                    $parts[] = "$col::date = ?::date";
                     $searchParams[] = $d;
                 }
             }
             foreach ($dateCriteria['month_days'] as $md) {
                 foreach ($expiringDateCols as $col) {
-                    $parts[] = "(MONTH($col) = ? AND DAY($col) = ?)";
+                    $parts[] = "(EXTRACT(MONTH FROM $col)::int = ?::int AND EXTRACT(DAY FROM $col)::int = ?::int)";
                     $searchParams[] = $md['m'];
                     $searchParams[] = $md['d'];
                 }
             }
             foreach ($dateCriteria['year_months'] as $ym) {
                 foreach ($expiringDateCols as $col) {
-                    $parts[] = "(YEAR($col) = ? AND MONTH($col) = ?)";
+                    $parts[] = "(EXTRACT(YEAR FROM $col)::int = ?::int AND EXTRACT(MONTH FROM $col)::int = ?::int)";
                     $searchParams[] = $ym['y'];
                     $searchParams[] = $ym['m'];
                 }
             }
             foreach ($dateCriteria['years'] as $y) {
                 foreach ($expiringDateCols as $col) {
-                    $parts[] = "YEAR($col) = ?";
+                    $parts[] = "EXTRACT(YEAR FROM $col)::int = ?::int";
                     $searchParams[] = $y;
                 }
             }
@@ -368,7 +380,7 @@ if ($method === 'GET') {
             $cols = ['g.grave_code', 'g.status', 'g.remarks', 'b.block_name', 'b.block_type'];
             $parts = [];
             foreach ($cols as $c) {
-                $parts[] = "$c LIKE ?";
+                $parts[] = "$c ILIKE ?";
                 $searchParams[] = $like;
             }
             $vacantSearchSQL = ' AND (' . implode(' OR ', $parts) . ')';
@@ -801,10 +813,11 @@ if ($method === 'POST') {
             $values[] = $val;
         }
 
-        $sql = "INSERT INTO interments (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        // PostgreSQL: RETURNING is more reliable than lastInsertId() on PDO_PGSQL.
+        $sql = "INSERT INTO interments (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $placeholders) . ") RETURNING interment_id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($values);
-        $newIntermentId = (int) $pdo->lastInsertId();
+        $newIntermentId = (int) $stmt->fetchColumn();
 
         // The reservation is frozen here, only monitor.php can Confirm or Cancel it
         $resStmt = $pdo->prepare("
@@ -824,6 +837,7 @@ if ($method === 'POST') {
                 created_by,
                 updated_by
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)
+            RETURNING reservation_id
         ");
         $resStmt->execute([
             $newIntermentId,
@@ -840,7 +854,7 @@ if ($method === 'POST') {
             $userId,
             $userId,
         ]);
-        $reservationId = (int) $pdo->lastInsertId();
+        $reservationId = (int) $resStmt->fetchColumn();
 
         $pdo->commit();
 
@@ -865,10 +879,12 @@ if ($method === 'POST') {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
+        // PDO_PGSQL returns the SQLSTATE in getCode(), not the legacy MySQL code.
         $sqlState = (string) $e->getCode();
         $msg      = $e->getMessage();
 
-        if ($sqlState === '23000') {
+        if ($sqlState === '23505') {
+            // unique_violation (was MySQL 23000)
             if (strpos($msg, 'uk_active_control_number') !== false) {
                 Response::error("Conflict: Control number already exists.", 409);
             }
@@ -885,7 +901,8 @@ if ($method === 'POST') {
             Response::error("Conflict: Reservation could not be created.", 409);
         }
 
-        if ($sqlState === 'HY000') {
+        if ($sqlState === '23514') {
+            // check_violation (was MySQL HY000 for CHECK names)
             if (strpos($msg, 'chk_status_grave') !== false) {
                 Response::error("Conflict: Invalid status/grave combination.", 409);
             }
@@ -901,7 +918,9 @@ if ($method === 'POST') {
             systemLog("Reservation creation CHECK violation: " . $msg, 'System');
             Response::error("Conflict: Reservation could not be created.", 409);
         }
+
         if ($sqlState === '22007') {
+            // Same in MySQL and PostgreSQL: invalid_datetime_format
             Response::error("The Date Formats are invalid, please check again!", 409);
         }
 
