@@ -312,21 +312,26 @@ try {
                             $sValue = encryptCredential($sValue);
                         }
 
-                        // Upsert by key: an active row updates in place, a missing key inserts a new row
-                        // Soft-deleted rows stay as history, they aren't revived on re-save
+                        // Upsert by key: an active row updates in place, a missing key inserts a new row.
+                        // Soft-deleted rows stay as history, they aren't revived on re-save.
                         //
                         // PostgreSQL: ON CONFLICT replaces MySQL's ON DUPLICATE KEY UPDATE, and
-                        // EXCLUDED.col replaces MySQL's VALUES(col). The WHERE predicate on the
-                        // conflict target matches the partial unique index on (setting_key) that
-                        // only covers active rows (deleted_at IS NULL) — see the schema note in
-                        // the response. If your index is instead UNIQUE(setting_key, deleted_at),
-                        // swap the conflict target to: ON CONFLICT (setting_key, deleted_at)
+                        // EXCLUDED.col replaces MySQL's VALUES(col).
+                        //
+                        // IMPORTANT: the conflict target must reference the actual unique constraint.
+                        // The schema defines `CONSTRAINT uk_active_setting_key UNIQUE (active_setting_key)`
+                        // where active_setting_key is a GENERATED column that equals setting_key for
+                        // active rows and NULL for soft-deleted rows. So we conflict on that column.
+                        // The effect matches MySQL's ON DUPLICATE KEY UPDATE exactly:
+                        //   - existing ACTIVE key  -> DO UPDATE runs on that row
+                        //   - existing SOFT-DELETED key -> active_setting_key is NULL -> no conflict
+                        //                                -> a fresh row is inserted (history preserved)
                         $sql = "
                             INSERT INTO settings 
                                 (setting_key, setting_value, description, created_at, updated_at, created_by, updated_by)
                             VALUES 
                                 (:key, :value, :desc, NOW(), NOW(), :created_by, :updated_by)
-                            ON CONFLICT (setting_key) WHERE deleted_at IS NULL
+                            ON CONFLICT (active_setting_key)
                             DO UPDATE SET
                                 setting_value = EXCLUDED.setting_value,
                                 description   = EXCLUDED.description,
