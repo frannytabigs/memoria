@@ -50,39 +50,50 @@ function findActivePlanOnGrave(PDO $pdo, int $graveId): ?int
     return $id !== false ? (int) $id : null;
 }
 
+/**
+ * Map PDO/PostgreSQL exceptions to user-friendly (message, httpCode) pairs.
+ *
+ * NOTE: On PDO_PGSQL, `$e->errorInfo[1]` is unreliable (often NULL). The
+ * canonical error code is the 5-char SQLSTATE, exposed in `$e->errorInfo[0]`
+ * and `$e->getCode()`. We map SQLSTATEs that correspond to the old MySQL
+ * error codes this function used to check.
+ */
 function friendlyDbError(PDOException $e, string $context = 'operation'): array
 {
-    $mysqlCode = $e->errorInfo[1] ?? null;
-    $detail    = (string) ($e->errorInfo[2] ?? $e->getMessage());
+    $sqlState = $e->errorInfo[0] ?? (string) $e->getCode();
+    $detail   = (string) ($e->errorInfo[2] ?? $e->getMessage());
 
-    switch ($mysqlCode) {
-        case 1062: // Duplicate entry for a unique index
+    switch ($sqlState) {
+        case '23505': // unique_violation (MySQL 1062)
             if (stripos($detail, 'uk_active_grave_code') !== false) {
                 return ["A grave with this code already exists.", 409];
             }
             return ["A record with the same unique value already exists.", 409];
 
-        case 1205: // Lock wait timeout exceeded
-        case 1213: // Deadlock found when trying to get lock
+        case '40P01': // deadlock_detected (MySQL 1213)
+        case '55P03': // lock_not_available (closest analog to MySQL 1205)
             return [
                 "This grave is currently being edited by another user. "
                     . "Please try again in a moment.",
                 409
             ];
 
-        case 1451: // Cannot delete/update parent row: FK constraint fails
-            return ["Cannot complete: other records still reference this grave.", 409];
-
-        case 1452: // Cannot add/update child row: FK constraint fails
+        case '23503': // foreign_key_violation (MySQL 1451 / 1452)
+            // Postgres distinguishes parent-side vs child-side FK failures
+            // only by message text: "update or delete on table ..." means
+            // the row we tried to remove is still referenced.
+            if (stripos($detail, 'update or delete on table') !== false) {
+                return ["Cannot complete: other records still reference this grave.", 409];
+            }
             return ["Cannot complete: a referenced record does not exist.", 409];
 
-        case 1406: // Data too long for column
+        case '22001': // string_data_right_truncation (MySQL 1406)
             return ["One of the provided values is too long for its column.", 400];
 
-        case 1048: // Column cannot be null
+        case '23502': // not_null_violation (MySQL 1048)
             return ["A required field was missing or empty.", 400];
 
-        case 1264: // Out of range value for column
+        case '22003': // numeric_value_out_of_range (MySQL 1264)
             return ["A numeric value is out of range.", 400];
 
         default:
@@ -226,7 +237,8 @@ if ($method === 'GET') {
     $page  = max(1, (int) ($_GET['page'] ?? 1));
 
     // Status filter (Admin/Office only)
-    // Public cannot see `status` in responses, so filtering by it would leak which graves are vacant / occupied / other. Reject it outright.
+    // Public cannot see `status` in responses, so filtering by it would leak
+    // which graves are vacant / occupied / other. Reject it outright.
     $statusRaw = $_GET['status'] ?? '';
     if (is_array($statusRaw)) {
         $statusRaw = implode(',', $statusRaw);
@@ -272,7 +284,8 @@ if ($method === 'GET') {
             $params[] = $s;
         }
 
-        // For 'vacant', skip graves already reserved by an Active reservation, since a grave about to be occupied is not truly available
+        // For 'vacant', skip graves already reserved by an Active reservation,
+        // since a grave about to be occupied is not truly available
         if (in_array('vacant', $wantedStatuses, true)) {
             $where .= "
                 AND NOT EXISTS (
@@ -288,17 +301,19 @@ if ($method === 'GET') {
     if ($searchTerm !== '') {
         $like = '%' . $searchTerm . '%';
 
+        // Postgres `LIKE` is case-sensitive; MySQL's default was not.
+        // ILIKE preserves the old, expected behavior for user search.
         $parts = [
-            'g.grave_code LIKE ?',
-            'b.block_name LIKE ?',
-            'b.block_type LIKE ?',
+            'g.grave_code ILIKE ?',
+            'b.block_name ILIKE ?',
+            'b.block_type ILIKE ?',
         ];
         $params[] = $like;
         $params[] = $like;
         $params[] = $like;
 
         if ($isAdminOffice) {
-            $parts[] = 'g.remarks LIKE ?';
+            $parts[] = 'g.remarks ILIKE ?';
             $params[] = $like;
 
             $parts[] = "EXISTS (
@@ -307,11 +322,11 @@ if ($method === 'GET') {
                   AND i2.status = 'Active'
                   AND i2.deleted_at IS NULL
                   AND (
-                      i2.control_number              LIKE ? OR
-                      i2.deceased_name               LIKE ? OR
-                      i2.contact_person_name         LIKE ? OR
-                      i2.contact_person_phone_number LIKE ? OR
-                      i2.contact_person_email        LIKE ?
+                      i2.control_number              ILIKE ? OR
+                      i2.deceased_name               ILIKE ? OR
+                      i2.contact_person_name         ILIKE ? OR
+                      i2.contact_person_phone_number ILIKE ? OR
+                      i2.contact_person_email        ILIKE ?
                   )
             )";
             $params[] = $like;
@@ -339,7 +354,7 @@ if ($method === 'GET') {
     $page       = min($page, max(1, $totalPages));
     $offset     = ($page - 1) * $limit;
 
-    // paged grave IDs (stable order)
+    // paged grave IDs (stable order). $limit / $offset are already cast ints.
     $idsSql = "
         SELECT g.grave_id
         FROM graves g
@@ -470,9 +485,10 @@ if (!$isAdminOffice) {
 
 // PUT – Update a single grave's status or remarks (only)
 // rules:
-// Vacant or Other blocked if an Active interment is on this grave
-// Occupied: always allowed
-// Any status change is blocked while an Active reservation targets the grave.  Remarks changes are ALWAYS allowed.
+//   Vacant or Other blocked if an Active interment is on this grave
+//   Occupied: always allowed
+//   Any status change is blocked while an Active reservation targets the grave.
+//   Remarks changes are ALWAYS allowed.
 if ($method === 'PUT') {
 
     if (!is_numeric($resourceId)) {
@@ -510,12 +526,18 @@ if ($method === 'PUT') {
         );
     }
 
-    // Locked transaction
-    $pdo->exec("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
+    // Locked transaction.
+    // In Postgres, SET TRANSACTION must run *inside* a transaction block —
+    // calling it before beginTransaction() only emits a warning and is a no-op.
+    // (READ COMMITTED is also the Postgres default; kept explicit to match
+    // the original intent and to document the chosen isolation level.)
     $pdo->beginTransaction();
-
     try {
-        // Lock the grave row: blocks.php shrink/delete also locks it with FOR UPDATE, so a shrink cannot conflict with a status change on a grave about to be removed
+        $pdo->exec("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
+
+        // Lock the grave row: blocks.php shrink/delete also locks it with
+        // FOR UPDATE, so a shrink cannot conflict with a status change on a
+        // grave about to be removed
         $lockStmt = $pdo->prepare("
             SELECT * FROM graves
             WHERE grave_id = ? AND deleted_at IS NULL
@@ -561,7 +583,8 @@ if ($method === 'PUT') {
                 }
             }
 
-            // 'Occupied' is always allowed. Manual occupation is intentional (maintenance, reserved, physical marker, etc.) — use remarks.
+            // 'Occupied' is always allowed. Manual occupation is intentional
+            // (maintenance, reserved, physical marker, etc.) — use remarks.
         }
 
         $updates = [];

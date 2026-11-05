@@ -32,8 +32,8 @@ try {
             i.deceased_date_of_birth   AS date_of_birth,
             i.deceased_date_of_death   AS date_of_death,
             b.block_name               AS block,
-            g.row_num                  AS `row`,
-            g.col_num                  AS `column`,
+            g.row_num                  AS \"row\",
+            g.col_num                  AS \"column\",
             b.block_type               AS grave_type,
             g.grave_code
         FROM interments i
@@ -43,7 +43,7 @@ try {
         LEFT JOIN blocks b
                ON g.block_id = b.block_id
               AND b.deleted_at IS NULL
-        WHERE i.deceased_name LIKE :search
+        WHERE i.deceased_name ILIKE :search
           AND i.status = 'Active'
           AND i.deleted_at IS NULL
         ORDER BY i.deceased_name ASC
