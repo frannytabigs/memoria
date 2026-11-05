@@ -90,21 +90,23 @@ if (!in_array($method, $allowedMethods, true)) {
 if ($method === 'GET' && !$isAdmin) {
     try {
         if ($resourceId) {
+            // PostgreSQL: ILIKE replaces MySQL's case-insensitive default LIKE.
             $stmt = $pdo->prepare("
                 SELECT setting_id, setting_key, setting_value, description FROM settings 
                 WHERE setting_id = :id 
                   AND deleted_at IS NULL 
-                  AND description NOT LIKE '%sensitive%'
+                  AND description NOT ILIKE '%sensitive%'
             ");
             $stmt->execute([':id' => $resourceId]);
             $setting = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$setting) Response::error("Public Setting not found", 404);
             Response::success("Public System setting retrieved", $setting);
         } else {
+            // PostgreSQL: ILIKE replaces MySQL's case-insensitive default LIKE.
             $stmt = $pdo->prepare("
                 SELECT setting_id, setting_key, setting_value, description FROM settings 
                 WHERE deleted_at IS NULL 
-                  AND description NOT LIKE '%sensitive%'
+                  AND description NOT ILIKE '%sensitive%'
             ");
             $stmt->execute();
             $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -312,16 +314,24 @@ try {
 
                         // Upsert by key: an active row updates in place, a missing key inserts a new row
                         // Soft-deleted rows stay as history, they aren't revived on re-save
+                        //
+                        // PostgreSQL: ON CONFLICT replaces MySQL's ON DUPLICATE KEY UPDATE, and
+                        // EXCLUDED.col replaces MySQL's VALUES(col). The WHERE predicate on the
+                        // conflict target matches the partial unique index on (setting_key) that
+                        // only covers active rows (deleted_at IS NULL) — see the schema note in
+                        // the response. If your index is instead UNIQUE(setting_key, deleted_at),
+                        // swap the conflict target to: ON CONFLICT (setting_key, deleted_at)
                         $sql = "
                             INSERT INTO settings 
                                 (setting_key, setting_value, description, created_at, updated_at, created_by, updated_by)
                             VALUES 
                                 (:key, :value, :desc, NOW(), NOW(), :created_by, :updated_by)
-                            ON DUPLICATE KEY UPDATE
-                                setting_value = VALUES(setting_value),
-                                description   = VALUES(description),
+                            ON CONFLICT (setting_key) WHERE deleted_at IS NULL
+                            DO UPDATE SET
+                                setting_value = EXCLUDED.setting_value,
+                                description   = EXCLUDED.description,
                                 updated_at    = NOW(),
-                                updated_by    = VALUES(updated_by)
+                                updated_by    = EXCLUDED.updated_by
                         ";
 
                         $stmt = $pdo->prepare($sql);

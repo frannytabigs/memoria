@@ -207,36 +207,38 @@ try {
                 ];
                 $parts = [];
                 foreach ($searchCols as $c) {
-                    $parts[] = "$c LIKE ?";
+                    // PostgreSQL LIKE is case-sensitive; MySQL's default was not.
+                    // ILIKE preserves the previous, expected behavior.
+                    $parts[] = "$c ILIKE ?";
                     $params[] = $like;
                 }
 
                 // Also match date-shaped search terms against created_at
                 // convert_dates() only returns criteria when the term actually looks like a date, so plain text costs nothing extra
-                // DATE()/MONTH()/DAY()/YEAR() skip indexes, but LIKE '%...%' already forced a scan, so it doesn't matter here
+                // PostgreSQL: use ::date / EXTRACT(...) instead of DATE()/MONTH()/DAY()/YEAR()
                 $dateCriteria = convert_dates($searchTerm);
 
                 foreach ($dateCriteria['exact_dates'] as $d) {
-                    $parts[]  = '(DATE(p.created_at) = ? OR DATE(p.updated_at) = ?)';
+                    $parts[]  = '(p.created_at::date = ?::date OR p.updated_at::date = ?::date)';
                     $params[] = $d;
                     $params[] = $d;
                 }
                 foreach ($dateCriteria['month_days'] as $md) {
-                    $parts[]  = '((MONTH(p.created_at) = ? AND DAY(p.created_at) = ?) OR (MONTH(p.updated_at) = ? AND DAY(p.updated_at) = ?))';
+                    $parts[]  = '((EXTRACT(MONTH FROM p.created_at)::int = ?::int AND EXTRACT(DAY FROM p.created_at)::int = ?::int) OR (EXTRACT(MONTH FROM p.updated_at)::int = ?::int AND EXTRACT(DAY FROM p.updated_at)::int = ?::int))';
                     $params[] = $md['m'];
                     $params[] = $md['d'];
                     $params[] = $md['m'];
                     $params[] = $md['d'];
                 }
                 foreach ($dateCriteria['year_months'] as $ym) {
-                    $parts[]  = '((YEAR(p.created_at) = ? AND MONTH(p.created_at) = ?) OR (YEAR(p.updated_at) = ? AND MONTH(p.updated_at) = ?))';
+                    $parts[]  = '((EXTRACT(YEAR FROM p.created_at)::int = ?::int AND EXTRACT(MONTH FROM p.created_at)::int = ?::int) OR (EXTRACT(YEAR FROM p.updated_at)::int = ?::int AND EXTRACT(MONTH FROM p.updated_at)::int = ?::int))';
                     $params[] = $ym['y'];
                     $params[] = $ym['m'];
                     $params[] = $ym['y'];
                     $params[] = $ym['m'];
                 }
                 foreach ($dateCriteria['years'] as $y) {
-                    $parts[]  = '(YEAR(p.created_at) = ? OR YEAR(p.updated_at) = ?)';
+                    $parts[]  = '(EXTRACT(YEAR FROM p.created_at)::int = ?::int OR EXTRACT(YEAR FROM p.updated_at)::int = ?::int)';
                     $params[] = $y;
                     $params[] = $y;
                 }
@@ -270,6 +272,7 @@ try {
                     p.payment_id DESC
             ";
 
+            // $limit and $offset are already bounded ints, safe to interpolate
             $sql = getPaymentSelectSQL() . " WHERE $where $orderSql LIMIT $limit OFFSET $offset";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
@@ -350,12 +353,14 @@ try {
             // ImageManager gives every upload a unique filename, so a losing POST cleans up only its own file
             $newId = null;
             try {
+                // PostgreSQL: RETURNING is more reliable than lastInsertId() on PDO_PGSQL.
                 $stmt = $pdo->prepare("
                     INSERT INTO payments 
                         (reference_number, payment_channel, amount, purpose,
                          deceased_name, payers_phone_number, payers_email, payers_name,
                          image_link, remarks_payer) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    RETURNING payment_id
                 ");
                 $stmt->execute([
                     $refNum,
@@ -369,7 +374,7 @@ try {
                     $imageLink,
                     $remarks
                 ]);
-                $newId = $pdo->lastInsertId();
+                $newId = (int) $stmt->fetchColumn();
             } catch (PDOException $e) {
                 $cleanup = $imageManager->deleteImage($filename);
                 if (empty($cleanup['success'])) {
@@ -380,7 +385,9 @@ try {
                         'System'
                     );
                 }
-                if ($e->getCode() == 23000) {
+                // PDO_PGSQL: SQLSTATE for unique_violation is 23505
+                // (was MySQL 23000 "integrity constraint violation").
+                if ((string) $e->getCode() === '23505') {
                     Response::error('Conflict: Reference number already exists and is submitted. Please contact the office to verify your reference number', 409);
                 }
                 systemLog("Payment creation error: " . $e->getMessage(), 'System');
@@ -574,11 +581,13 @@ try {
                     $dbValue = ($value === '') ? null : $value;
                     $column  = $columnMap[$remarkType];
 
-                    $stmt = $pdo->prepare("
-                        UPDATE payments
-                        SET `$column` = ?, updated_by = ?
-                        WHERE payment_id = ? AND deleted_at IS NULL
-                    ");
+                    // PostgreSQL identifier quoting is `"col"`, not `col` (MySQL).
+                    // $column is whitelisted above, so this is safe.
+                    $stmt = $pdo->prepare(
+                        'UPDATE payments '
+                            . 'SET "' . $column . '" = ?, updated_by = ? '
+                            . 'WHERE payment_id = ? AND deleted_at IS NULL'
+                    );
                     $stmt->execute([$dbValue, $userId, $resourceId]);
 
                     systemLog(

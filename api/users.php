@@ -136,7 +136,9 @@ if ($method === 'GET') {
         if ($searchTerm !== '') {
             $like      = '%' . $searchTerm . '%';
             $phoneLike = str_replace('%09', '%+639', $like);
-            $where .= " AND (username LIKE ? OR email LIKE ? OR name LIKE ? OR phone_number LIKE ?)";
+            // PostgreSQL LIKE is case-sensitive; MySQL's default was not.
+            // ILIKE preserves the previous, expected behavior.
+            $where .= " AND (username ILIKE ? OR email ILIKE ? OR name ILIKE ? OR phone_number ILIKE ?)";
             $params[] = $like;
             $params[] = $like;
             $params[] = $like;
@@ -275,7 +277,9 @@ if ($method === 'POST') {
             systemLog("New user registered: $username ($email) ($phone_number)", null);
             Response::success("Registration successful! Your account is Unverified. Please wait for admin verification.", null, 201);
         } catch (PDOException $e) {
-            if ($e->getCode() == 23000) {
+            // PDO_PGSQL: SQLSTATE for unique_violation is 23505
+            // (was MySQL 23000 "integrity constraint violation").
+            if ((string) $e->getCode() === '23505') {
                 systemLog("Registration failed due to duplicate entry: $username ($email) or phone number: $phone_number", null);
                 Response::error("Conflict: The username, phone number, or email is already registered.", 409);
             }
@@ -528,7 +532,9 @@ if ($method === 'PUT') {
         systemLog("{$userData['name']} updated user with ID $targetId", $userData['user_id']);
         Response::success("User updated successfully");
     } catch (PDOException $e) {
-        if ($e->getCode() == 23000) Response::error("Conflict: Email or Username or Phone Number is already in use", 409);
+        // PDO_PGSQL: SQLSTATE for unique_violation is 23505
+        // (was MySQL 23000 "integrity constraint violation").
+        if ((string) $e->getCode() === '23505') Response::error("Conflict: Email or Username or Phone Number is already in use", 409);
         error_log($e->getMessage());
         systemLog($e->getMessage(), null);
         Response::error("Database error: could not update user.", 500);

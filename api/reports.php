@@ -197,11 +197,11 @@ function rr_categorized_graves_sql(): string
                 gc.grave_id,
                 CASE
                     WHEN gc.min_exp_date IS NOT NULL
-                         AND gc.min_exp_date <= CURDATE() THEN 'Expired'
+                         AND gc.min_exp_date <= CURRENT_DATE THEN 'Expired'
                     WHEN gc.min_exp_date IS NOT NULL
-                         AND gc.min_exp_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'Expiring'
+                         AND gc.min_exp_date <= (CURRENT_DATE + INTERVAL '30 days') THEN 'Expiring'
                     WHEN gc.min_exp_date IS NOT NULL THEN 'Occupied'
-                    WHEN gc.has_active_reservation = 1 THEN 'Reserved'
+                    WHEN gc.has_active_reservation = true THEN 'Reserved'
                     WHEN gc.grave_status = 'Vacant' THEN 'Vacant'
                     ELSE 'Other'
                 END AS category,
@@ -274,11 +274,11 @@ function handle_cemetery_capacity(PDO $pdo): void
 
     $leaseStmt = $pdo->query("
             SELECT
-                SUM(lease_expiration_date <= CURDATE()) AS expired,
-                SUM(lease_expiration_date > CURDATE()
-                    AND lease_expiration_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)) AS expiring,
-                SUM(lease_expiration_date > DATE_ADD(CURDATE(), INTERVAL 30 DAY)) AS occupied,
-                SUM(lease_expiration_date IS NULL) AS unknown,
+                SUM(CASE WHEN lease_expiration_date <= CURRENT_DATE THEN 1 ELSE 0 END) AS expired,
+                SUM(CASE WHEN lease_expiration_date > CURRENT_DATE
+                    AND lease_expiration_date <= (CURRENT_DATE + INTERVAL '30 days') THEN 1 ELSE 0 END) AS expiring,
+                SUM(CASE WHEN lease_expiration_date > (CURRENT_DATE + INTERVAL '30 days') THEN 1 ELSE 0 END) AS occupied,
+                SUM(CASE WHEN lease_expiration_date IS NULL THEN 1 ELSE 0 END) AS unknown,
                 COUNT(*) AS total
             FROM interments
             WHERE status = 'Active' AND deleted_at IS NULL
@@ -293,12 +293,12 @@ function handle_cemetery_capacity(PDO $pdo): void
     ];
 
     $monthlyStmt = $pdo->query("
-            SELECT DATE_FORMAT(lease_expiration_date, '%Y-%m') AS exp_month,
+            SELECT TO_CHAR(lease_expiration_date, 'YYYY-MM') AS exp_month,
                    COUNT(*) AS count
             FROM interments
             WHERE status = 'Active'
               AND deleted_at IS NULL
-              AND YEAR(lease_expiration_date) = YEAR(CURDATE())
+              AND EXTRACT(YEAR FROM lease_expiration_date) = EXTRACT(YEAR FROM CURRENT_DATE)
             GROUP BY exp_month
             ORDER BY exp_month ASC
         ");
@@ -443,12 +443,12 @@ function handle_lease_expirations(PDO $pdo): void
         $params[':end_date'] = $endDate;
     }
 
-    $expiredClause = "i.lease_expiration_date < CURDATE()";
+    $expiredClause = "i.lease_expiration_date < CURRENT_DATE";
 
     // Expiring
     $expiringClause = $hasRange
-        ? "i.lease_expiration_date >= CURDATE()"
-        : "i.lease_expiration_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL {$days} DAY)";
+        ? "i.lease_expiration_date >= CURRENT_DATE"
+        : "i.lease_expiration_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '{$days} days')";
 
     $bucketClauses = [];
     if ($includeExpired)  $bucketClauses[] = $expiredClause;
@@ -542,9 +542,9 @@ function handle_interments(PDO $pdo): void
 
     if ($address !== null) {
         $whereClauses[] = "(
-            i.last_known_address LIKE :addr1
-            OR i.contact_person_address LIKE :addr2
-            OR i.contact_person_address_barangay LIKE :addr3
+            i.last_known_address ILIKE :addr1
+            OR i.contact_person_address ILIKE :addr2
+            OR i.contact_person_address_barangay ILIKE :addr3
         )";
         $like = '%' . $address . '%';
         $params[':addr1'] = $like;
@@ -567,7 +567,7 @@ function handle_interments(PDO $pdo): void
         foreach ($barangays as $i => $b) {
             $ph = ":barangay_" . $i;
             $params[$ph] = '%' . $b . '%';
-            $phrases[] = "i.contact_person_address_barangay LIKE {$ph}";
+            $phrases[] = "i.contact_person_address_barangay ILIKE {$ph}";
         }
         $whereClauses[] = "(" . implode(" OR ", $phrases) . ")";
     }
@@ -728,6 +728,7 @@ function handle_graves(PDO $pdo): void
     $countStmt->execute($params);
     $total = (int)$countStmt->fetchColumn();
 
+    // PostgreSQL DATE_PART('day', ...) replaces MySQL DATEDIFF
     $sql = "
         SELECT
             cg.grave_id,
@@ -742,7 +743,7 @@ function handle_graves(PDO $pdo): void
             g.col_num,
             b.block_name,
             b.block_type,
-            DATEDIFF(cg.min_exp_date, CURDATE()) AS days_until_expiration
+            EXTRACT(DAY FROM (cg.min_exp_date::timestamp - CURRENT_DATE::timestamp)) AS days_until_expiration
         FROM (" . rr_categorized_graves_sql() . ") AS cg
         INNER JOIN graves g ON g.grave_id = cg.grave_id AND g.deleted_at IS NULL
         LEFT JOIN blocks b ON b.block_id = g.block_id AND b.deleted_at IS NULL
@@ -836,25 +837,23 @@ function handle_payments(PDO $pdo): void
         $params[':maxamount'] = $maxamount;
     }
 
-    // Date range on when the payment was recorded.
-    // created_at is a DATETIME, so endDate must be extended to include
-    // the full end day (00:00:00 through 23:59:59).
     if ($startDate !== null) {
         $whereClauses[]        = "p.created_at >= :start_date";
         $params[':start_date'] = $startDate . ' 00:00:00';
     }
     if ($endDate !== null) {
-        $whereClauses[]                = "p.created_at < DATE_ADD(:end_date, INTERVAL 1 DAY)";
+        // PostgreSQL interval addition
+        $whereClauses[]                = "p.created_at < (:end_date::timestamp + INTERVAL '1 DAY')";
         $params[':end_date']           = $endDate;
     }
 
     if ($search !== null) {
         $whereClauses[] = "(
-            p.reference_number LIKE :srch1
-            OR p.payers_name LIKE :srch2
-            OR p.deceased_name LIKE :srch3
-            OR p.payers_email LIKE :srch4
-            OR p.payers_phone_number LIKE :srch5
+            p.reference_number ILIKE :srch1
+            OR p.payers_name ILIKE :srch2
+            OR p.deceased_name ILIKE :srch3
+            OR p.payers_email ILIKE :srch4
+            OR p.payers_phone_number ILIKE :srch5
         )";
         $like = '%' . $search . '%';
         $params[':srch1'] = $like;
@@ -1008,7 +1007,7 @@ function handle_populate_filters(PDO $pdo): void
     ];
 
     $yearsStmt = $pdo->query("
-        SELECT DISTINCT YEAR(COALESCE(date_buried, deceased_date_of_death)) AS y
+        SELECT DISTINCT EXTRACT(YEAR FROM COALESCE(date_buried, deceased_date_of_death)) AS y
         FROM interments
         WHERE deleted_at IS NULL
           AND COALESCE(date_buried, deceased_date_of_death) IS NOT NULL

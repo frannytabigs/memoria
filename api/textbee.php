@@ -156,20 +156,20 @@ function saveTextBeeCredentials($plainTextApiKey, $plainTextDeviceId, $userId = 
     }
 
     try {
-        // Both writes must land together, a half-written pair breaks TextBee auth with no obvious cause
-        // The first INSERT row-locks textbee_api_key so a concurrent save waits there and can't interleave
         $pdo->beginTransaction();
 
-        // VALUES(col) form because the AS new alias needs MySQL 8.0.19+ or MariaDB 11.x+
+        // Converted from MySQL ON DUPLICATE KEY UPDATE to PostgreSQL ON CONFLICT DO UPDATE
+        // Note: Assumes there is a unique constraint or index on setting_key (which matches your unique index setup_db.php)
         $stmt = $pdo->prepare("
             INSERT INTO settings
             (setting_key, setting_value, description, created_at, updated_at, created_by, updated_by)
-            VALUES (:key, :value, :desc, NOW(), NOW(), :created_by, :updated_by)
-            ON DUPLICATE KEY UPDATE
-            setting_value = VALUES(setting_value),
-            description   = VALUES(description),
-            updated_at    = NOW(),
-            updated_by    = VALUES(updated_by)
+            VALUES (:key, :value, :desc, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :created_by, :updated_by)
+            ON CONFLICT (setting_key) 
+            DO UPDATE SET
+            setting_value = EXCLUDED.setting_value,
+            description   = EXCLUDED.description,
+            updated_at    = CURRENT_TIMESTAMP,
+            updated_by    = EXCLUDED.updated_by
         ");
 
         // Fixed write order so concurrent saves take the same locks in the same sequence and can't deadlock

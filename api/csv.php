@@ -4,6 +4,11 @@ define('ITS_ME_JUSTTOVERIFY', true);
 require_once 'logger.php';
 require_once 'checkuser.php';
 
+// PostgreSQL: advisory lock key. Must be a stable bigint across PHP processes
+// so concurrent imports on different FPM workers contend on the same lock.
+// Any fixed integer works — this value is arbitrary but constant.
+const CSV_IMPORT_LOCK_KEY = 987654321;
+
 // CSV export and import for interments
 $userData = checkuser();
 if ($userData['role'] !== ROLE_ADMIN) {
@@ -75,13 +80,17 @@ function getGraveId($pdo, $blockName, $graveCode)
     $id = $stmt->fetchColumn();
     return $id ? (int)$id : null;
 }
+
 function syncGraveStatus($pdo, $graveId)
 {
     if (empty($graveId)) return;
 
+    // PostgreSQL: cannot qualify the target column in SET with a table alias.
+    // `SET g.status = ...` errors; `SET status = ...` is correct. The alias
+    // `g` remains valid in WHERE and inside the correlated subquery below.
     $pdo->prepare("
         UPDATE graves g
-        SET g.status = CASE
+        SET status = CASE
             WHEN EXISTS (
                 SELECT 1
                 FROM interments i
@@ -438,6 +447,7 @@ function importInterments($pdo, $filePath, $userId)
                 ];
 
                 // Prefer the live row over a soft-deleted one so LIMIT 1 never picks the dead copy
+                // PG: boolean is sortable (true > false), so DESC puts the live row first.
                 $checkStmt = $pdo->prepare("
                     SELECT interment_id, current_grave_id, status, deleted_at
                     FROM interments
@@ -683,10 +693,29 @@ if ($method === 'POST') {
         exit;
     }
 
-    // GET_LOCK is server-wide and auto-released on disconnect, so a crashed worker can't stick it
-    // 30s timeout means a second import waits briefly, then gets a clean 409
-    $lockAcquired = (int) $pdo->query("SELECT GET_LOCK('csv_import', 30)")->fetchColumn();
-    if ($lockAcquired !== 1) {
+    // PostgreSQL has no GET_LOCK(); use an advisory lock instead.
+    //  - pg_try_advisory_lock(bigint) is non-blocking: returns true if acquired,
+    //    false if another session holds it.
+    //  - Session-scoped: auto-released on explicit unlock or on connection close,
+    //    so a crashed PHP worker can't leave it stuck (same as MySQL GET_LOCK).
+    //  - To emulate MySQL's 30-second GET_LOCK timeout, we poll every 0.5 s
+    //    until the deadline, then return 409.
+    $lockKey      = CSV_IMPORT_LOCK_KEY;
+    $deadline     = microtime(true) + 30.0;
+    $lockAcquired = false;
+
+    do {
+        $got = $pdo->query("SELECT pg_try_advisory_lock({$lockKey})")->fetchColumn();
+        // PDO_PGSQL returns a real bool by default; be defensive in case a
+        // deployment has ATTR_STRINGIFY_FETCHES on and returns 't'/'1'.
+        if ($got === true || $got === 1 || $got === '1' || $got === 't') {
+            $lockAcquired = true;
+            break;
+        }
+        usleep(500000); // 0.5 s
+    } while (microtime(true) < $deadline);
+
+    if (!$lockAcquired) {
         Response::error(
             "Another CSV import is already in progress. Please try again in a moment.",
             409
@@ -727,8 +756,14 @@ if ($method === 'POST') {
         systemLog("CSV import error: " . $e->getMessage(), $userData['user_id']);
         Response::error("Import error: " . $e->getMessage(), 500);
     } finally {
-        // Release in finally so a crash can't leave the import lock behind
-        $pdo->query("SELECT RELEASE_LOCK('csv_import')");
+        // Release in finally so a crash can't leave the import lock behind.
+        // pg_advisory_unlock returns a bool; we don't care about the value
+        // (false just means this session didn't hold it, which is fine here).
+        try {
+            $pdo->query("SELECT pg_advisory_unlock({$lockKey})");
+        } catch (Throwable $e) {
+            // Connection may already be closing — nothing to do.
+        }
     }
     exit;
 }

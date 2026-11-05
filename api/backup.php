@@ -5,6 +5,17 @@
 // GET  /backup/{filename}  Download a specific backup file
 // POST Create a new backup
 // PUT  /backup/{filename}  Restore the database from the filename
+//
+// PostgreSQL notes:
+//  - Restore requires superuser (or a role with SET on session_replication_role,
+//    e.g. rds_superuser on RDS / azure_pg_admin on Azure) because Postgres has no
+//    non-superuser way to defer foreign-key checks during a bulk load.
+//  - Identity columns (GENERATED ALWAYS AS IDENTITY) are exported with
+//    OVERRIDING SYSTEM VALUE so their IDs are preserved.
+//  - After restore, every sequence is reset to MAX(col) of its owning table.
+//    Without this, new inserts would collide with restored IDs.
+//  - Manual restore via psql should be run with --single-transaction:
+//        psql --single-transaction -h host -U user -d db -f backup.sql
 
 define('ITS_ME_JUSTTOVERIFY', true);
 
@@ -46,6 +57,13 @@ if (!is_dir($backupDir) && !mkdir($backupDir, 0755, true) && !is_dir($backupDir)
 
 $backupDir = rtrim((string) realpath($backupDir), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
+/**
+ * Return the DB session's timezone as a PHP DateTimeZone.
+ *
+ * PostgreSQL: SHOW timezone returns either a name (UTC, Asia/Manila) or an
+ * offset (+08, -05, +08:00). PHP's DateTimeZone accepts names directly; for
+ * raw offsets we translate via timezone_name_from_abbr().
+ */
 function dbTimezone(PDO $pdo): DateTimeZone
 {
     static $tz = null;
@@ -54,22 +72,29 @@ function dbTimezone(PDO $pdo): DateTimeZone
     }
 
     try {
-        $sessionTz = (string) $pdo->query('SELECT @@session.time_zone')->fetchColumn();
+        $sessionTz = (string) $pdo->query('SHOW timezone')->fetchColumn();
 
-        if ($sessionTz !== '' && strtoupper($sessionTz) !== 'SYSTEM') {
-            return $tz = new DateTimeZone($sessionTz);
-        }
-    } catch (Throwable $e) {
-    }
+        if ($sessionTz !== '') {
+            // Offset form: +08, -05, +08:00, -05:30
+            if (preg_match('/^([+-])(\d{1,2})(?::(\d{2}))?$/', $sessionTz, $m)) {
+                $hours   = (int) $m[2];
+                $minutes = (int) ($m[3] ?? 0);
+                $offsetSeconds = ($hours * 3600 + $minutes * 60) * ($m[1] === '-' ? -1 : 1);
 
-    try {
-        $diff = (string) $pdo->query('SELECT TIMEDIFF(NOW(), UTC_TIMESTAMP())')->fetchColumn();
+                $name = timezone_name_from_abbr('', $offsetSeconds, 0);
+                if ($name !== false) {
+                    try {
+                        return $tz = new DateTimeZone($name);
+                    } catch (Throwable $e) {
+                    }
+                }
+            }
 
-        if (preg_match('/^(-?)(\d{1,2}):(\d{2})/', $diff, $m)) {
-            $sign   = $m[1] === '-' ? '-' : '+';
-            $hour   = str_pad($m[2], 2, '0', STR_PAD_LEFT);
-            $minute = $m[3];
-            return $tz = new DateTimeZone($sign . $hour . ':' . $minute);
+            // Named form: UTC, Asia/Manila, Europe/London, ...
+            try {
+                return $tz = new DateTimeZone($sessionTz);
+            } catch (Throwable $e) {
+            }
         }
     } catch (Throwable $e) {
     }
@@ -116,7 +141,8 @@ function sqlLiteral(PDO $pdo, mixed $value): string
         return 'NULL';
     }
     if (is_bool($value)) {
-        return $value ? '1' : '0';
+        // PostgreSQL: TRUE / FALSE (MySQL used 1 / 0)
+        return $value ? 'TRUE' : 'FALSE';
     }
     if (is_int($value) || is_float($value)) {
         return (string) $value;
@@ -127,7 +153,8 @@ function sqlLiteral(PDO $pdo, mixed $value): string
 
 function sqlIdentifier(string $identifier): string
 {
-    return '`' . str_replace('`', '``', $identifier) . '`';
+    // PostgreSQL identifier quoting: "col" with embedded " doubled.
+    return '"' . str_replace('"', '""', $identifier) . '"';
 }
 
 function acquireOperationLock(string $backupDir)
@@ -165,7 +192,8 @@ function releaseOperationLock($fp): void
 
 function createBackup(PDO $pdo, string $backupDir): string
 {
-    $stamp     = (string) $pdo->query('SELECT DATE_FORMAT(NOW(), "%Y-%m-%d_%H-%i-%s")')->fetchColumn();
+    // PostgreSQL: TO_CHAR replaces DATE_FORMAT (%i -> MI, %H -> HH24)
+    $stamp     = (string) $pdo->query("SELECT TO_CHAR(NOW(), 'YYYY-MM-DD_HH24-MI-SS')")->fetchColumn();
     $filename  = BACKUP_NAME_PREFIX . $stamp . '.sql';
     $tmpPath   = $backupDir . $filename . '.tmp';
     $finalPath = $backupDir . $filename;
@@ -175,38 +203,73 @@ function createBackup(PDO $pdo, string $backupDir): string
         throw new RuntimeException('Unable to open the backup file for writing.');
     }
 
-    $genStmt = $pdo->prepare(
-        "SELECT COLUMN_NAME
-           FROM information_schema.COLUMNS
-          WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME   = :table
-            AND EXTRA LIKE '%GENERATED%'"
-    );
-
     try {
-        $pdo->exec("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ");
-        $pdo->exec("START TRANSACTION WITH CONSISTENT SNAPSHOT");
+        // Snapshot transaction. Postgres REPEATABLE READ is the closest analogue
+        // to MySQL's WITH CONSISTENT SNAPSHOT (readers don't block writers, and
+        // all reads inside the transaction see one consistent snapshot).
+        $inTx = $pdo->inTransaction();
+        if (!$inTx) {
+            $pdo->exec("BEGIN ISOLATION LEVEL REPEATABLE READ");
+        }
 
         try {
-            $sessionTz = (string) $pdo->query('SELECT @@session.time_zone')->fetchColumn();
-
+            $sessionTz  = (string) $pdo->query('SHOW timezone')->fetchColumn();
             $headerTime = (new DateTimeImmutable('now', dbTimezone($pdo)))->format('Y-m-d H:i:s');
 
             fwrite($handle, "-- Data-only backup generated {$headerTime} (timezone: {$sessionTz})\n");
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n");
-            fwrite($handle, "SET NAMES utf8mb4;\n");
-            fwrite($handle, "SET time_zone = " . $pdo->quote($sessionTz) . ";\n\n");
+            fwrite($handle, "-- Restore requires superuser (or a role with SET on session_replication_role).\n");
+            fwrite($handle, "SET session_replication_role = replica;\n");
+            fwrite($handle, "SET timezone = " . $pdo->quote($sessionTz) . ";\n\n");
 
-            $tables = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            // List user tables in the current schema (information_schema + base tables only)
+            $tables = $pdo->query("
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = current_schema()
+                  AND table_type = 'BASE TABLE'
+                ORDER BY table_name
+            ")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+            // Which tables have GENERATED ALWAYS AS IDENTITY columns.
+            // Those need OVERRIDING SYSTEM VALUE on INSERT to accept explicit IDs.
+            $alwaysIdent = [];
+            $aiStmt = $pdo->query("
+                SELECT DISTINCT table_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND is_identity = 'YES'
+                  AND identity_generation = 'ALWAYS'
+            ");
+            foreach ($aiStmt->fetchAll(PDO::FETCH_COLUMN) as $t) {
+                $alwaysIdent[$t] = true;
+            }
+
+            // Computed columns (GENERATED ALWAYS AS (...) STORED) must be skipped
+            $genStmt = $pdo->prepare("
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = :table
+                  AND is_generated = 'ALWAYS'
+            ");
+
+            // One-shot TRUNCATE. CASCADE covers FK dependencies; RESTART IDENTITY
+            // resets all sequences so the DO block below can set them to MAX after.
+            if (!empty($tables)) {
+                $tableList = implode(', ', array_map('sqlIdentifier', $tables));
+                fwrite($handle, "TRUNCATE TABLE {$tableList} RESTART IDENTITY CASCADE;\n\n");
+            }
 
             foreach ($tables as $table) {
                 $quotedTable = sqlIdentifier((string) $table);
 
                 $genStmt->execute([':table' => $table]);
                 $generated = $genStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
-                $skip      = array_flip($generated); // fast isset() lookup
+                $skip      = array_flip($generated);
 
-                fwrite($handle, "TRUNCATE TABLE {$quotedTable};\n");
+                $overriding = isset($alwaysIdent[$table])
+                    ? ' OVERRIDING SYSTEM VALUE'
+                    : '';
 
                 $stmt = $pdo->query("SELECT * FROM {$quotedTable}");
 
@@ -231,15 +294,66 @@ function createBackup(PDO $pdo, string $backupDir): string
                         array_values($row)
                     ));
 
-                    fwrite($handle, "INSERT INTO {$quotedTable} ({$columns}) VALUES ({$values});\n");
+                    fwrite(
+                        $handle,
+                        "INSERT INTO {$quotedTable} ({$columns}){$overriding} VALUES ({$values});\n"
+                    );
                 }
 
                 fwrite($handle, "\n");
             }
 
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+            // Reset every sequence to the MAX of its owning column. Uses a
+            // dollar-quoted DO block; splitSqlStatements() understands $tag$.
+            fwrite($handle, <<<'SQL'
+
+DO $reset_seq$
+DECLARE
+    r RECORD;
+    max_val BIGINT;
+BEGIN
+    FOR r IN
+        SELECT
+            c.relname::text AS tbl,
+            a.attname::text AS col
+        FROM pg_attribute a
+        JOIN pg_class     c ON c.oid = a.attrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE a.attnum > 0
+          AND NOT a.attisdropped
+          AND c.relkind = 'r'
+          AND n.nspname = current_schema()
+          AND pg_get_serial_sequence(
+                  quote_ident(n.nspname) || '.' || quote_ident(c.relname),
+                  a.attname
+              ) IS NOT NULL
+    LOOP
+        EXECUTE format(
+            'SELECT COALESCE(MAX(%I), 0) FROM %I.%I',
+            r.col, current_schema(), r.tbl
+        ) INTO max_val;
+
+        PERFORM setval(
+            pg_get_serial_sequence(
+                quote_ident(current_schema()) || '.' || quote_ident(r.tbl),
+                r.col
+            ),
+            GREATEST(max_val, 1),
+            max_val > 0
+        );
+    END LOOP;
+END $reset_seq$;
+
+SQL);
+            fwrite($handle, "\nSET session_replication_role = origin;\n");
         } finally {
-            $pdo->exec("COMMIT");
+            if (!$inTx) {
+                // COMMIT after an error acts as ROLLBACK in Postgres; safe either way.
+                try {
+                    $pdo->exec("COMMIT");
+                } catch (Throwable $e) {
+                }
+            }
         }
     } finally {
         fclose($handle);
@@ -293,6 +407,22 @@ function splitSqlStatements(string $sql): array
     for ($i = 0; $i < $length; $i++) {
         $char = $sql[$i];
         $next = $sql[$i + 1] ?? '';
+
+        // Dollar-quoted strings: $tag$ ... $tag$  (PostgreSQL functions / DO blocks)
+        if (
+            !$inSingle && !$inDouble && !$inBacktick
+            && !$inLineComment && !$inBlockComment && $char === '$'
+        ) {
+            if (preg_match('/\$([A-Za-z_][A-Za-z0-9_]*)?\$/', substr($sql, $i), $m)) {
+                $tag = $m[0];
+                $endPos = strpos($sql, $tag, $i + strlen($tag));
+                if ($endPos !== false) {
+                    $buffer .= substr($sql, $i, $endPos + strlen($tag) - $i);
+                    $i = $endPos + strlen($tag) - 1;
+                    continue;
+                }
+            }
+        }
 
         if ($inLineComment) {
             if ($char === "\n") {
@@ -387,6 +517,7 @@ function splitSqlStatements(string $sql): array
 
     return $statements;
 }
+
 function restoreBackup(PDO $pdo, string $filePath): int
 {
     $sql = @file_get_contents($filePath);
@@ -398,17 +529,40 @@ function restoreBackup(PDO $pdo, string $filePath): int
     $statements = splitSqlStatements($sql);
     $executed   = 0;
 
-    foreach ($statements as $index => $statement) {
-        try {
-            $pdo->exec($statement);
-            $executed++;
-        } catch (PDOException $e) {
-            throw new RuntimeException(
-                sprintf('Restore aborted at statement #%d: %s', $index + 1, $e->getMessage()),
-                0,
-                $e
-            );
+    // Restore runs inside a single transaction so partial failures roll back cleanly.
+    $inTx = $pdo->inTransaction();
+    if (!$inTx) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        foreach ($statements as $index => $statement) {
+            try {
+                $pdo->exec($statement);
+                $executed++;
+            } catch (PDOException $e) {
+                $msg = sprintf(
+                    'Restore aborted at statement #%d: %s',
+                    $index + 1,
+                    $e->getMessage()
+                );
+                if (stripos($msg, 'session_replication_role') !== false) {
+                    $msg .= ' | Hint: this backup requires superuser '
+                        . '(or a role with SET on session_replication_role, '
+                        . 'e.g. rds_superuser on AWS RDS or azure_pg_admin on Azure).';
+                }
+                throw new RuntimeException($msg, 0, $e);
+            }
         }
+
+        if (!$inTx) {
+            $pdo->commit();
+        }
+    } catch (Throwable $e) {
+        if (!$inTx && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
     }
 
     return $executed;
