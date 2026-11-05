@@ -40,9 +40,11 @@ function validatePhone($phone)
 // Caller must already hold a FOR UPDATE lock on this grave or the result is racy
 function rederiveGraveStatus(PDO $pdo, int $graveId): ?string
 {
+    // Postgres: the target column in SET must NOT be qualified with the alias.
+    // `SET g.status = ...` works in MySQL but errors in PostgreSQL.
     $stmt = $pdo->prepare("
         UPDATE graves g
-        SET g.status = CASE
+        SET status = CASE
             WHEN EXISTS (
                 SELECT 1 FROM interments i
                 WHERE i.current_grave_id = g.grave_id
@@ -131,6 +133,10 @@ function logPlacement(
         $createdBy,
     ]);
 
+    // NOTE: lastInsertId() without a sequence name works for a standard
+    // SERIAL/IDENTITY PK on PDO_PGSQL. If this ever returns 0 on your schema,
+    // tell me the PK column of placement_history (e.g. placement_id) and I'll
+    // switch this to `... RETURNING <pk>`.
     return (int) $pdo->lastInsertId();
 }
 
