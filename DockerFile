@@ -1,6 +1,6 @@
 FROM php:8.5.12-apache
 
-# CHANGED: Added libpq-dev for PostgreSQL support
+# Install system dependencies and PHP extensions required for MySQL / Database operations
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -12,8 +12,15 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql gd
 
+# Enable Apache mod_rewrite for URL routing and .htaccess support
 RUN a2enmod rewrite
 
+# Copy your entire repository root structure into Apache's default web directory
 COPY . /var/www/html/
 
+# Set secure and correct permissions for the web server user (www-data)
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
+
+# Expose port 80 for web traffic
 EXPOSE 80
