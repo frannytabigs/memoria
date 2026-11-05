@@ -205,8 +205,7 @@ function createBackup(PDO $pdo, string $backupDir): string
 
     try {
         // Snapshot transaction. Postgres REPEATABLE READ is the closest analogue
-        // to MySQL's WITH CONSISTENT SNAPSHOT (readers don't block writers, and
-        // all reads inside the transaction see one consistent snapshot).
+        // to MySQL's WITH CONSISTENT SNAPSHOT.
         $inTx = $pdo->inTransaction();
         if (!$inTx) {
             $pdo->exec("BEGIN ISOLATION LEVEL REPEATABLE READ");
@@ -217,21 +216,47 @@ function createBackup(PDO $pdo, string $backupDir): string
             $headerTime = (new DateTimeImmutable('now', dbTimezone($pdo)))->format('Y-m-d H:i:s');
 
             fwrite($handle, "-- Data-only backup generated {$headerTime} (timezone: {$sessionTz})\n");
-            fwrite($handle, "-- Restore requires superuser (or a role with SET on session_replication_role).\n");
-            fwrite($handle, "SET session_replication_role = replica;\n");
+            fwrite($handle, "-- Restore order respects foreign-key dependencies.\n");
+            fwrite($handle, "-- No session_replication_role is used, so this restore works\n");
+            fwrite($handle, "-- on managed PostgreSQL services (Render, RDS, Azure, etc.).\n");
             fwrite($handle, "SET timezone = " . $pdo->quote($sessionTz) . ";\n\n");
 
-            // List user tables in the current schema (information_schema + base tables only)
-            $tables = $pdo->query("
+            // ── Table dependency order ──────────────────────────────────────
+            // Parent tables MUST come before child tables so INSERTs satisfy
+            // foreign keys without needing to disable constraints.
+            $orderedTables = [
+                'users',
+                'blocks',
+                'graves',
+                'interments',
+                'reservations',
+                'placement_history',
+                'settings',
+                'payments',
+            ];
+
+            // Verify which of these tables actually exist in the current schema
+            $existingTables = $pdo->query("
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = current_schema()
                   AND table_type = 'BASE TABLE'
-                ORDER BY table_name
             ")->fetchAll(PDO::FETCH_COLUMN) ?: [];
 
+            $existingSet = array_flip($existingTables);
+            $tables = array_values(array_filter(
+                $orderedTables,
+                static fn(string $t): bool => isset($existingSet[$t])
+            ));
+
+            // Any table not in the explicit list (future additions) goes at the end,
+            // alphabetically. This keeps the backup functional even if someone adds
+            // a new table without updating the dependency list above.
+            $extraTables = array_values(array_diff($existingTables, $orderedTables));
+            sort($extraTables);
+            $tables = array_merge($tables, $extraTables);
+
             // Which tables have GENERATED ALWAYS AS IDENTITY columns.
-            // Those need OVERRIDING SYSTEM VALUE on INSERT to accept explicit IDs.
             $alwaysIdent = [];
             $aiStmt = $pdo->query("
                 SELECT DISTINCT table_name
@@ -303,8 +328,7 @@ function createBackup(PDO $pdo, string $backupDir): string
                 fwrite($handle, "\n");
             }
 
-            // Reset every sequence to the MAX of its owning column. Uses a
-            // dollar-quoted DO block; splitSqlStatements() understands $tag$.
+            // Reset every sequence to the MAX of its owning column.
             fwrite($handle, <<<'SQL'
 
 DO $reset_seq$
@@ -345,10 +369,8 @@ BEGIN
 END $reset_seq$;
 
 SQL);
-            fwrite($handle, "\nSET session_replication_role = origin;\n");
         } finally {
             if (!$inTx) {
-                // COMMIT after an error acts as ROLLBACK in Postgres; safe either way.
                 try {
                     $pdo->exec("COMMIT");
                 } catch (Throwable $e) {
