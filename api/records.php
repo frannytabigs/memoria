@@ -297,11 +297,10 @@ if ($method === 'GET') {
         ];
         $parts = [];
         foreach ($liveCols as $c) {
-            $parts[] = "$c LIKE ?";
+            $parts[] = "$c ILIKE ?"; // PostgreSQL case-insensitive search
             $liveMatchParams[] = $like;
         }
 
-        // DATE()/MONTH()/DAY()/YEAR() skip indexes but LIKE '%...%' already forced a scan
         $liveDateCols = [
             'i.deceased_date_of_birth',
             'i.deceased_date_of_death',
@@ -316,29 +315,32 @@ if ($method === 'GET') {
             'i.updated_at',
         ];
 
+        // PostgreSQL: DATE(col) -> col::date; EXTRACT(...) returns numeric
+        // so both sides are cast to int to avoid "operator does not exist:
+        // numeric = text" when the bound param is sent as text.
         foreach ($dateCriteria['exact_dates'] as $d) {
             foreach ($liveDateCols as $col) {
-                $parts[] = "DATE($col) = ?";
+                $parts[] = "$col::date = ?::date";
                 $liveMatchParams[] = $d;
             }
         }
         foreach ($dateCriteria['month_days'] as $md) {
             foreach ($liveDateCols as $col) {
-                $parts[] = "(MONTH($col) = ? AND DAY($col) = ?)";
+                $parts[] = "(EXTRACT(MONTH FROM $col)::int = ?::int AND EXTRACT(DAY FROM $col)::int = ?::int)";
                 $liveMatchParams[] = $md['m'];
                 $liveMatchParams[] = $md['d'];
             }
         }
         foreach ($dateCriteria['year_months'] as $ym) {
             foreach ($liveDateCols as $col) {
-                $parts[] = "(YEAR($col) = ? AND MONTH($col) = ?)";
+                $parts[] = "(EXTRACT(YEAR FROM $col)::int = ?::int AND EXTRACT(MONTH FROM $col)::int = ?::int)";
                 $liveMatchParams[] = $ym['y'];
                 $liveMatchParams[] = $ym['m'];
             }
         }
         foreach ($dateCriteria['years'] as $y) {
             foreach ($liveDateCols as $col) {
-                $parts[] = "YEAR($col) = ?";
+                $parts[] = "EXTRACT(YEAR FROM $col)::int = ?::int";
                 $liveMatchParams[] = $y;
             }
         }
@@ -357,27 +359,27 @@ if ($method === 'GET') {
         ];
         $parts = [];
         foreach ($histCols as $c) {
-            $parts[] = "$c LIKE ?";
+            $parts[] = "$c ILIKE ?"; // PostgreSQL case-insensitive search
             $historyMatchParams[] = $like;
         }
 
         // Same date criteria against placement_history.event_date
         foreach ($dateCriteria['exact_dates'] as $d) {
-            $parts[] = "DATE(ph.event_date) = ?";
+            $parts[] = "ph.event_date::date = ?::date";
             $historyMatchParams[] = $d;
         }
         foreach ($dateCriteria['month_days'] as $md) {
-            $parts[] = "(MONTH(ph.event_date) = ? AND DAY(ph.event_date) = ?)";
+            $parts[] = "(EXTRACT(MONTH FROM ph.event_date)::int = ?::int AND EXTRACT(DAY FROM ph.event_date)::int = ?::int)";
             $historyMatchParams[] = $md['m'];
             $historyMatchParams[] = $md['d'];
         }
         foreach ($dateCriteria['year_months'] as $ym) {
-            $parts[] = "(YEAR(ph.event_date) = ? AND MONTH(ph.event_date) = ?)";
+            $parts[] = "(EXTRACT(YEAR FROM ph.event_date)::int = ?::int AND EXTRACT(MONTH FROM ph.event_date)::int = ?::int)";
             $historyMatchParams[] = $ym['y'];
             $historyMatchParams[] = $ym['m'];
         }
         foreach ($dateCriteria['years'] as $y) {
-            $parts[] = "YEAR(ph.event_date) = ?";
+            $parts[] = "EXTRACT(YEAR FROM ph.event_date)::int = ?::int";
             $historyMatchParams[] = $y;
         }
 
@@ -650,10 +652,11 @@ if ($method === 'POST') {
             }
         }
 
-        $sql = "INSERT INTO interments (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        // PostgreSQL: RETURNING is more reliable than lastInsertId() on PDO_PGSQL.
+        $sql = "INSERT INTO interments (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $placeholders) . ") RETURNING interment_id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($values);
-        $newId = (int) $pdo->lastInsertId();
+        $newId = (int) $stmt->fetchColumn();
 
         // Only Active rows with a grave represent a physical placement
         if ($status === 'Active' && $currentGraveId) {
@@ -686,13 +689,15 @@ if ($method === 'POST') {
         Response::success("Interment created.", ['interment_id' => $newId], 201);
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        // PDO_PGSQL: SQLSTATE is in getCode(); map to the same user-facing
+        // messages the old MySQL code used to emit.
         $sqlState = (string) $e->getCode();
         $msg      = $e->getMessage();
 
-        if ($sqlState === '23000' && strpos($msg, 'uk_active_control_number') !== false) {
+        if ($sqlState === '23505' && strpos($msg, 'uk_active_control_number') !== false) {
             Response::error("Conflict: Control number already exists.", 409);
         }
-        if ($sqlState === 'HY000' && strpos($msg, 'chk_status_grave') !== false) {
+        if ($sqlState === '23514' && strpos($msg, 'chk_status_grave') !== false) {
             Response::error("Conflict: Only Active interments may have a current_grave_id.", 409);
         }
         if ($sqlState === '22007') {
@@ -921,13 +926,14 @@ if ($method === 'PUT') {
         ]);
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        // PDO_PGSQL: SQLSTATE is in getCode().
         $sqlState = (string) $e->getCode();
         $msg      = $e->getMessage();
 
-        if ($sqlState === '23000' && strpos($msg, 'uk_active_control_number') !== false) {
+        if ($sqlState === '23505' && strpos($msg, 'uk_active_control_number') !== false) {
             Response::error("Conflict: Control number already exists.", 409);
         }
-        if ($sqlState === 'HY000' && strpos($msg, 'chk_status_grave') !== false) {
+        if ($sqlState === '23514' && strpos($msg, 'chk_status_grave') !== false) {
             Response::error("Conflict: Only Active interments may have a current_grave_id.", 409);
         }
         if ($sqlState === '22007') {
@@ -986,7 +992,7 @@ if ($method === 'DELETE') {
 
         $upd = $pdo->prepare("
             UPDATE interments
-            SET deleted_at = NOW(), updated_by = ?
+            SET deleted_at = CURRENT_TIMESTAMP, updated_by = ?
             WHERE interment_id = ? AND deleted_at IS NULL
         ");
         $upd->execute([$userId, $id]);

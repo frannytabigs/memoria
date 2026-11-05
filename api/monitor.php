@@ -312,6 +312,13 @@ $baseReservationSelect = "
 if ($method === 'GET') {
 
     if ($resourceId) {
+        // PostgreSQL: a non-numeric id would trigger 22P02 and crash with a
+        // 500. MySQL silently cast 'abc' -> 0 and returned 404, so preserve
+        // that behavior with an explicit guard.
+        if (!is_numeric($resourceId)) {
+            Response::error('Active reservation not found.', 404);
+        }
+
         $stmt = $pdo->prepare($baseReservationSelect . "
             WHERE rs.reservation_id = ? AND rs.reservation_state = 'Active'
         ");
@@ -363,14 +370,15 @@ if ($method === 'GET') {
         ];
         $parts = [];
         foreach ($cols as $c) {
-            $parts[] = "$c LIKE ?";
+            // PostgreSQL LIKE is case-sensitive; MySQL's default was not.
+            // ILIKE preserves the previous, expected behavior.
+            $parts[] = "$c ILIKE ?";
             $searchParams[] = $like;
         }
 
         // Date search covers the reservation, N, and O
         // convert_dates() returns empty arrays for plain text, so the extra cost is zero
-        // DATE()/MONTH()/DAY()/YEAR() skip indexes but LIKE '%...%' already forced a scan
-        // o.* columns are NULL when there is no old occupant, so those matches safely return NULL
+        // PostgreSQL: use EXTRACT(...) and ::date instead of DATE()/MONTH()/DAY()/YEAR()
         $dateCriteria = convert_dates($searchTerm);
 
         $dateCols = [
@@ -405,27 +413,27 @@ if ($method === 'GET') {
 
         foreach ($dateCriteria['exact_dates'] as $d) {
             foreach ($dateCols as $col) {
-                $parts[] = "DATE($col) = ?";
+                $parts[] = "$col::date = ?::date";
                 $searchParams[] = $d;
             }
         }
         foreach ($dateCriteria['month_days'] as $md) {
             foreach ($dateCols as $col) {
-                $parts[] = "(MONTH($col) = ? AND DAY($col) = ?)";
+                $parts[] = "(EXTRACT(MONTH FROM $col)::int = ?::int AND EXTRACT(DAY FROM $col)::int = ?::int)";
                 $searchParams[] = $md['m'];
                 $searchParams[] = $md['d'];
             }
         }
         foreach ($dateCriteria['year_months'] as $ym) {
             foreach ($dateCols as $col) {
-                $parts[] = "(YEAR($col) = ? AND MONTH($col) = ?)";
+                $parts[] = "(EXTRACT(YEAR FROM $col)::int = ?::int AND EXTRACT(MONTH FROM $col)::int = ?::int)";
                 $searchParams[] = $ym['y'];
                 $searchParams[] = $ym['m'];
             }
         }
         foreach ($dateCriteria['years'] as $y) {
             foreach ($dateCols as $col) {
-                $parts[] = "YEAR($col) = ?";
+                $parts[] = "EXTRACT(YEAR FROM $col)::int = ?::int";
                 $searchParams[] = $y;
             }
         }
@@ -975,17 +983,21 @@ if ($method === 'POST') {
         ]);
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        // PDO_PGSQL returns the SQLSTATE in getCode(); map to the same
+        // user-facing messages the MySQL code used to emit.
         $sqlState = (string) $e->getCode();
         $msg      = $e->getMessage();
 
-        if ($sqlState === '23000') {
+        if ($sqlState === '23505') {
+            // unique_violation (was MySQL 23000)
             if (strpos($msg, 'uk_active_control_number') !== false) {
                 Response::error("Conflict: Control number already exists.", 409);
             }
             systemLog("Reservation action integrity violation: " . $msg, 'System');
             Response::error("Conflict: Reservation action could not be completed.", 409);
         }
-        if ($sqlState === 'HY000') {
+        if ($sqlState === '23514') {
+            // check_violation (was MySQL HY000 for CHECK names)
             if (strpos($msg, 'chk_status_grave') !== false) {
                 Response::error("Conflict: Invalid status/grave combination.", 409);
             }
@@ -1000,6 +1012,7 @@ if ($method === 'POST') {
             }
         }
         if ($sqlState === '22007') {
+            // Same in MySQL and PostgreSQL: invalid_datetime_format
             Response::error("The Date Formats are invalid, please check again!", 409);
         }
 
