@@ -93,13 +93,13 @@ $dashboardData['available_graves'] = $graveDistribution['Vacant'];
 $stmt = $pdo->query("
     SELECT 
         SUM(CASE 
-            WHEN lease_expiration_date < CURRENT_DATE AND is_eligible = true 
+            WHEN lease_expiration_date < CURRENT_DATE AND is_eligible = 1 
             THEN 1 ELSE 0 
         END) AS expired,
         SUM(CASE 
             WHEN lease_expiration_date >= CURRENT_DATE 
              AND lease_expiration_date <= (CURRENT_DATE + INTERVAL '1 MONTH') 
-             AND is_eligible = true 
+             AND is_eligible = 1 
             THEN 1 ELSE 0 
         END) AS expiring,
         SUM(CASE 
