@@ -33,15 +33,15 @@ $dashboardData = [];
 $stmt = $pdo->query("
     SELECT 
         CASE 
-            WHEN has_active_reservation = 1 THEN 'Reserved'
+            WHEN has_active_reservation = true THEN 'Reserved'
             WHEN active_occupant_count = 0 AND grave_status = 'Vacant' THEN 'Vacant'
-            WHEN active_occupant_count = 1 
+            WHEN active_occupant_count = true 
                  AND min_exp_date IS NOT NULL 
                  AND min_exp_date < CURRENT_DATE THEN 'Expired'
-            WHEN active_occupant_count = 1 
+            WHEN active_occupant_count = true 
                  AND min_exp_date IS NOT NULL 
                  AND min_exp_date <= (CURRENT_DATE + INTERVAL '1 MONTH') THEN 'Expiring'
-            WHEN active_occupant_count = 1 THEN 'Occupied'
+            WHEN active_occupant_count = true THEN 'Occupied'
             WHEN active_occupant_count >= 2 THEN 'Occupied'
             ELSE 'Other'
         END AS category,
@@ -93,13 +93,13 @@ $dashboardData['available_graves'] = $graveDistribution['Vacant'];
 $stmt = $pdo->query("
     SELECT 
         SUM(CASE 
-            WHEN lease_expiration_date < CURRENT_DATE AND is_eligible = 1 
+            WHEN lease_expiration_date < CURRENT_DATE AND is_eligible = true 
             THEN 1 ELSE 0 
         END) AS expired,
         SUM(CASE 
             WHEN lease_expiration_date >= CURRENT_DATE 
              AND lease_expiration_date <= (CURRENT_DATE + INTERVAL '1 MONTH') 
-             AND is_eligible = 1 
+             AND is_eligible = true 
             THEN 1 ELSE 0 
         END) AS expiring,
         SUM(CASE 
@@ -167,7 +167,7 @@ $stmt = $pdo->query("
       AND (SELECT COUNT(*) FROM interments i2
            WHERE i2.current_grave_id = g.grave_id
              AND i2.status = 'Active'
-             AND i2.deleted_at IS NULL) = 1
+             AND i2.deleted_at IS NULL) = true
       AND NOT EXISTS (
           SELECT 1 FROM reservations r
           WHERE r.reservation_state = 'Active'
@@ -194,7 +194,7 @@ $stmt = $pdo->query("
       AND (SELECT COUNT(*) FROM interments i2
            WHERE i2.current_grave_id = g.grave_id
              AND i2.status = 'Active'
-             AND i2.deleted_at IS NULL) = 1
+             AND i2.deleted_at IS NULL) = true
       AND NOT EXISTS (
           SELECT 1 FROM reservations r
           WHERE r.reservation_state = 'Active'
