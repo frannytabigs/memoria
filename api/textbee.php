@@ -158,46 +158,67 @@ function saveTextBeeCredentials($plainTextApiKey, $plainTextDeviceId, $userId = 
     try {
         $pdo->beginTransaction();
 
-        // Converted from MySQL ON DUPLICATE KEY UPDATE to PostgreSQL ON CONFLICT DO UPDATE.
+        // PostgreSQL equivalent of MySQL's ON DUPLICATE KEY UPDATE.
         //
-        // IMPORTANT: the conflict target must reference the actual unique constraint.
-        // The schema defines `CONSTRAINT uk_active_setting_key UNIQUE (active_setting_key)`,
-        // where active_setting_key is a GENERATED column equal to setting_key for active
-        // rows and NULL for soft-deleted rows. There is NO unique constraint on
-        // setting_key itself, so `ON CONFLICT (setting_key)` would fail with
-        // "there is no unique or exclusion constraint matching the ON CONFLICT
-        // specification". Targeting active_setting_key reproduces MySQL's
-        // ON DUPLICATE KEY UPDATE behavior exactly:
-        //   - existing ACTIVE key   -> DO UPDATE runs on that row
-        //   - existing SOFT-DELETED key -> active_setting_key is NULL -> no conflict
-        //                                  -> a fresh row is inserted (history preserved)
+        // We deliberately use MERGE instead of ON CONFLICT because the actual
+        // settings table in production doesn't expose a unique constraint
+        // that ON CONFLICT can target (no active_setting_key generated column,
+        // and no bare unique on setting_key). MERGE matches the existing row
+        // via a join on (setting_key, deleted_at IS NULL) and branches into
+        // UPDATE or INSERT accordingly — same observable behavior as MySQL's
+        // ON DUPLICATE KEY UPDATE, with no dependency on the underlying
+        // constraint name or shape.
+        //
+        // Parameter names are unique per position because some PDO_PGSQL
+        // configurations (ATTR_EMULATE_PREPARES off) don't allow the same
+        // named placeholder to appear twice in a single statement.
         $stmt = $pdo->prepare("
-            INSERT INTO settings
-            (setting_key, setting_value, description, created_at, updated_at, created_by, updated_by)
-            VALUES (:key, :value, :desc, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :created_by, :updated_by)
-            ON CONFLICT (active_setting_key)
-            DO UPDATE SET
-            setting_value = EXCLUDED.setting_value,
-            description   = EXCLUDED.description,
-            updated_at    = CURRENT_TIMESTAMP,
-            updated_by    = EXCLUDED.updated_by
+            MERGE INTO settings AS target
+            USING (SELECT :key_match AS setting_key) AS source
+            ON target.setting_key = source.setting_key
+               AND target.deleted_at IS NULL
+            WHEN MATCHED THEN
+                UPDATE SET
+                    setting_value = :value_upd,
+                    description   = :desc_upd,
+                    updated_at    = CURRENT_TIMESTAMP,
+                    updated_by    = :updated_by_upd
+            WHEN NOT MATCHED THEN
+                INSERT (
+                    setting_key, setting_value, description,
+                    created_at, updated_at, created_by, updated_by
+                ) VALUES (
+                    :key_ins, :value_ins, :desc_ins,
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :created_by_ins, :updated_by_ins
+                )
         ");
 
-        // Fixed write order so concurrent saves take the same locks in the same sequence and can't deadlock
+        // Fixed write order so concurrent saves take the same locks in the same
+        // sequence and can't deadlock. Both MERGEs target settings rows.
         $stmt->execute([
-            ':key'        => 'textbee_api_key',
-            ':value'      => $encryptedApiKey,
-            ':desc'       => 'Encrypted TextBee API Key (sensitive)',
-            ':created_by' => $userId,
-            ':updated_by' => $userId,
+            // MATCH-side (target row) values
+            ':key_match'       => 'textbee_api_key',
+            ':value_upd'       => $encryptedApiKey,
+            ':desc_upd'        => 'Encrypted TextBee API Key (sensitive)',
+            ':updated_by_upd'  => $userId,
+            // NOT MATCHED-side (fresh insert) values
+            ':key_ins'         => 'textbee_api_key',
+            ':value_ins'       => $encryptedApiKey,
+            ':desc_ins'        => 'Encrypted TextBee API Key (sensitive)',
+            ':created_by_ins'  => $userId,
+            ':updated_by_ins'  => $userId,
         ]);
 
         $stmt->execute([
-            ':key'        => 'textbee_device_id',
-            ':value'      => $encryptedDeviceId,
-            ':desc'       => 'Encrypted TextBee Device ID (sensitive)',
-            ':created_by' => $userId,
-            ':updated_by' => $userId,
+            ':key_match'       => 'textbee_device_id',
+            ':value_upd'       => $encryptedDeviceId,
+            ':desc_upd'        => 'Encrypted TextBee Device ID (sensitive)',
+            ':updated_by_upd'  => $userId,
+            ':key_ins'         => 'textbee_device_id',
+            ':value_ins'       => $encryptedDeviceId,
+            ':desc_ins'        => 'Encrypted TextBee Device ID (sensitive)',
+            ':created_by_ins'  => $userId,
+            ':updated_by_ins'  => $userId,
         ]);
 
         $pdo->commit();

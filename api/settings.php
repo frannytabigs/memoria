@@ -315,37 +315,48 @@ try {
                         // Upsert by key: an active row updates in place, a missing key inserts a new row.
                         // Soft-deleted rows stay as history, they aren't revived on re-save.
                         //
-                        // PostgreSQL: ON CONFLICT replaces MySQL's ON DUPLICATE KEY UPDATE, and
-                        // EXCLUDED.col replaces MySQL's VALUES(col).
+                        // PostgreSQL: MERGE replaces MySQL's ON DUPLICATE KEY UPDATE, and — unlike
+                        // ON CONFLICT — it does NOT require any specific unique constraint to exist
+                        // on the settings table. It matches on (setting_key = source AND deleted_at IS NULL)
+                        // i.e. against the active row only, and branches into UPDATE or INSERT.
                         //
-                        // IMPORTANT: the conflict target must reference the actual unique constraint.
-                        // The schema defines `CONSTRAINT uk_active_setting_key UNIQUE (active_setting_key)`
-                        // where active_setting_key is a GENERATED column that equals setting_key for
-                        // active rows and NULL for soft-deleted rows. So we conflict on that column.
-                        // The effect matches MySQL's ON DUPLICATE KEY UPDATE exactly:
-                        //   - existing ACTIVE key  -> DO UPDATE runs on that row
-                        //   - existing SOFT-DELETED key -> active_setting_key is NULL -> no conflict
-                        //                                -> a fresh row is inserted (history preserved)
+                        // Each placeholder name is unique per position because some PDO_PGSQL configs
+                        // (ATTR_EMULATE_PREPARES = false) disallow reusing a named placeholder twice
+                        // inside a single prepared statement.
                         $sql = "
-                            INSERT INTO settings 
-                                (setting_key, setting_value, description, created_at, updated_at, created_by, updated_by)
-                            VALUES 
-                                (:key, :value, :desc, NOW(), NOW(), :created_by, :updated_by)
-                            ON CONFLICT (active_setting_key)
-                            DO UPDATE SET
-                                setting_value = EXCLUDED.setting_value,
-                                description   = EXCLUDED.description,
-                                updated_at    = NOW(),
-                                updated_by    = EXCLUDED.updated_by
+                            MERGE INTO settings AS target
+                            USING (SELECT :key_match AS setting_key) AS source
+                            ON target.setting_key = source.setting_key
+                               AND target.deleted_at IS NULL
+                            WHEN MATCHED THEN
+                                UPDATE SET
+                                    setting_value = :value_upd,
+                                    description   = :desc_upd,
+                                    updated_at    = CURRENT_TIMESTAMP,
+                                    updated_by    = :updated_by_upd
+                            WHEN NOT MATCHED THEN
+                                INSERT (
+                                    setting_key, setting_value, description,
+                                    created_at, updated_at, created_by, updated_by
+                                ) VALUES (
+                                    :key_ins, :value_ins, :desc_ins,
+                                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :created_by_ins, :updated_by_ins
+                                )
                         ";
 
                         $stmt = $pdo->prepare($sql);
                         $stmt->execute([
-                            ':key'        => $sKey,
-                            ':value'      => $sValue,
-                            ':desc'       => $sDesc,
-                            ':created_by' => $userData['user_id'],
-                            ':updated_by' => $userData['user_id']
+                            // MATCH side (existing active row)
+                            ':key_match'      => $sKey,
+                            ':value_upd'      => $sValue,
+                            ':desc_upd'       => $sDesc,
+                            ':updated_by_upd' => $userData['user_id'],
+                            // NOT MATCHED side (fresh insert)
+                            ':key_ins'        => $sKey,
+                            ':value_ins'      => $sValue,
+                            ':desc_ins'       => $sDesc,
+                            ':created_by_ins' => $userData['user_id'],
+                            ':updated_by_ins' => $userData['user_id'],
                         ]);
 
                         $changes .= 'setting_key: ' . $sKey . ', description: ' . $sDesc . ', value: ' . $sValue . '  ';
