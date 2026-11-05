@@ -12,6 +12,9 @@ const MonitorBurialModal = (() => {
     let oldModeSnapshot = null;
     let newModeSnapshot = null;
 
+    let savedActiveIntermentDate = null;
+
+
     let burialTypePlaceholderText = null;
 
     let blocksPromise = null;
@@ -461,6 +464,53 @@ const MonitorBurialModal = (() => {
         e.value = raw ? addYearsISO(raw, LEASE_YEARS) : '';
     }
 
+    function applyIntermentDateForStatus(isInactive) {
+        if (!modalEl) return;
+        if (submissionSucceeded) return; // post-submit: everything is locked
+
+        const intermentEl = getIntermentField();
+        const expEl = getExpirationField();
+
+        if (isInactive) {
+            const current = (intermentEl?.value || '').trim();
+            if (current) {
+                savedActiveIntermentDate = current;
+            } else if (!savedActiveIntermentDate) {
+                savedActiveIntermentDate = sliceDate(
+                    oldOccupantOriginal?.date_buried || '',
+                );
+            }
+            if (intermentEl) {
+                intermentEl.value = '';
+                intermentEl.disabled = true;
+                intermentEl.style.background = '#eef2f8';
+                intermentEl.style.color = '#475569';
+                intermentEl.style.cursor = 'not-allowed';
+            }
+            if (expEl) expEl.value = '';
+            return;
+        }
+
+        // Going back to Active: re-enable first, then restore if empty.
+        if (intermentEl) {
+            intermentEl.disabled = false;
+            intermentEl.style.background = '';
+            intermentEl.style.color = '';
+            intermentEl.style.cursor = '';
+        }
+
+        const current = (intermentEl?.value || '').trim();
+        if (!current) {
+            const restore =
+                savedActiveIntermentDate ||
+                sliceDate(oldOccupantOriginal?.date_buried || '');
+            if (intermentEl && restore) {
+                intermentEl.value = restore;
+                recalcExpirationFromInterment();
+            }
+        }
+    }
+
     // Asks the user to confirm when the auto-computed lease expiration is already in the past, or falls within the current calendar year.
     async function confirmIfLeaseWillExpireSoon(intermentEl) {
         if (!intermentEl) return true;
@@ -810,6 +860,10 @@ const MonitorBurialModal = (() => {
             if (match) select.value = match.value;
         }
         updateSelectedSlotFromGraveSelect();
+
+        // If we just rendered at least one real grave option, no "No available
+        // grave codes in this block." hint can be truthful any more.
+        if (select.value) setGraveCodeHint('');
     }
 
     function updateSelectedSlotFromGraveSelect() {
@@ -927,8 +981,21 @@ const MonitorBurialModal = (() => {
 
             if (token !== gravesToken) return;
 
-            if (!graves.length) setGraveCodeHint('No available grave codes in this block.', true);
+            // Base the "no graves" hint on the FINAL merged list
+            // (vacant graves + the pinned/current grave, if any) — not on
+            // the raw vacant-only list. Otherwise a block with zero vacant
+            // graves but with the old occupant's current grave pinned would
+            // still show "No available grave codes in this block." even
+            // though a valid grave ends up selected in the dropdown.
+            const finalGraves = withPinned(graves);
+
+            if (!finalGraves.length) setGraveCodeHint('No available grave codes in this block.', true);
             else setGraveCodeHint('');
+
+            // Final render so the pinned grave is force-selected and the
+            // select reflects the merged list exactly (mirrors the same
+            // pattern used by ReserveBurialModal).
+            renderGraveOptions(finalGraves, pinnedGraveId);
         } catch (err) {
             if (err.name === 'AbortError' || token !== gravesToken) return;
             console.warn('[MonitorModal] Unable to fetch graves:', err);
@@ -980,6 +1047,11 @@ const MonitorBurialModal = (() => {
 
         const statusSelect = modalEl.querySelector('#status');
         if (!statusSelect) return;
+
+        // The status select only exists (and only matters) on the old-occupant
+        // step, so this is the only place the Date of Interment clear/restore
+        // needs to run.
+        applyIntermentDateForStatus(statusSelect.value !== 'Active');
 
         if (statusSelect.value !== 'Active') {
             const blockEl = modalEl.querySelector('#block');
@@ -1607,6 +1679,15 @@ const MonitorBurialModal = (() => {
         updateWizardButtons();
 
         refreshRemarksHint();
+
+        // Re-apply the Inactive lock. applyMode()'s loop above enables every
+        // field for the old-occupant step, so if the status is Inactive we
+        // must disable the Date of Interment again (covers first entry from
+        // an already-Inactive reservation, and Next/Back round-trips).
+        if (wizardMode === 'old' && !submissionSucceeded) {
+            const statusVal = modalEl.querySelector('#status')?.value || '';
+            applyIntermentDateForStatus(statusVal !== 'Active');
+        }
     }
 
     function lockFieldsOnly() {
@@ -1807,6 +1888,10 @@ const MonitorBurialModal = (() => {
             wizardMode = 'old';
             unlockFields();
             applyFormFields(oldModeSnapshot || {});
+            if ((oldModeSnapshot?.status || '') === 'Inactive') {
+                const el = getIntermentField();
+                if (el) el.value = '';
+            }
             lockFieldsOnly();
             updateBurialTypePlaceholder();
             updateWizardButtons();
@@ -2045,6 +2130,7 @@ const MonitorBurialModal = (() => {
         submissionSucceeded = false;
         oldModeSnapshot = null;
         newModeSnapshot = null;
+        savedActiveIntermentDate = null;
 
         oldOccupantOriginal = res.old_interment ? reservationToOldFields(res) : null;
         newOccupantOriginal = reservationToNewFields(res);
@@ -2098,6 +2184,7 @@ const MonitorBurialModal = (() => {
         selectedSlot = null;
         submissionSucceeded = false;
         wizardMode = null;
+        savedActiveIntermentDate = null;
         oldModeSnapshot = null;
         newModeSnapshot = null;
         oldOccupantOriginal = null;
