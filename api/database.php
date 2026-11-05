@@ -16,30 +16,29 @@ $pass = DB_PASS;
 $charset = DB_CHARSET;
 $timezone = DB_TIMEZONE;
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+// CHANGED: Use pgsql driver and port 5432
+$dsn = "pgsql:host=$host;port=5432;dbname=$db";
 
-$baseOptions = [
+// CHANGED: Standard options only, removed MySQL-specific attributes
+$options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-if (PHP_VERSION_ID >= 80500) {
-    $options = $baseOptions + [
-        Pdo\Mysql::ATTR_INIT_COMMAND => "SET time_zone = '$timezone'",
-    ];
-} else {
-    $options = $baseOptions + [
-        PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone = '$timezone'",
-    ];
-}
-
-
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    
+    // CHANGED: Set timezone and charset for PostgreSQL after connecting
+    $pdo->exec("SET TIME ZONE '$timezone'");
+    if (strcasecmp($charset, 'utf8mb4') === 0) {
+        $pdo->exec("SET client_encoding TO 'UTF8'"); // Postgres uses UTF8 instead of utf8mb4
+    }
+    
     // echo "Database connection successful!"; 
 } catch (\PDOException $e) {
     error_log($e->getMessage());
     systemLog("Database connection failed: " . $e->getMessage());
     Response::error("Database connection failed " . $e->getMessage(), 500);
 }
+?>
