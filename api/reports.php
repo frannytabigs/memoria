@@ -189,6 +189,16 @@ function rr_pagination_meta(int $page, int $perPage, int $total): array
 }
 
 // Per-grave category based on current date. Used by cemetery_capacity and graves
+//
+// PostgreSQL fixes vs the MySQL version:
+//   * CURDATE() -> CURRENT_DATE
+//   * DATE_ADD(CURDATE(), INTERVAL 30 DAY) -> (CURRENT_DATE + INTERVAL '30 days')
+//   * EXISTS(...) returns a real boolean in PG. Wrapping it in CASE ... THEN 1
+//     ELSE 0 END keeps it an int, matching both the `has_active_reservation = 1`
+//     test in the CASE below and the `(bool)(int)$row[...]` cast done in PHP
+//     after this subquery is materialized. Without the CASE, an
+//     ATTR_STRINGIFY_FETCHES build would return 't'/'f' and (int)'t' = 0,
+//     silently flipping the flag to false.
 function rr_categorized_graves_sql(): string
 {
     return "
@@ -201,7 +211,7 @@ function rr_categorized_graves_sql(): string
                     WHEN gc.min_exp_date IS NOT NULL
                          AND gc.min_exp_date <= (CURRENT_DATE + INTERVAL '30 days') THEN 'Expiring'
                     WHEN gc.min_exp_date IS NOT NULL THEN 'Occupied'
-                    WHEN gc.has_active_reservation = true THEN 'Reserved'
+                    WHEN gc.has_active_reservation = 1 THEN 'Reserved'
                     WHEN gc.grave_status = 'Vacant' THEN 'Vacant'
                     ELSE 'Other'
                 END AS category,
@@ -215,11 +225,11 @@ function rr_categorized_graves_sql(): string
                     g.status AS grave_status,
                     MIN(i.lease_expiration_date) AS min_exp_date,
                     COUNT(DISTINCT i.interment_id) AS active_interments_count,
-                    EXISTS (
+                    CASE WHEN EXISTS (
                         SELECT 1 FROM reservations r
                         WHERE r.target_grave_id = g.grave_id
                           AND r.reservation_state = 'Active'
-                    ) AS has_active_reservation
+                    ) THEN 1 ELSE 0 END AS has_active_reservation
                 FROM graves g
                 LEFT JOIN interments i
                     ON g.grave_id = i.current_grave_id
@@ -272,13 +282,19 @@ function handle_cemetery_capacity(PDO $pdo): void
         }
     }
 
+    // PostgreSQL: SUM(<boolean>) does not exist. Each CASE preserves the exact
+    // bucket boundaries from the MySQL version (expired is <= today; expiring
+    // is strictly > today AND <= today+30; occupied is strictly > today+30).
     $leaseStmt = $pdo->query("
             SELECT
                 SUM(CASE WHEN lease_expiration_date <= CURRENT_DATE THEN 1 ELSE 0 END) AS expired,
                 SUM(CASE WHEN lease_expiration_date > CURRENT_DATE
-                    AND lease_expiration_date <= (CURRENT_DATE + INTERVAL '30 days') THEN 1 ELSE 0 END) AS expiring,
-                SUM(CASE WHEN lease_expiration_date > (CURRENT_DATE + INTERVAL '30 days') THEN 1 ELSE 0 END) AS occupied,
-                SUM(CASE WHEN lease_expiration_date IS NULL THEN 1 ELSE 0 END) AS unknown,
+                          AND lease_expiration_date <= (CURRENT_DATE + INTERVAL '30 days')
+                         THEN 1 ELSE 0 END) AS expiring,
+                SUM(CASE WHEN lease_expiration_date > (CURRENT_DATE + INTERVAL '30 days')
+                         THEN 1 ELSE 0 END) AS occupied,
+                SUM(CASE WHEN lease_expiration_date IS NULL
+                         THEN 1 ELSE 0 END) AS unknown,
                 COUNT(*) AS total
             FROM interments
             WHERE status = 'Active' AND deleted_at IS NULL
@@ -292,13 +308,15 @@ function handle_cemetery_capacity(PDO $pdo): void
         'Total'    => (int)($leaseRow['total']    ?? 0),
     ];
 
+    // PostgreSQL: TO_CHAR replaces DATE_FORMAT, EXTRACT replaces YEAR()
     $monthlyStmt = $pdo->query("
             SELECT TO_CHAR(lease_expiration_date, 'YYYY-MM') AS exp_month,
                    COUNT(*) AS count
             FROM interments
             WHERE status = 'Active'
               AND deleted_at IS NULL
-              AND EXTRACT(YEAR FROM lease_expiration_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM lease_expiration_date)::int
+                  = EXTRACT(YEAR FROM CURRENT_DATE)::int
             GROUP BY exp_month
             ORDER BY exp_month ASC
         ");
@@ -429,6 +447,10 @@ function handle_lease_expirations(PDO $pdo): void
 
     $hasRange = ($startDate !== null || $endDate !== null);
 
+    // PostgreSQL: DATE 'YYYY-MM-DD' is the standard date literal; it behaves
+    // like MySQL's quoted 'YYYY-MM-DD' and is comparable to a DATE column.
+    $todayLit = "DATE '" . date('Y-m-d') . "'";
+
     // Base filters (soft-delete + status + non-null expiration)
     // A date range narrows both buckets to that window
     $baseWhere = "i.status = 'Active' AND i.deleted_at IS NULL AND i.lease_expiration_date IS NOT NULL";
@@ -443,12 +465,14 @@ function handle_lease_expirations(PDO $pdo): void
         $params[':end_date'] = $endDate;
     }
 
-    $expiredClause = "i.lease_expiration_date < CURRENT_DATE";
+    $expiredClause = "i.lease_expiration_date < $todayLit";
 
     // Expiring
+    // PostgreSQL: DATE 'YYYY-MM-DD' + INTERVAL 'N days' replaces
+    // DATE_ADD(date, INTERVAL N DAY).
     $expiringClause = $hasRange
-        ? "i.lease_expiration_date >= CURRENT_DATE"
-        : "i.lease_expiration_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '{$days} days')";
+        ? "i.lease_expiration_date >= $todayLit"
+        : "i.lease_expiration_date BETWEEN $todayLit AND ($todayLit + INTERVAL '{$days} days')";
 
     $bucketClauses = [];
     if ($includeExpired)  $bucketClauses[] = $expiredClause;
@@ -488,7 +512,7 @@ function handle_lease_expirations(PDO $pdo): void
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-    $todayTs = strtotime('today');
+    $todayTs = strtotime(date('Y-m-d'));
     $mapped = array_map(static function (array $row) use ($todayTs): array {
         $exp   = $row['lease_expiration_date'] ?? null;
         $expTs = $exp ? strtotime((string)$exp) : false;
@@ -540,6 +564,7 @@ function handle_interments(PDO $pdo): void
     $params       = [];
     $whereClauses = ["i.deleted_at IS NULL"];
 
+    // PostgreSQL: ILIKE replaces MySQL's case-insensitive default LIKE.
     if ($address !== null) {
         $whereClauses[] = "(
             i.last_known_address ILIKE :addr1
@@ -728,7 +753,8 @@ function handle_graves(PDO $pdo): void
     $countStmt->execute($params);
     $total = (int)$countStmt->fetchColumn();
 
-    // PostgreSQL DATE_PART('day', ...) replaces MySQL DATEDIFF
+    // PostgreSQL: date - date returns int (days), same as MySQL's DATEDIFF(a, b)
+    // for date arguments. lease_expiration_date is DATE, so min_exp_date is DATE.
     $sql = "
         SELECT
             cg.grave_id,
@@ -743,7 +769,7 @@ function handle_graves(PDO $pdo): void
             g.col_num,
             b.block_name,
             b.block_type,
-            EXTRACT(DAY FROM (cg.min_exp_date::timestamp - CURRENT_DATE::timestamp)) AS days_until_expiration
+            (cg.min_exp_date - CURRENT_DATE) AS days_until_expiration
         FROM (" . rr_categorized_graves_sql() . ") AS cg
         INNER JOIN graves g ON g.grave_id = cg.grave_id AND g.deleted_at IS NULL
         LEFT JOIN blocks b ON b.block_id = g.block_id AND b.deleted_at IS NULL
@@ -837,16 +863,22 @@ function handle_payments(PDO $pdo): void
         $params[':maxamount'] = $maxamount;
     }
 
+    // Date range on when the payment was recorded.
+    // created_at is a TIMESTAMP, so endDate must be extended to include
+    // the full end day (00:00:00 through 23:59:59).
+    //
+    // PostgreSQL: :end_date::date + INTERVAL '1 day' replaces
+    // MySQL's DATE_ADD(:end_date, INTERVAL 1 DAY).
     if ($startDate !== null) {
         $whereClauses[]        = "p.created_at >= :start_date";
         $params[':start_date'] = $startDate . ' 00:00:00';
     }
     if ($endDate !== null) {
-        // PostgreSQL interval addition
-        $whereClauses[]                = "p.created_at < (:end_date::timestamp + INTERVAL '1 DAY')";
+        $whereClauses[]                = "p.created_at < (:end_date::date + INTERVAL '1 day')";
         $params[':end_date']           = $endDate;
     }
 
+    // PostgreSQL: ILIKE replaces MySQL's case-insensitive default LIKE.
     if ($search !== null) {
         $whereClauses[] = "(
             p.reference_number ILIKE :srch1
@@ -1006,8 +1038,9 @@ function handle_populate_filters(PDO $pdo): void
         'max' => (float)($rangeRow['max_amt'] ?? 0),
     ];
 
+    // PostgreSQL: EXTRACT(...)::int replaces MySQL's YEAR().
     $yearsStmt = $pdo->query("
-        SELECT DISTINCT EXTRACT(YEAR FROM COALESCE(date_buried, deceased_date_of_death)) AS y
+        SELECT DISTINCT EXTRACT(YEAR FROM COALESCE(date_buried, deceased_date_of_death))::int AS y
         FROM interments
         WHERE deleted_at IS NULL
           AND COALESCE(date_buried, deceased_date_of_death) IS NOT NULL
