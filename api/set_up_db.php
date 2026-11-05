@@ -205,6 +205,7 @@ CREATE INDEX IF NOT EXISTS idx_reservations_state ON reservations(reservation_st
 CREATE INDEX IF NOT EXISTS idx_history_interment_id ON placement_history(interment_id);
 
 -- REALISTIC DUMMY DATA:
+INSERT INTO users (user_id, username, role, status, email, phone_number, password_hash, name, session_token, deleted_at, created_by, updated_by) VALUES (1, 'admin', 'Administrator', 'Verified', 'admin@gmail.com', '+639293456789', '$2y$12$YtdLBOCGz5.WcnxtHGPBx.eg4yRaijZUBMOYuw9GVAxkp670BXW0y', 'Administrator', '{"token":"1455fc0b6602c0e412eb39a21c6c0f61","ip":"127.0.0.1","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36","time":"Nov 04, 2026 05:10 PM"}', NULL, NULL, NULL);
 
 INSERT INTO blocks (block_id, block_name, block_type, image_link, coordinates, rows, cols, rotation, remarks, deleted_at, created_by, updated_by) VALUES (1, 'Block A', 'Niche', 'https://lh3.googleusercontent.com/pw/AP1GczPm8PoMTq8qseByrs9OFdn1PQxXTjSVp2-4zdU_dPqfgbL_7MP2VHg7M9xO4oTsMxRpy5jAcK3Hs--jiOBX8-R44gjfW9s8BRhvWZDujo_Zl0hVw4CScO0tTzO3TDKZ4TWOiVxPEQD9pD5D8oIujUMj=w1380-h777-s-no-gm?authuser=0', '[{"x": 44, "y": 108}, {"x": 141, "y": 108}, {"x": 141, "y": 383}, {"x": 44, "y": 383}]', 26, 26, '0.000000', NULL, NULL, 1, 1);
 INSERT INTO blocks (block_id, block_name, block_type, image_link, coordinates, rows, cols, rotation, remarks, deleted_at, created_by, updated_by) VALUES (2, 'Block B', 'Niche', 'https://lh3.googleusercontent.com/pw/AP1GczNCs0UwooAs0ZcT4_LeawrsCIUoEI_ghJZWOdPHHNUVORPYh-2_8yk7iCuIBHigSImk2k8ZoMWvP_hS5WFZ0XqYZm9bM0KW7FPNvS3g2V8oUHTYhprFJ0xM4xZFOWNsfROTEHMeBbNjcW23BMCFRjbJ=w1380-h777-s-no-gm?authuser=0', '[{"x": 325, "y": 109}, {"x": 418, "y": 109}, {"x": 418, "y": 396}, {"x": 325, "y": 396}]', 26, 26, '0.022207', NULL, NULL, 1, 1);
@@ -4293,8 +4294,6 @@ INSERT INTO settings (setting_id, setting_key, setting_value, description, delet
 INSERT INTO settings (setting_id, setting_key, setting_value, description, deleted_at, created_by, updated_by) VALUES (34, 'people_name_2', 'Ar. Maria Aileen A. Paragsa', 'Report Signatory 2 Name', NULL, 1, 1);
 INSERT INTO settings (setting_id, setting_key, setting_value, description, deleted_at, created_by, updated_by) VALUES (35, 'people_title_2', 'Admin Division Chief', 'Report Signatory 2 Title', NULL, 1, 1);
 INSERT INTO settings (setting_id, setting_key, setting_value, description, deleted_at, created_by, updated_by) VALUES (36, 'cemetery_map_images', 'cemetery_map_image.png', 'For the cemetery map backgound image', NULL, 1, 1);
-
-INSERT INTO users (user_id, username, role, status, email, phone_number, password_hash, name, session_token, deleted_at, created_by, updated_by) VALUES (1, 'admin', 'Administrator', 'Verified', 'admin@gmail.com', '+639293456789', '$2y$12$YtdLBOCGz5.WcnxtHGPBx.eg4yRaijZUBMOYuw9GVAxkp670BXW0y', 'Administrator', '{"token":"1455fc0b6602c0e412eb39a21c6c0f61","ip":"127.0.0.1","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36","time":"Nov 04, 2026 05:10 PM"}', NULL, NULL, NULL);
 
 SET FOREIGN_KEY_CHECKS=1;
 
