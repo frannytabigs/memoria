@@ -2,8 +2,7 @@
 define('ITS_ME_JUSTTOVERIFY', true);
 
 require_once 'database.php'; // Make sure this path points to your database connection file
-echo "Wait";
-$sql = "
+$sql = <<<'SQL'
 -- USERS
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
@@ -4299,7 +4298,7 @@ INSERT INTO users (user_id, username, role, status, email, phone_number, passwor
 
 SET FOREIGN_KEY_CHECKS=1;
 
-";
+SQL;
 
 try {
     // We execute the statements securely
