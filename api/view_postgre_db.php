@@ -17,8 +17,7 @@ require_once 'checkuser.php';
 
 $userData = checkuser();
 if (($userData['role'] ?? null) !== ROLE_ADMIN) {
-    http_response_code(403);
-    die('Forbidden: only administrators can access the database viewer.');
+    Response::error("Forbidden.", 401);
 }
 
 // ---- CSRF session ----
@@ -83,12 +82,6 @@ function tableRowEstimate(PDO $pdo, string $table): int
     return (int)($stmt->fetchColumn() ?: 0);
 }
 
-/** Actual row count (accurate, may be slow on huge tables) */
-function tableRowCount(PDO $pdo, string $table): int
-{
-    return (int)$pdo->query("SELECT COUNT(*) FROM " . qi($table))->fetchColumn();
-}
-
 // ---- Enumerate tables ----
 $pdo = $GLOBALS['pdo'];
 $allTables = $pdo->query("
@@ -99,10 +92,11 @@ $allTables = $pdo->query("
 ")->fetchAll(PDO::FETCH_COLUMN) ?: [];
 
 // ---- Read request inputs ----
-$action = (string)($_POST['action'] ?? $_GET['action'] ?? 'tables');
-$table  = (string)($_POST['table']  ?? $_GET['table']  ?? '');
-$page   = max(1, (int)($_GET['page'] ?? 1));
-$limit  = max(10, min(500, (int)($_GET['limit'] ?? 50)));
+$action     = (string)($_POST['action'] ?? $_GET['action'] ?? 'tables');
+$table      = (string)($_POST['table']  ?? $_GET['table']  ?? '');
+$page       = max(1, (int)($_GET['page'] ?? $_POST['page'] ?? 1));
+$limit      = max(10, min(500, (int)($_GET['limit'] ?? $_POST['limit'] ?? 50)));
+$searchTerm = trim((string)($_GET['q'] ?? $_POST['q'] ?? ''));
 
 if ($table !== '' && !in_array($table, $allTables, true)) {
     http_response_code(400);
@@ -306,14 +300,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $flashType = 'error';
     }
 
-    // PRG pattern — never render on POST except SQL result which lives in session
+    // PRG pattern — never render on POST except SQL result which lives in session.
+    // Map the POST action to the view that should show after the redirect
+    // (the original code redirected to ?action=save_row which is not a valid
+    // view, leaving the user on an empty page after every successful save).
     if ($action !== 'run_sql' || $flashType === 'error') {
-        $back = 'view_postgre_db.php?action=' . urlencode($action === 'run_sql' ? 'sql' : $action);
-        if ($table !== '') $back .= '&table=' . urlencode($table);
-        if ($flash !== null) {
-            $back .= '&msg=' . urlencode($flash) . '&msgtype=' . urlencode($flashType);
+        $postToView = [
+            'save_row'     => 'view',
+            'delete_row'   => 'view',
+            'insert_row'   => 'view',
+            'fix_sequence' => 'view',
+            'run_sql'      => 'sql',
+        ];
+        $redirectView = $postToView[$action] ?? 'tables';
+
+        $redirectParams = ['action' => $redirectView];
+        if ($table !== '') {
+            $redirectParams['table'] = $table;
         }
-        header('Location: ' . $back);
+        // Carry the search filter back into the view so deleting / fixing a
+        // sequence from a searched view returns to the same filtered list.
+        if ($searchTerm !== '' && $redirectView === 'view') {
+            $redirectParams['q'] = $searchTerm;
+        }
+        if ($flash !== null) {
+            $redirectParams['msg']     = $flash;
+            $redirectParams['msgtype'] = $flashType;
+        }
+        header('Location: view_postgre_db.php?' . http_build_query($redirectParams));
         exit;
     }
 }
@@ -633,29 +647,19 @@ if ($action !== 'sql') {
             color: #e2e8f0;
         }
 
-        .tabs {
+        .search-bar {
             display: flex;
-            gap: 4px;
-            border-bottom: 1px solid #e2e8f0;
-            margin-bottom: 16px;
+            gap: 6px;
+            align-items: center;
         }
 
-        .tabs a {
-            padding: 8px 16px;
+        .search-bar input[type=search] {
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
             font-size: 13px;
-            color: #64748b;
-            text-decoration: none;
-            border-bottom: 2px solid transparent;
-        }
-
-        .tabs a:hover {
-            color: #0f172a;
-        }
-
-        .tabs a.active {
-            color: #0f172a;
-            border-bottom-color: #0f172a;
-            font-weight: 600;
+            width: 260px;
+            font-family: inherit;
         }
     </style>
 </head>
@@ -719,33 +723,105 @@ if ($action !== 'sql') {
             </div>
 
         <?php elseif ($action === 'view'):
-            $meta    = tableMeta($pdo, $table);
-            $pk      = $meta['pk'];
-            $total   = tableRowCount($pdo, $table);
-            $pages   = max(1, (int)ceil($total / $limit));
-            $page    = min($page, $pages);
-            $offset  = ($page - 1) * $limit;
+            $meta = tableMeta($pdo, $table);
+            $pk   = $meta['pk'];
 
-            $stmt = $pdo->prepare("SELECT * FROM " . qi($table) . " LIMIT {$limit} OFFSET {$offset}");
-            $stmt->execute();
+            // ── Search across text-like columns ──────────────────────────────
+            // We only search columns whose data_type is one of the "text-like"
+            // set. Casting to ::text makes this uniform (json, jsonb, uuid all
+            // work). The search term is escaped so the user can search for
+            // literal %, _, or \ without breaking the LIKE pattern.
+            $searchWhere    = '';
+            $searchParams   = [];
+            $searchableCols = [];
+
+            foreach ($meta['columns'] as $c) {
+                if (in_array($c['data_type'], [
+                    'text',
+                    'character varying',
+                    'character',
+                    'json',
+                    'jsonb',
+                    'uuid',
+                ], true)) {
+                    $searchableCols[] = $c['column_name'];
+                }
+            }
+
+            if ($searchTerm !== '' && !empty($searchableCols)) {
+                // Escape LIKE metacharacters: backslash first, then % and _
+                $escaped = str_replace(
+                    ['\\', '%', '_'],
+                    ['\\\\', '\\%', '\\_'],
+                    $searchTerm
+                );
+                $like = '%' . $escaped . '%';
+
+                $parts = [];
+                foreach ($searchableCols as $i => $col) {
+                    $ph = ':search_' . $i;
+                    $parts[] = qi($col) . "::text ILIKE {$ph} ESCAPE '\\'";
+                    $searchParams[$ph] = $like;
+                }
+                $searchWhere = ' WHERE (' . implode(' OR ', $parts) . ')';
+            }
+
+            // Total respecting the search filter
+            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM " . qi($table) . $searchWhere);
+            $countStmt->execute($searchParams);
+            $total = (int)$countStmt->fetchColumn();
+
+            $pages  = max(1, (int)ceil($total / $limit));
+            $page   = min($page, $pages);
+            $offset = ($page - 1) * $limit;
+
+            $stmt = $pdo->prepare(
+                "SELECT * FROM " . qi($table) . $searchWhere
+                    . " LIMIT {$limit} OFFSET {$offset}"
+            );
+            $stmt->execute($searchParams);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $cols = !empty($rows) ? array_keys($rows[0]) : array_column($meta['columns'], 'column_name');
+            $cols = !empty($rows)
+                ? array_keys($rows[0])
+                : array_column($meta['columns'], 'column_name');
 
-            // Long text detection for cell truncation
             $longCols = [];
             foreach ($meta['columns'] as $c) {
-                if (in_array($c['data_type'], ['text', 'character varying'], true)) {
+                if (in_array($c['data_type'], ['text', 'character varying', 'json', 'jsonb'], true)) {
                     $longCols[$c['column_name']] = true;
                 }
             }
+
+            // Base query string for pagination links (carries the search filter)
+            $paginationQuery = 'action=view&table=' . urlencode($table) . '&limit=' . $limit;
+            if ($searchTerm !== '') {
+                $paginationQuery .= '&q=' . urlencode($searchTerm);
+            }
         ?>
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
                     <div>
                         <h2 style="display:inline; margin-right:12px;"><?= h($table) ?></h2>
-                        <span class="meta"><?= h(number_format($total)) ?> total row(s)</span>
+                        <span class="meta">
+                            <?php if ($searchTerm !== ''): ?>
+                                <?= h(number_format($total)) ?> match(es) for &ldquo;<?= h($searchTerm) ?>&rdquo;
+                            <?php else: ?>
+                                <?= h(number_format($total)) ?> total row(s)
+                            <?php endif; ?>
+                        </span>
                     </div>
-                    <div style="display:flex; gap:6px;">
+                    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                        <form method="get" action="view_postgre_db.php" class="search-bar">
+                            <input type="hidden" name="action" value="view">
+                            <input type="hidden" name="table" value="<?= h($table) ?>">
+                            <input type="hidden" name="limit" value="<?= $limit ?>">
+                            <input type="search" name="q" value="<?= h($searchTerm) ?>"
+                                placeholder="Search all text columns…">
+                            <button class="btn small" type="submit">Search</button>
+                            <?php if ($searchTerm !== ''): ?>
+                                <a class="btn small muted" href="?action=view&table=<?= h(urlencode($table)) ?>">Clear</a>
+                            <?php endif; ?>
+                        </form>
                         <a class="btn small" href="?action=insert&table=<?= h(urlencode($table)) ?>">+ Insert row</a>
                         <?php if (!empty($pk)): ?>
                             <form method="post" action="view_postgre_db.php" style="display:inline"
@@ -753,12 +829,19 @@ if ($action !== 'sql') {
                                 <input type="hidden" name="action" value="fix_sequence">
                                 <input type="hidden" name="table" value="<?= h($table) ?>">
                                 <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+                                <input type="hidden" name="q" value="<?= h($searchTerm) ?>">
                                 <button class="btn small muted" type="submit">Fix sequence</button>
                             </form>
                         <?php endif; ?>
                         <a class="btn small muted" href="?action=tables">← Tables</a>
                     </div>
                 </div>
+
+                <?php if ($searchTerm !== '' && empty($searchableCols)): ?>
+                    <div class="flash info" style="margin-bottom:12px;">
+                        This table has no text-searchable columns.
+                    </div>
+                <?php endif; ?>
 
                 <div class="wrap">
                     <table class="grid">
@@ -773,7 +856,11 @@ if ($action !== 'sql') {
                         <tbody>
                             <?php if (empty($rows)): ?>
                                 <tr>
-                                    <td colspan="<?= count($cols) + 1 ?>" class="meta">No rows.</td>
+                                    <td colspan="<?= count($cols) + 1 ?>" class="meta">
+                                        <?= $searchTerm !== ''
+                                            ? 'No rows match &ldquo;' . h($searchTerm) . '&rdquo;.'
+                                            : 'No rows.' ?>
+                                    </td>
                                 </tr>
                                 <?php else: foreach ($rows as $row): ?>
                                     <tr>
@@ -799,6 +886,7 @@ if ($action !== 'sql') {
                                                     <input type="hidden" name="action" value="delete_row">
                                                     <input type="hidden" name="table" value="<?= h($table) ?>">
                                                     <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+                                                    <input type="hidden" name="q" value="<?= h($searchTerm) ?>">
                                                     <?php foreach ($pk as $pkCol): ?>
                                                         <input type="hidden" name="pk[<?= h($pkCol) ?>]" value="<?= h($row[$pkCol]) ?>">
                                                     <?php endforeach; ?>
@@ -817,11 +905,11 @@ if ($action !== 'sql') {
 
                 <div class="pagination">
                     <?php if ($page > 1): ?>
-                        <a href="?action=view&table=<?= h(urlencode($table)) ?>&page=<?= $page - 1 ?>&limit=<?= $limit ?>">← Prev</a>
+                        <a href="?<?= h($paginationQuery) ?>&page=<?= $page - 1 ?>">← Prev</a>
                     <?php endif; ?>
                     <span class="cur"><?= $page ?> / <?= $pages ?></span>
                     <?php if ($page < $pages): ?>
-                        <a href="?action=view&table=<?= h(urlencode($table)) ?>&page=<?= $page + 1 ?>&limit=<?= $limit ?>">Next →</a>
+                        <a href="?<?= h($paginationQuery) ?>&page=<?= $page + 1 ?>">Next →</a>
                     <?php endif; ?>
                     <span class="meta">per page: <?= $limit ?></span>
                 </div>
