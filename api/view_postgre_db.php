@@ -17,7 +17,7 @@ require_once 'checkuser.php';
 
 $userData = checkuser();
 if (($userData['role'] ?? null) !== ROLE_ADMIN) {
-    Response::error("Forbidden.", 401);
+    Response::error("Forbidden.", 403);
 }
 
 // ---- CSRF session ----
