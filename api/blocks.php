@@ -780,10 +780,15 @@ if ($method === 'PUT') {
             // MySQL: IF(flag, CHAR(64 + n), CAST(n AS CHAR))
             // PG:    CASE WHEN ?::int = 1 THEN CHR(64 + n) ELSE n::text END
             // NOTE: CAST(n AS CHAR) in PG truncates to 1 character — must use ::text.
+            // NOTE: The leading ? MUST be cast to ::text. PostgreSQL's CONCAT()
+            //       is declared as concat(VARIADIC "any"), so it gives the parser
+            //       no type information for the parameter, and PDO_PGSQL then
+            //       fails with SQLSTATE[42P18] "could not determine data type
+            //       of parameter $1".
             $graveUpd = $pdo->prepare("
                 UPDATE graves
                 SET grave_code = CONCAT(
-                        ?,
+                        ?::text,
                         '-',
                         CASE WHEN ?::int = 1 THEN CHR(64 + row_num) ELSE row_num::text END,
                         '-',
