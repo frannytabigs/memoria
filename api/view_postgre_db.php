@@ -108,7 +108,7 @@ function tableForeignKeys(PDO $pdo, string $table): array
     $stmt = $pdo->prepare("
         SELECT
             con.conname        AS fk_name,
-            src.attname        AS source_column,
+            src_att.attname    AS source_column,
             tgt.relname        AS target_table,
             tgt_att.attname    AS target_column
         FROM pg_constraint con
